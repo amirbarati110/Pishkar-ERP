@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+.vs/
+.idea/
+.vscode/
+.worktrees/
+TestResults/
+artifacts/
+*.user
+*.suo
+*.fdb
+*.fbk
+*.log
+*.tmp
+*.bak
+

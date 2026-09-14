@@ -1,0 +1,2828 @@
+---
+title: "Retail ERP — Master Product Design FINAL v4.0"
+status: "LOCKED"
+language: "fa-IR"
+platform: "Windows Desktop"
+primary_stack: "C# / .NET 10 LTS / WinUI 3 / Firebird 5"
+license_model: "Perpetual / Full Feature"
+source_of_truth: true
+---
+
+# Retail ERP — Master Product Design FINAL v4.0
+
+> **این فایل تنها Source of Truth پروژه است.**
+>
+> Scope این نسخه شامل تمام تصمیم‌های نهایی درباره UX مینیمال، میز کار، Shortcut System، گزارش‌ساز چندوجهی، AI Local، نصب یک‌کلیکی و Incremental Update است.
+>
+> تمام طراحی UI، دیتابیس، API، تست، Installer، Update، AI، Help و کدنویسی باید با این سند سازگار باشد.
+> هیچ قابلیت نباید در چند بخش با تعریف مستقل و متفاوت تکرار شود. هر قابلیت فقط یک Owner Section دارد و سایر بخش‌ها فقط به آن ارجاع می‌دهند.
+> هر تغییر آینده باید به‌صورت Change Request ثبت شود؛ ویرایش پراکنده، Patch دستی روی Scope و Feature Creep ممنوع است.
+
+---
+
+# فصل 1 — هویت محصول و قوانین غیرقابل تغییر
+
+## 1.1 تعریف محصول
+
+محصول یک **Retail ERP / Business Operating System** برای کسب‌وکارهای کوچک و متوسط است؛ نه یک نرم‌افزار حسابداری سنتی.
+
+حوزه‌های اصلی:
+
+- فروش و POS
+- کالا و قیمت‌گذاری
+- انبار و WMS
+- خرید و تأمین
+- تولید و MRP
+- CRM و باشگاه مشتریان
+- پیام‌رسانی و Automation
+- مالی، خزانه و حسابداری
+- HRM و حقوق
+- لجستیک
+- فروش آنلاین و Integration
+- BI و گزارش
+- Workflow و Tasks
+- Local AI
+- Help و آموزش داخل نرم‌افزار
+- مدیریت تجهیزات، چاپ و اسناد
+
+## 1.2 بازار هدف
+
+- سوپرمارکت و فروشگاه مواد غذایی
+- خشکبار و عطاری
+- عمده‌فروشی
+- پوشاک
+- لوازم یدکی
+- آرایشی
+- تولیدی سبک
+- فروشگاه زنجیره‌ای
+- سایر SMBها با Template مناسب
+
+## 1.3 اصول محصول
+
+1. **Simple by Default:** قدرت زیاد در Backend، سادگی زیاد در UI.
+2. **Local-first:** عملیات اصلی بدون اینترنت کار می‌کنند.
+3. **Full Feature:** نسخه اصلی امکانات Core را کامل دارد.
+4. **Perpetual License:** استفاده از نسخه خریداری‌شده دائمی است.
+5. **Iran-first:** فارسی، RTL، شمسی، تومان/ریال و منطق ایران پیش‌فرض است.
+6. **Weak-PC Friendly:** سیستم ضعیف فروشگاهی نیز باید قابل استفاده باشد.
+7. **One-click Installation:** نصب و تنظیم پیش‌نیازها خودکار است.
+8. **Incremental Update:** تغییر کوچک نباید باعث دانلود مجدد کل نرم‌افزار شود.
+9. **AI Local:** راهنما و تحلیل AI باید بدون اینترنت قابل استفاده باشند.
+10. **Clean Engineering:** کد باید برای هر برنامه‌نویس حرفه‌ای قابل فهم باشد.
+
+## 1.4 مدل تجاری
+
+- لایسنس دائمی
+- تمدید سالانه اجباری: ندارد
+- پشتیبانی اجباری: ندارد
+- Cloud اجباری: ندارد
+- اتصال دائمی به License Server: ندارد
+- هزینه SMS/Cloud/Provider فقط در صورت استفاده و بابت هزینه سرویس خارجی است
+
+---
+
+# فصل 2 — معماری فنی، کیفیت کد و Performance
+
+## 2.1 Stack قفل‌شده
+
+- Language: **C#**
+- Runtime: **.NET 10 LTS**
+- Desktop UI: **WinUI 3 + Windows App SDK**
+- UI Markup: **XAML**
+- Pattern: **MVVM**
+- Architecture: **Clean Architecture + Modular Monolith**
+- Local Database: **Firebird 5**
+- Cloud/API آینده: **ASP.NET Core**
+
+## 2.2 دیتابیس Local
+
+### تک‌سیستم
+Firebird Embedded.
+
+### چند سیستم / چند صندوق
+Firebird Server روی سیستم اصلی یا Server داخل LAN.
+
+کاربر نباید هیچ‌کدام از موارد زیر را دستی انجام دهد:
+
+- ساخت Instance
+- تعریف Connection String
+- بازکردن Port
+- نصب دستی Database Runtime
+- تنظیم سرویس دیتابیس
+
+Installer مسئول همه موارد است.
+
+## 2.3 Process Architecture
+
+حداقل Processهای مستقل:
+
+### ERP Desktop
+UI و Business Operations.
+
+### ERP Local Agent
+برای:
+
+- PC-POS
+- Printer
+- Label Printer
+- Scale
+- Sync
+- Backup
+- Device Monitoring
+- Background Jobs
+
+### AI Engine
+On-Demand؛ مدل دائماً RAM مصرف نمی‌کند.
+
+### Database
+Firebird Embedded یا Server.
+
+## 2.4 ساختار Solution
+
+```text
+ERP.Domain
+ERP.Application
+ERP.Infrastructure
+ERP.Persistence
+ERP.Desktop
+ERP.LocalAgent
+ERP.AI
+ERP.Sync
+ERP.Integrations
+ERP.Reporting
+ERP.Tests
+```
+
+## 2.5 قوانین Clean Code
+
+- نام کلاس، متد و متغیر باید معنی‌دار و استاندارد باشد.
+- کد Clever، مبهم و وابسته به دانش یک نفر ممنوع است.
+- Hidden Coupling ممنوع است.
+- Module Boundaryها باید صریح باشند.
+- Business Rule نباید داخل Code-behind UI مخفی شود.
+- Methodها کوتاه و Single-purpose باشند.
+- Public API داخلی ماژول‌ها مستند باشد.
+- Exception swallowing ممنوع است.
+- Magic Number/String ممنوع است.
+- Configuration در فایل/Storage مناسب، نه Hard-code.
+- Dependency جدید فقط با دلیل فنی مشخص اضافه شود.
+- Secrets هیچ‌وقت داخل Source Code ذخیره نشوند.
+- Migrationها Versioned و قابل Rollback/Recovery باشند.
+
+## 2.6 Documentation برای برنامه‌نویس
+
+هر Module باید دارای:
+
+- README کوتاه
+- مسئولیت Module
+- ورودی/خروجی
+- Public Contracts
+- Business Events
+- Dependencyها
+- تست‌های Critical
+- Decisionهای معماری خاص
+
+باشد.
+
+## 2.7 سخت‌افزار هدف
+
+- Windows 10 64-bit به بالا
+- 4GB RAM: حداقل عملیاتی
+- 8GB RAM: پیشنهادشده
+- CPU: Core i3 قدیمی / Pentium جدید قابل قبول
+- HDD: قابل استفاده
+- SSD: پیشنهادشده
+- GPU: اجباری نیست
+
+## 2.8 Performance Budget
+
+- Startup روی SSD: هدف حدود 3 ثانیه یا کمتر
+- Query معمول Local: هدف کمتر از 200ms
+- ثبت فاکتور بدون Integration خارجی: هدف کمتر از 500ms
+- Gridهای بزرگ: Pagination + Virtualization
+- عکس‌ها: Thumbnail و Lazy Load
+- AI Indexing هنگام فعالیت POS: Pause/Throttle
+- عملیات سنگین Historical/BI: On-demand
+- هیچ Background Job حق ایجاد Lag محسوس در POS ندارد
+
+## 2.9 Transaction و Reliability
+
+عملیات مالی/انبار Critical باید Transactional باشند.
+
+مثال ثبت فروش:
+
+```text
+Invoice
+Payment
+Stock
+Accounting
+```
+
+یا همه Commit می‌شوند یا عملیات Rollback می‌شود.
+
+Integrationهای خارجی از Outbox Pattern استفاده می‌کنند.
+
+## 2.10 Idempotency
+
+برای موارد زیر اجباری:
+
+- PC-POS
+- Online Orders
+- Sync
+- Tax Submission
+- Retryهای Background
+
+تا ثبت یا برداشت تکراری رخ ندهد.
+
+---
+
+# فصل 3 — Iran-first، Design System و UX
+
+## 3.1 زبان و جهت
+
+- زبان پیش‌فرض: فارسی
+- Direction: RTL واقعی
+- UI Copy: فارسی روان و ساده
+- انگلیسی فقط برای موارد فنی یا آینده
+- هیچ صفحه اصلی نباید با Layout خارجی/LTR طراحی شود
+
+## 3.2 تقویم و تاریخ
+
+نمایش اصلی:
+
+- تقویم جلالی/شمسی
+- ماه‌های فارسی
+- هفته مطابق عرف ایران
+- فیلترهای «امروز»، «این هفته»، «این ماه»، «سال جاری» بر اساس تقویم ایرانی
+- داشبوردها و گزارش‌ها بر اساس تاریخ شمسی
+
+در Data Layer تاریخ استاندارد قابل پردازش نیز نگهداری می‌شود.
+
+## 3.3 تعطیلات و مناسبت‌ها
+
+Calendar Engine باید امکان:
+
+- تعطیلات رسمی ایران
+- تعطیلی اختصاصی کسب‌وکار
+- مناسبت‌های قابل تنظیم
+
+را داشته باشد.
+
+## 3.4 واحد پول
+
+- تومان / ریال قابل انتخاب
+- هزارگان استاندارد
+- نمایش فارسی خوانا
+- نمونه: `۱۲,۵۰۰,۰۰۰ تومان`
+
+## 3.5 نگارش فارسی
+
+قبل از Release هر UI باید بازبینی:
+
+- املایی
+- فاصله‌گذاری
+- نیم‌فاصله
+- عنوان دکمه
+- پیام خطا
+- چاپ
+- Help
+
+داشته باشد.
+
+**غلط املایی در UI قابل قبول نیست.**
+
+## 3.6 Design System
+
+- Light Mode
+- Dark Mode
+- High Contrast
+- Font Scaling
+- Density قابل تنظیم
+- فونت فارسی خوانا و Embeddable
+- کارت و Border محدود
+- Shadow حداقلی
+- رنگ فقط برای معنی: Success / Warning / Error / Info
+
+## 3.7 قانون «هر صفحه یک مأموریت»
+
+هر صفحه فقط یک هدف اصلی دارد.
+
+قابلیت‌های زیاد با Progressive Disclosure نمایش داده می‌شوند.
+
+استفاده از صفحه شلوغ با تعداد زیادی Card، KPI و CTA برای عملیات روزانه ممنوع است.
+
+## 3.8 عملیات 2 تا 3 مرحله‌ای
+
+عملیات‌های مهم در 2 تا 3 صفحه واضح انجام می‌شوند.
+
+مثال فروش:
+
+1. مشتری و کالا
+2. پرداخت
+3. تأیید
+
+Popup فقط برای:
+
+- هشدار کوتاه
+- Confirmation
+- Notification
+- انتخاب ساده
+
+استفاده می‌شود.
+
+## 3.9 Actionها
+
+هر صفحه حداکثر یک CTA اصلی واضح دارد.
+
+Actionهای ثانویه مرتب و کم‌تعداد باشند.
+
+## 3.10 Edit و Delete
+
+در Entityهای قابل تغییر:
+
+- Edit واضح و در دسترس
+- Delete همیشه دو مرحله‌ای
+
+### حذف مرحله 1
+«از حذف این مورد مطمئن هستید؟»
+
+### حذف مرحله 2
+«این عملیات روی سوابق مرتبط اثر دارد. حذف نهایی انجام شود؟»
+
+اسناد مالی Posted حذف فیزیکی نمی‌شوند؛ از Void/Reverse/Cancel استفاده می‌شود.
+
+## 3.11 Undo
+
+برای عملیات کم‌ریسک مانند Archive:
+
+> کالا آرشیو شد — [بازگردانی]
+
+## 3.12 Accessibility
+
+- Keyboard-first
+- POS Touch-friendly
+- High Contrast
+- Font Scaling
+- Tab Navigation
+- Shortcut قابل تنظیم
+- عملکرد مناسب در رزولوشن 1366×768 و Scaleهای رایج ویندوز
+
+---
+
+
+## 3.13 معماری منوی اصلی و «میز کار»
+
+Navigation سطح اول باید محدود، روشن و Domain-based باشد. قابلیت‌ها نباید به‌صورت Flat و پراکنده در Sidebar ریخته شوند.
+
+ساختار پیشنهادی سطح اول:
+
+- میز کار
+- فروش و POS
+- مشتریان و CRM
+- کالا و قیمت‌گذاری
+- انبار و WMS
+- خرید و تأمین
+- تولید
+- مالی و حسابداری
+- کارکنان و حقوق
+- لجستیک
+- گزارش و تحلیل
+- یکپارچه‌سازی‌ها
+- تنظیمات
+
+### میز کار
+
+«میز کار» صفحه عملیات روزانه و Role-based است، نه Dashboard شلوغ مدیریتی.
+
+باید فقط موارد پرتکرار و Actionable را نشان دهد:
+
+- میانبر عملیات روزانه
+- کارهای اخیر
+- فاکتورهای نیمه‌تمام / معلق
+- تأییدهای در انتظار
+- هشدارهای مهم
+- Taskهای امروز
+- اعلان‌های Critical
+- Shortcutهای شخصی
+- چند KPI محدود و مرتبط با نقش
+
+نمونه برای صندوق‌دار:
+- فروش جدید
+- فاکتورهای معلق
+- مشتری اخیر
+- مرجوعی
+- وضعیت صندوق
+
+نمونه برای انباردار:
+- رسید
+- حواله
+- انتقال
+- موجودی بحرانی
+- شمارش امروز
+
+نمونه برای مدیر:
+- فروش امروز
+- سود
+- هشدارها
+- تأییدها
+- سفارش‌های در انتظار
+- گزارش‌های Pin‌شده
+
+میز کار:
+- قابل شخصی‌سازی است.
+- Drag & Drop کنترل‌شده دارد.
+- Widgetهای پیش‌فرض کم هستند.
+- حق ندارد به صفحه‌ای شلوغ با ده‌ها نمودار تبدیل شود.
+
+## 3.14 Keyboard & Shortcut Manager
+
+Shortcut System یک زیرسیستم Core UX است و نباید به چند کلید پراکنده در فرم‌ها تقلیل پیدا کند.
+
+### اهداف
+
+- افزایش سرعت عملیات پرتکرار
+- کاهش وابستگی به Mouse
+- کاهش حرکت دست
+- ثبات رفتاری بین Moduleها
+- جلوگیری از Shortcutهای خطرناک
+- شخصی‌سازی برای User حرفه‌ای
+
+### معیار طراحی Default Shortcut
+
+برای هر Action باید این موارد بررسی شود:
+
+1. Frequency — چند بار در روز استفاده می‌شود؟
+2. Risk — اجرای اشتباه آن چقدر خطرناک است؟
+3. Reach — دسترسی فیزیکی روی Keyboard چقدر راحت است؟
+4. Convention — با استانداردهای Windows تداخل دارد یا نه؟
+5. Context — در چه صفحه/Controlی فعال است؟
+6. Permission — آیا User اجازه Action را دارد؟
+7. Recovery — در صورت اشتباه امکان Undo/Recovery وجود دارد؟
+
+### طبقه‌بندی Risk
+
+#### High-frequency / Low-risk
+کلیدهای ساده و سریع.
+
+مثال:
+- جستجو
+- عملیات جدید
+- مرحله بعد
+- ثبت و مورد بعدی
+
+#### Medium-risk
+ترکیب یا F-key مشخص.
+
+مثال:
+- چاپ
+- ویرایش
+- کپی
+- تعلیق
+
+#### High-risk / Destructive
+Shortcut تک‌کلیدی آسان ممنوع است.
+
+مثال:
+- حذف
+- ابطال سند
+- فروش زیر Cost
+- Override مالی
+
+این عملیات علاوه بر Shortcut امن، Confirmation/Approval لازم خود را حفظ می‌کنند.
+
+### Actionهای مستقل
+
+این Actionها هرگز نباید با یک Shortcut مبهم ترکیب شوند:
+
+- Save
+- Save & New
+- Save & Next
+- Save & Print
+- Save & Close
+- Print
+- Edit
+- Copy
+- Search
+- Back
+- Next Step
+- Delete/Cancel
+
+### Fast-entry Workflow
+
+در صفحات پرتکرار مانند:
+
+- فاکتور خرید
+- فروش
+- دریافت
+- پرداخت
+- حواله انبار
+- ثبت کالا
+- ثبت مشتری
+- چک
+- تولید
+
+کاربر باید بتواند رکورد را ثبت کند و با یک Shortcut وارد رکورد بعدی شود؛ بدون برگشت به List یا Menu.
+
+اگر اطلاعات Unsaved وجود دارد، Reset/New نباید Silent انجام شود.
+
+### Preserve Defaults
+
+در «ثبت و مورد بعدی»، براساس تنظیمات می‌توان موارد کم‌خطر را حفظ کرد:
+
+- شعبه
+- انبار
+- تاریخ
+- ارز
+- نوع سند
+- Tax Profile
+
+اما Party و Line Items پیش‌فرض پاک شوند مگر Workflow صریحاً خلاف آن را تعیین کند.
+
+### Full Keyboard Navigation
+
+- Tab / Shift+Tab
+- Arrow Navigation در Gridها
+- Enter برای Action ایمن و Contextual
+- Esc برای Back/Close
+- Focus Order استاندارد
+- Scanner Flow بدون Mouse
+
+Delete داخل Text Input فقط Character را حذف می‌کند و هرگز نباید رکورد را حذف کند.
+
+### User Shortcut Profile
+
+هر User می‌تواند Shortcut Profile شخصی داشته باشد.
+
+قابلیت‌ها:
+
+- Change Binding
+- Conflict Detection
+- Reserved-key Validation
+- Reset to Default
+- Import Profile
+- Export Profile
+- Role Presets
+- Search Shortcuts
+- نمایش Shortcut کنار Button/Menu
+
+### Permission-aware
+
+اگر Action برای User مجاز نیست:
+- Shortcut اجرا نمی‌شود.
+- Shortcut Hint برای Action غیرمجاز نمایش داده نمی‌شود یا Disabled است.
+- تلاش غیرمجاز در Security Log قابل ثبت است.
+
+### Discoverability
+
+- Shortcut روی Button/Menu نمایش داده شود.
+- «میانبرهای این صفحه» وجود داشته باشد.
+- Overlay اختیاری برای نمایش Shortcutهای Current Context.
+- F1 همچنان راهنمای صفحه را باز می‌کند مگر User آن را در چارچوب مجاز شخصی‌سازی کند.
+
+### Shortcut Telemetry Local
+
+در Experience Layer می‌توان به‌صورت Local و Privacy-aware ثبت کرد:
+- چه Shortcutهایی زیاد استفاده می‌شوند
+- کجا User از Mouse به Keyboard برمی‌گردد
+- چه Shortcutی باعث Cancel/Error شده
+
+این داده فقط برای بهبود Local Experience و پیشنهاد شخصی‌سازی استفاده می‌شود؛ نه ارسال اجباری به Cloud.
+
+
+---
+
+# فصل 4 — Help، AI Tutor و Experience Layer
+
+## 4.1 Help اجباری
+
+هیچ صفحه‌ای بدون **راهنمای این صفحه** Release نمی‌شود.
+
+Help شامل:
+
+- هدف صفحه
+- توضیح اجزا
+- مثال
+- Tour
+- Highlight
+- FAQ
+- خطاهای رایج
+- مراحل عملیات
+
+## 4.2 Machine-readable Help Contract
+
+هر Feature باید Workflow Definition داشته باشد.
+
+نمونه:
+
+```yaml
+workflow: expense_payment
+steps:
+  - page: PaymentCreate
+    control: Counterparty
+    instruction_fa: "طرف حساب را انتخاب کنید."
+  - control: ExpenseCategory
+    instruction_fa: "نوع هزینه را مشخص کنید."
+  - control: Amount
+    instruction_fa: "مبلغ را وارد کنید."
+  - action: Continue
+  - page: PaymentReview
+    action: Confirm
+```
+
+## 4.3 AI Tutor
+
+کاربر می‌تواند بپرسد:
+
+> «سند پرداخت اجاره را چطور ثبت کنم؟»
+
+AI باید:
+
+1. منظور را بفهمد.
+2. نقش و Permission کاربر را بررسی کند.
+3. وضعیت صفحه فعلی را بداند.
+4. مسیر دقیق را فارسی توضیح دهد.
+5. در صورت درخواست صفحه مربوط را باز کند.
+6. Control موردنظر را Highlight/Focus کند.
+7. مرحله‌به‌مرحله جلو برود.
+
+## 4.4 سه حالت راهنما
+
+### پاسخ سریع
+مسیر و توضیح کوتاه.
+
+### راهنمای مرحله‌ای
+Step-by-step.
+
+### راهنمای تعاملی
+Navigate + Highlight + Wait for Completion.
+
+## 4.5 سطح پاسخ براساس نقش
+
+کاربر عادی:
+> نیازی به سند دستی ندارید؛ عملیات را ثبت کنید تا سند خودکار ساخته شود.
+
+حسابدار:
+جزئیات Accounting Mapping را نیز می‌بیند.
+
+## 4.6 Local AI Runtime
+
+سه سطح:
+
+- AI Lite: سیستم 4GB
+- AI Standard: 8–16GB
+- AI Advanced: 16GB+ / GPU
+
+LLM On-demand Load می‌شود.
+
+## 4.7 AI Data Architecture
+
+ترکیب:
+
+- Structured Query Engine
+- Calculation Engine
+- Semantic Index
+- Event Index
+- RAG
+- Business Rules
+- Local LLM
+
+## 4.8 قانون عدد مالی
+
+AI حق حدس ندارد.
+
+Flow:
+
+```text
+Database Query
+→ Calculation Engine
+→ Verified Result
+→ AI Explanation
+```
+
+## 4.9 AI Permissions
+
+AI فقط داده‌هایی را می‌بیند که User فعلی اجازه مشاهده آنها را دارد.
+
+## 4.10 Experience Layer
+
+از Phase 0 Eventهای معنادار ثبت می‌شوند:
+
+- Workflow Start/Complete
+- Search
+- Selection
+- Correction
+- Warning Shown
+- Approval
+- Rejection
+- Error
+- Outcome
+
+اما:
+
+- داده غیرضروری ثبت نمی‌شود
+- Privacy رعایت می‌شود
+- Retention قابل تنظیم است
+- Experience Log جای Audit Log را نمی‌گیرد
+
+هدف: Context بهتر برای AI و تحلیل UX.
+
+---
+
+# فصل 5 — کالا، دسته‌بندی، قیمت‌گذاری و سودآوری
+
+## 5.1 Product Master
+
+حداقل اطلاعات:
+
+- نام
+- SKU
+- کد داخلی
+- Alias
+- Barcode
+- تصویر
+- Brand
+- Category
+- Units
+- Weight/Dimensions
+- Tax
+- Supplier
+- Expiry Settings
+- Serial/Batch Tracking
+- Price Levels
+- Reorder Settings
+- Custom Fields
+
+## 5.2 Category
+
+- چندسطحی
+- Drag & Drop
+- Sort
+- Merge
+- Move
+- Archive
+- Hide
+- Branch Visibility
+
+نمونه:
+
+```text
+مواد غذایی
+└── خشکبار
+    └── گردو
+        └── گردو ایرانی
+```
+
+## 5.3 Visibility
+
+کالا/دسته می‌تواند:
+
+- Active
+- Inactive
+- Archived
+
+باشد و جداگانه از:
+
+- POS
+- Online Store
+- Purchasing
+- Branch
+- User Group
+
+مخفی شود.
+
+## 5.4 Units و Conversion
+
+مثال:
+
+- کیلو
+- گرم
+- عدد
+- بسته
+- کارتن
+
+و تبدیل:
+
+`1 Carton = 12 Pack`
+
+Bulk Break پشتیبانی شود.
+
+## 5.5 Variants
+
+برای صنف‌هایی مانند پوشاک:
+
+Parent Product + Variantها براساس:
+
+- رنگ
+- سایز
+- ویژگی سفارشی
+
+## 5.6 Serial / Warranty
+
+- Serial Tracking
+- Warranty
+- Service History
+
+## 5.7 Price Levels
+
+- Retail
+- Wholesale
+- VIP
+- Partner
+- Level N
+
+Customer Default Price Level پشتیبانی شود.
+
+## 5.8 Customer-specific Price
+
+Contract Price برای مشتری خاص.
+
+## 5.9 Pricing Priority
+
+ترتیب قابل تعریف و deterministic:
+
+```text
+Customer Contract
+→ Promotion
+→ Customer Level
+→ Branch Price
+→ Default Price
+```
+
+## 5.10 Inventory Layers و قیمت قدیم/جدید
+
+هر Receipt یک Layer مستقل می‌سازد.
+
+Layer شامل:
+
+- Product
+- Warehouse
+- Lot/Batch
+- Supplier
+- Purchase Date
+- Quantity
+- Purchase Price
+- Landed Cost
+- Sale Price Version
+- Expiry
+
+مثال:
+
+```text
+گردو ایرانی
+
+Layer A
+7kg
+Cost: 600,000
+Sale: 750,000
+
+Layer B
+30kg
+Cost: 720,000
+Sale: 890,000
+```
+
+Product در لیست تکرار نمی‌شود؛ Layerها در جزئیات قابل مشاهده‌اند.
+
+## 5.11 Costing
+
+پشتیبانی:
+
+- FIFO
+- FEFO
+- Moving Weighted Average
+
+حتی اگر حسابداری Average باشد، Layer واقعی موجودی حذف نمی‌شود.
+
+## 5.12 Price Change Wizard
+
+هنگام تغییر قیمت:
+
+- کل موجودی
+- فقط موجودی جدید
+- Batch/Lot انتخابی
+- از تاریخ مشخص
+- پس از اتمام موجودی قدیم
+
+## 5.13 تحلیل قیمت و سودآوری
+
+این قابلیت Owner Section اصلی تحلیل قیمت است.
+
+برای هر کالا:
+
+- آخرین قیمت خرید
+- میانگین قیمت خرید
+- کمترین/بیشترین خرید
+- Landed Cost
+- بهای تمام‌شده
+- قیمت فروش فعلی
+- تاریخچه قیمت فروش
+- سود ریالی
+- Gross Margin
+- Markup
+- ارزش موجودی
+- سود کل
+- سرمایه خوابیده
+
+## 5.14 Margin و Markup
+
+### Gross Margin
+
+`(Sale Price - Cost) / Sale Price × 100`
+
+### Markup
+
+`(Sale Price - Cost) / Cost × 100`
+
+در UI با دو عنوان متفاوت نمایش داده شوند:
+
+- حاشیه سود
+- درصد افزایش نسبت به بهای تمام‌شده
+
+## 5.15 Price Analysis Screen
+
+سه Tab/نمای مرتب:
+
+### خلاصه
+خرید آخر، Cost، فروش، سود، Margin، موجودی.
+
+### تاریخچه
+نمودار خرید، فروش، Margin، Supplier و Layerها.
+
+### اقدام
+- تغییر قیمت
+- Margin هدف
+- Batch Pricing
+- Promotion
+- Supplier Comparison
+- Purchase Suggestion
+
+## 5.16 Target Margin
+
+برای Product/Category/Branch/Price Level:
+
+- Minimum Margin
+- Target Margin
+- Target Markup
+- Minimum Profit Amount
+
+سیستم قیمت پیشنهادی می‌دهد.
+
+## 5.17 Break-even & Loss Guard
+
+- Break-even Price
+- Minimum Allowed Price
+- Below-cost Detection
+- Low-margin Detection
+
+Policy:
+
+- Warning
+- Manager Approval
+- Block
+
+## 5.18 Supplier Price Intelligence
+
+- آخرین قیمت هر تأمین‌کننده
+- میانگین
+- کمترین قیمت
+- Lead Time
+- شرایط پرداخت
+- نرخ مرجوعی/کیفیت
+
+## 5.19 Price & Label Coordination
+
+بعد از تغییر قیمت:
+
+- تشخیص کالاهای نیازمند چاپ لیبل جدید
+- انتخاب Layer/Batch
+- چاپ گروهی لیبل قیمت جدید
+
+## 5.20 Price AI
+
+AI می‌تواند پاسخ دهد:
+
+- «چرا سود این کالا کم شده؟»
+- «قیمت مناسب فروش چقدر است؟»
+- «کدام کالا زیر Margin هدف است؟»
+- «کدام تأمین‌کننده مناسب‌تر است؟»
+
+فقط با Calculation Engine واقعی.
+
+---
+
+# فصل 6 — فروش، POS و پرداخت
+
+## 6.1 اصل POS
+
+POS باید سریع‌ترین و ساده‌ترین بخش سیستم باشد.
+
+Flow:
+
+1. مشتری + کالا
+2. پرداخت
+3. تأیید نهایی
+
+## 6.2 مرحله 1 — مشتری و کالا
+
+نمایش فقط:
+
+- Customer
+- Product Search / Barcode
+- Cart
+- Total
+- Continue
+
+## 6.3 مشتری نقدی
+
+Default Customer: «مشتری نقدی».
+
+## 6.4 جستجوی مشتری
+
+با:
+
+- موبایل
+- نام
+- کد
+- کد ملی
+- کارت باشگاه
+
+## 6.5 ثبت سریع مشتری
+
+در همان POS:
+
+**+ مشتری جدید**
+
+Quick Create:
+
+- موبایل
+- نام
+
+Duplicate Check قبل از ثبت.
+
+## 6.6 Customer Context Notification
+
+پس از انتخاب مشتری، Background Check:
+
+- مانده
+- فاکتور باز
+- بدهی سررسید
+- قسط
+- چک برگشتی
+- سقف اعتبار
+- Blacklist
+- Wallet
+- Loyalty
+- Coupon
+- Birthday
+
+فقط موارد مهم نمایش داده شوند.
+
+Notification غیرمسدودکننده باشد مگر Policy نیاز به Block داشته باشد.
+
+## 6.7 Credit Policy
+
+- Warning
+- Manager Approval
+- Block
+
+براساس:
+
+- Credit Limit
+- Overdue
+- Returned Cheque
+- Custom Rules
+
+## 6.8 Product Search
+
+- Barcode
+- SKU
+- Name
+- Alias
+- Category
+- Scale Barcode
+- Serial
+- Favorite
+
+Scanner نیاز به Focus دستی نداشته باشد.
+
+## 6.9 Cart Row
+
+نمایش:
+
+- نام
+- تعداد
+- واحد
+- قیمت
+- جمع
+- `-`
+- `+`
+- Edit
+- More
+
+## 6.10 Edit Line
+
+کاربر مجاز می‌تواند:
+
+- قیمت همین فاکتور را تغییر دهد
+- تخفیف مبلغی
+- تخفیف درصدی
+
+و در صورت Permission ببیند:
+
+- خرید آخر
+- بهای تمام‌شده
+- Margin
+- آخرین قیمت فروش به همین مشتری
+- Minimum Price
+- Stock
+
+## 6.11 Invoice Price vs Master Price
+
+دو Action کاملاً جدا:
+
+### ویرایش قیمت همین فاکتور
+فقط Invoice Line.
+
+### ویرایش قیمت اصلی کالا
+Navigate به Product Master.
+
+هیچ تغییر ضمنی بین این دو مجاز نیست.
+
+## 6.12 Discount Guard
+
+براساس Permission:
+
+- Discount Limit
+- Minimum Margin
+- Below-cost Rule
+
+نیاز به Manager Approval در صورت عبور.
+
+## 6.13 Multi Active Sales
+
+چند Sale Tab همزمان.
+
+Hold/Resume.
+
+## 6.14 Promotion Engine
+
+- Buy X Get Y
+- Percentage
+- Fixed
+- Bundle
+- Category
+- Customer/VIP
+- Date/Hour
+- Branch
+- Quantity
+- Cart Total
+- Coupon
+
+خودکار اعمال شود و دلیل تخفیف قابل مشاهده باشد.
+
+## 6.15 مرحله 2 — پرداخت
+
+روش‌ها:
+
+- PC-POS
+- نقد
+- Card Manual
+- Wallet
+- Store Credit
+- Gift Card
+- نسیه
+- اقساط
+- چک
+- Split Payment
+
+## 6.16 Split Payment
+
+چند روش همزمان تا Balance = 0 یا بدهی مجاز.
+
+## 6.17 PC-POS
+
+مبلغ مستقیم ارسال می‌شود.
+
+Flow:
+
+```text
+ERP
+→ Local Payment Agent
+→ PSP Adapter
+→ Terminal
+→ Result
+→ Verification
+→ Invoice Payment
+```
+
+ذخیره:
+
+- Trace
+- Reference
+- Terminal
+- Merchant
+- Amount
+- Status
+- Time
+
+## 6.18 Payment State Machine
+
+```text
+Pending
+Sent
+Processing
+Approved
+Declined
+Timeout
+Unknown
+Reversed
+Reconciled
+```
+
+Duplicate Charge ممنوع.
+
+## 6.19 PC-POS Setup/Diagnostics
+
+- Provider
+- Terminal
+- IP/COM
+- Device Assignment
+- Test
+- Connection Status
+- Last Success
+- Retry/Reversal/Reconciliation
+
+## 6.20 Installment
+
+- مبلغ
+- پیش‌پرداخت
+- تعداد قسط
+- فاصله
+- تاریخ شروع
+- سود
+- جریمه تأخیر
+
+Schedule خودکار.
+
+## 6.21 مرحله 3 — تأیید
+
+خلاصه:
+
+- مشتری
+- اقلام
+- تخفیف
+- مبلغ
+- Payment Breakdown
+- Loyalty
+
+CTA:
+
+**ثبت و چاپ**
+
+## 6.22 After Sale
+
+Toast:
+
+> فروش با موفقیت ثبت شد.
+
+Action:
+
+- چاپ
+- ارسال
+- مشاهده
+- فروش جدید
+
+Backend:
+
+- Stock
+- Accounting
+- Customer Balance
+- Loyalty
+- Commission
+- Tax Queue
+- Sync Queue
+- Messaging Event
+- Audit
+
+## 6.23 Accounting Document
+
+در POS نمایش داده نمی‌شود.
+
+مدیر/حسابدار در صورت نیاز:
+
+**مشاهده سند حسابداری**
+
+## 6.24 Cash Register Shift
+
+Start Shift:
+
+- Cash Float
+
+End Shift:
+
+- Expected Cash
+- Actual Cash
+- Difference
+- Reason
+
+## 6.25 Return
+
+- پیدا کردن Invoice
+- انتخاب Line
+- Qty
+- Reason
+- Refund Method
+- Return to Stock / Damaged / Waste
+
+## 6.26 Exchange
+
+Return + New Sale در یک Workflow با محاسبه مابه‌التفاوت.
+
+## 6.27 Reservation / Deposit
+
+- Reserve Stock
+- Deposit
+- Expiry
+- Release Reservation
+
+## 6.28 Gift Card و Store Credit
+
+- Issue
+- Recharge
+- Redeem
+- Expiry Optional
+- History
+
+Store Credit به Customer متصل است.
+
+---
+
+# فصل 7 — مشتری، CRM، باشگاه مشتریان و پیام‌رسانی
+
+## 7.1 Customer 360
+
+- مشخصات
+- تماس
+- آدرس
+- خریدها
+- مانده
+- پرداخت
+- مرجوعی
+- Ticket
+- Note
+- Loyalty
+- Preference
+- Communication History
+
+## 7.2 Loyalty
+
+- Points
+- Tier
+- Wallet
+- Cashback
+- Coupon
+- Referral
+- Birthday
+- Gift Card
+- Campaign
+
+## 7.3 Segmentation
+
+- New
+- Active
+- Loyal
+- VIP
+- At Risk
+- Lost
+- High Value
+- Debtor
+- Product-based
+
+## 7.4 RFM / LRFM
+
+- Recency
+- Frequency
+- Monetary
+- Length
+
+## 7.5 Survey
+
+- CSAT
+- NPS
+- Rating
+- Comment
+
+متصل به:
+
+- Invoice
+- Branch
+- Cashier
+- Online Order
+
+## 7.6 Communication Engine
+
+Provider-independent.
+
+Adapters:
+
+- Kavenegar
+- SMS.ir
+- Melipayamak
+- IPPanel
+- Custom REST
+
+در آینده:
+
+- Email
+- Push
+- WhatsApp
+- Telegram/Channels مطابق امکان قانونی و فنی
+
+## 7.7 Triggerها
+
+- Sale
+- Birthday
+- Inactive Customer
+- Installment
+- Cheque
+- Order Ready
+- Stock Available
+- Loyalty Level
+- Payroll
+- Promotion
+
+## 7.8 Automation Builder
+
+```text
+Trigger
+→ Condition
+→ Action
+```
+
+مثال:
+
+```text
+CustomerInactive30Days
+→ LifetimeValue > X
+→ GenerateCoupon
+→ SendSMS
+```
+
+## 7.9 Anti-Spam
+
+- Consent
+- Opt-out
+- Frequency Cap
+- Quiet Hours
+- Transactional vs Marketing
+
+---
+
+# فصل 8 — انبار، WMS، تأمین و خرید
+
+## 8.1 Warehouse Structure
+
+- Multi-Warehouse
+- Zone
+- Location
+- Bin
+
+## 8.2 Warehouse Operations
+
+- Receipt
+- Issue
+- Transfer
+- Adjustment
+- Stocktake
+- Cycle Count
+- Reservation
+- Release
+- Waste
+- Internal Consumption
+- Sample
+- Damaged
+- Return
+
+## 8.3 Stock States
+
+- Physical
+- Available
+- Reserved
+- In Transit
+- Blocked
+- Damaged
+- Expired
+
+## 8.4 Batch / Lot / Expiry
+
+- Batch No
+- Receipt Date
+- Production Date
+- Expiry
+- Supplier
+- Quantity
+- Cost
+
+FEFO برای کالاهای تاریخ‌دار.
+
+## 8.5 Reorder Settings
+
+برای Product/Warehouse:
+
+- Min
+- Max
+- Reorder Point
+- Safety Stock
+- Preferred Order Qty
+- Lead Time
+- Preferred Supplier
+
+## 8.6 Smart Replenishment
+
+تحلیل:
+
+- 7/30/90-day Sales
+- Trend
+- Seasonality
+- Available
+- Reserved
+- In Transit
+- Lead Time
+- Safety Stock
+- Target Sales
+
+خروجی باید همراه دلیل باشد.
+
+## 8.7 Transfer Before Purchase
+
+ابتدا کمبود از سایر انبارها بررسی شود.
+
+در صورت وجود موجودی اضافه:
+
+> پیشنهاد انتقال داخلی
+
+قبل از Purchase Recommendation.
+
+## 8.8 Target-based Planning
+
+کاربر هدف تعیین می‌کند:
+
+- مبلغ فروش
+- تعداد
+- Category
+- Product
+- Branch
+- Week/Month/Season
+
+سیستم محاسبه می‌کند:
+
+- Forecast
+- Required Stock
+- Purchase Requirement
+- Capital Required
+- Expected Margin
+- Bottleneck
+
+## 8.9 Purchasing Flow
+
+```text
+Purchase Request
+→ RFQ
+→ Supplier Offers
+→ Comparison
+→ Purchase Order
+→ In Transit
+→ Receipt
+→ QC
+→ Supplier Invoice
+→ Payment
+```
+
+## 8.10 Supplier Comparison
+
+- Price
+- Lead Time
+- Quality
+- Return Rate
+- Discount
+- Payment Terms
+
+## 8.11 Partial Receipt
+
+Open Quantity حفظ شود.
+
+مثال:
+
+PO=100  
+Received=70  
+Open=30
+
+## 8.12 Landed Cost
+
+- Freight
+- Insurance
+- Packaging
+- Handling
+- Customs/Other
+
+Allocation روی Cost کالا.
+
+## 8.13 Dead Stock
+
+Definition configurable.
+
+مثال:
+
+No Sale > 60 days.
+
+Action Suggestions:
+
+- Discount
+- Transfer
+- Bundle
+- Return Supplier
+
+## 8.14 Near-expiry
+
+Alert + پیشنهاد Promotion/Transfer.
+
+---
+
+# فصل 9 — تولید، بارکد، لیبل و تجهیزات وزن
+
+## 9.1 BOM / Recipe
+
+مواد اولیه، بسته‌بندی و Output.
+
+## 9.2 Production Order
+
+```text
+Plan
+→ Material Check
+→ Issue Material
+→ Produce
+→ QC
+→ Finished Goods Receipt
+```
+
+## 9.3 Production Cost
+
+- Material
+- Packaging
+- Labor
+- Overhead
+- Waste
+
+## 9.4 Production Batch
+
+- Batch No
+- Manufacturing Date
+- Expiry
+- Operator
+- Qty
+- Cost
+- QC
+
+## 9.5 Barcode
+
+- EAN-13
+- Code128
+- QR
+- Internal Barcode
+- Weighted Barcode
+
+## 9.6 Label Designer
+
+Drag & Drop:
+
+- Logo
+- Product
+- Price
+- Weight
+- Barcode
+- QR
+- Batch
+- Production
+- Expiry
+
+## 9.7 Scale
+
+- Online Scale
+- Label Scale
+- Tare
+- Weight Barcode
+
+Gross - Tare = Net.
+
+---
+
+# فصل 10 — مالی، خزانه، حسابداری و مالیات
+
+## 10.1 Treasury
+
+- Cash
+- Bank
+- POS Account
+- Petty Cash
+- Receivable
+- Payable
+- Transfer
+- Cheque
+- Installment
+- Loan
+
+## 10.2 Bank Reconciliation
+
+- Import Statement
+- Auto Match
+- Manual Match
+- Difference Detection
+
+## 10.3 Cheque
+
+- Receive
+- Issue
+- Deposit
+- Transfer
+- Clear
+- Bounce
+- Return
+- Due Alert
+- Print
+
+## 10.4 Accounting
+
+- Double Entry
+- Chart of Accounts
+- General Ledger
+- Subsidiary
+- Trial Balance
+- P&L
+- Balance Sheet
+- Cost Center
+- Project
+
+## 10.5 Auto Accounting
+
+Business Operation سند تولید می‌کند.
+
+کاربر عملیاتی Debit/Credit نمی‌بیند.
+
+## 10.6 Accounting Mapping
+
+Rules قابل تنظیم برای:
+
+- Sale
+- Return
+- Purchase
+- Cost
+- Payment
+- Stock
+- Production
+
+## 10.7 Financial Period
+
+- Fiscal Year
+- Opening
+- Closing
+- Period Lock
+
+تغییر بعد از Lock فقط با Permission.
+
+## 10.8 Multi-Currency
+
+- Base Currency
+- Transaction Currency
+- Exchange Rate
+- FX Gain/Loss
+
+## 10.9 Multi-Company
+
+چند Company مستقل در یک نصب.
+
+Data Isolation اجباری.
+
+Consolidated Reporting برای آینده.
+
+## 10.10 Tax / Iranian Compliance
+
+Architecture مستقل و Updatable برای:
+
+- قوانین مالیاتی
+- شناسه کالا/خدمت
+- صورتحساب الکترونیکی
+- وضعیت ارسال
+- خطا
+- اصلاح/ابطال
+- Connector سامانه مؤدیان
+
+---
+
+# فصل 11 — HRM، حقوق، دارایی و تعمیرات
+
+## 11.1 Employee Master
+
+- مشخصات
+- قرارداد
+- Branch
+- Department
+- Position
+- Shift
+- Bank
+- Documents
+- Assets
+- Training
+
+## 11.2 Attendance
+
+- Clock In/Out
+- Shift
+- Leave
+- Mission
+- Overtime
+- Undertime
+- Absence
+
+Device Adapter آماده باشد.
+
+## 11.3 Payroll
+
+- Base Salary
+- Allowance
+- Overtime
+- Commission
+- Bonus
+- Tax
+- Insurance
+- Loan
+- Advance
+- Deduction
+
+## 11.4 Payroll Flow
+
+```text
+Draft
+→ Review
+→ Approval
+→ Payment
+→ Payslip
+```
+
+## 11.5 Assets
+
+- Equipment
+- PC
+- Vehicle
+- Refrigerator
+- Furniture
+- Other
+
+اطلاعات:
+
+- Purchase
+- Value
+- Location
+- Responsible Person
+- Depreciation
+- Service
+
+## 11.6 Maintenance
+
+- Preventive Maintenance
+- Repair Ticket
+- Service Date
+- Cost
+- Technician/Supplier
+- Downtime
+
+---
+
+# فصل 12 — لجستیک، سفارش و فروش آنلاین
+
+## 12.1 Inbound Logistics
+
+```text
+Shipment
+→ Receipt
+→ Verification
+→ Discrepancy
+→ Warehouse
+```
+
+## 12.2 Outbound Logistics
+
+```text
+Order
+→ Picking
+→ Packing
+→ Driver
+→ Delivery
+→ Settlement
+```
+
+## 12.3 Driver Settlement
+
+- Delivered
+- Returned
+- Cash
+- POS
+- Difference
+- Final Settlement
+
+## 12.4 Online Store Integration
+
+ERP مرجع اصلی موجودی است.
+
+Sync:
+
+- Product
+- Price
+- Stock
+- Category
+- Customer
+- Order
+- Status
+
+## 12.5 Connector Architecture
+
+Connector مستقل برای:
+
+- WooCommerce
+- Shopify
+- Custom Store
+- Marketplace
+- Delivery Platform
+- Payment Gateway
+
+## 12.6 Sync Architecture
+
+Outbox/Inbox Pattern.
+
+- Retry
+- Offline Queue
+- Conflict Detection
+- Idempotency
+
+## 12.7 Conflict Rules
+
+Owner مشخص برای هر داده.
+
+مثال:
+
+- Stock: ERP Authority
+- Online Order: Source Ownership
+- Price: Rule قابل تنظیم
+
+---
+
+# فصل 13 — Dashboard، BI، گزارش، Workflow و Notifications
+
+## 13.1 Dashboard
+
+Drag & Drop و قابل شخصی‌سازی.
+
+Widgetهای ممکن:
+
+- فروش امروز
+- سود
+- تعداد فاکتور
+- میانگین سبد
+- نقدینگی
+- سفارش آنلاین
+- مشتری جدید
+- بدهکار
+- موجودی کم
+- انقضا
+- کارکنان حاضر
+- چک
+- Task
+- نمودارها
+
+Dashboard نباید شلوغ باشد؛ Widgetهای پیش‌فرض محدود و قابل حذف باشند.
+
+## 13.2 Global Search
+
+`Ctrl + K`
+
+جستجو در:
+
+- Product
+- Customer
+- Invoice
+- Document
+- Supplier
+- Employee
+- Order
+- Cheque
+- Setting
+
+نتیجه دارای Quick Action.
+
+## 13.3 Reports
+
+- Sales
+- Profit
+- Inventory
+- Purchase
+- Customer
+- Supplier
+- Cash Flow
+- HR
+- Payroll
+- Production
+- Marketing
+
+## 13.4 BI
+
+- Sales Trend
+- Margin
+- Category Mix
+- Hourly Sales
+- Day of Week
+- Inventory Turnover
+- Dead Stock
+- Customer Cohort
+- RFM/LRFM
+- Employee Performance
+
+## 13.5 Report & Analytics Studio
+
+گزارش‌ساز یکی از Flagship Capabilityهای ERP است و باید از تمام Moduleها داده مجاز دریافت کند.
+
+دو سطح UX دارد:
+
+### سطح 1 — گزارش‌های آماده
+
+برای User عادی:
+
+- فروش امروز
+- سود این ماه
+- موجودی
+- بدهکاران
+- پرفروش‌ها
+- گردش کالا
+- خرید
+- چک‌ها
+- حقوق
+- تولید
+
+با Filter ساده و خروجی سریع.
+
+### سطح 2 — Analytics Studio
+
+برای مدیر و User حرفه‌ای، بدون نیاز به SQL.
+
+قابلیت‌ها:
+
+- Data Source
+- Metrics
+- Dimensions
+- Fields
+- Filter
+- Advanced Filter
+- Group
+- Sort
+- Calculated Measureهای کنترل‌شده
+- Pivot / Cross-tab
+- Drill-down
+- Drill-through
+- Period Comparison
+- Branch Comparison
+- Scenario/Target Comparison
+- Top/Bottom N
+- Conditional Highlight
+- Table
+- KPI
+- Line / Bar / Pie / Scatter در موارد مناسب
+- Narrative/Textual Interpretation
+- Saved Report Definition
+- Favorite / Pin to Workbench
+- Shared Definition براساس Permission
+- Print
+- Excel
+- PDF
+- CSV
+
+هر گزارش باید بتواند بین Table، Pivot، Chart و Narrative جابه‌جا شود؛ «گزارش نموداری» نباید Module جدا و پراکنده باشد.
+
+### گزارش چندوجهی
+
+نمونه درخواست:
+
+> فروش سه ماه اخیر گردو را به تفکیک شعبه، تعداد مشتری، قیمت خرید، سود و حاشیه سود با سه ماه قبل مقایسه کن.
+
+یک Report Definition می‌تواند همزمان:
+- چند Dimension
+- چند Metric
+- Comparison Period
+- Drill-down
+- Chart
+- Narrative
+
+داشته باشد.
+
+### Report Permissions
+
+Report Engine باید Row/Field/Company/Branch Permissionهای User را رعایت کند.
+
+وجود Report Builder مجوز دورزدن Permission نیست.
+
+### Query Safety
+
+- Queryهای سنگین محدود/بهینه شوند.
+- Dataset بزرگ Paginated/Aggregated شود.
+- Weak-PC Constraint رعایت شود.
+- Report Query نباید POS را Block کند.
+
+## 13.6 AI Report Builder
+
+Local AI باید بتواند درخواست فارسی مدیر را به Report Definition تبدیل کند.
+
+نمونه:
+
+> «کالاهایی که فروششان خوب است ولی سودشان کم است نشان بده.»
+
+AI باید:
+
+1. Intent را استخراج کند.
+2. Data Sourceهای مجاز را تعیین کند.
+3. Metrics/Dimensions را پیشنهاد دهد.
+4. Filter و Period را مشخص کند.
+5. Query/Calculation را از Engine واقعی بگیرد.
+6. نوع Table/Pivot/Chart مناسب را انتخاب کند.
+7. Narrative فارسی بسازد.
+8. Report Definition را قبل از ذخیره قابل بازبینی کند.
+
+AI حق ندارد برای پرکردن Gap عدد بسازد.
+
+عددها فقط از:
+- Verified Query
+- Calculation Engine
+- Aggregation Engine
+
+می‌آیند.
+
+کاربر می‌تواند:
+
+- ذخیره گزارش
+- ویرایش Report Definition
+- افزودن به میز کار
+- Export
+- چاپ
+- اجرای دوباره
+- Duplicate Template
+
+را انجام دهد.
+
+## 13.7 Narrative Analytics
+
+سیستم می‌تواند کنار گزارش توضیح فارسی قابل فهم ارائه کند.
+
+مثال:
+
+> فروش این گروه نسبت به دوره قبل افزایش داشته، اما حاشیه سود کاهش یافته است. بیشترین اثر از افزایش بهای تمام‌شده دو Batch اخیر آمده است.
+
+هر جمله تحلیلی که عدد دارد باید Traceable به Metric واقعی باشد.
+
+
+## 13.8 Workflow Engine
+
+مثال:
+
+- Purchase > X → Manager Approval
+- Discount > X → Supervisor
+- Leave > N days → HR
+- Inventory Adjustment → Warehouse Manager
+
+## 13.9 Task Engine
+
+Manual + Automatic.
+
+## 13.10 Notification Center
+
+Types:
+
+- Info
+- Success
+- Warning
+- Critical
+
+Action:
+
+- Snooze
+- Mark Read
+- Assign
+- Open Source
+
+## 13.11 Central Attention Center
+
+فقط موارد Actionable:
+
+- Stock Out
+- Expiry
+- Cheque Due
+- Customer Risk
+- Order Waiting
+- Backup Problem
+- Payment Unknown
+- Sync Error
+
+---
+
+# فصل 14 — Import/Export، چاپ، Device Center و اسناد
+
+## 14.1 Import Center
+
+Core Importها:
+
+- Product
+- Customer
+- Supplier
+- Opening Stock
+- Price
+- Other Master Data در صورت نیاز
+
+## 14.2 Excel Template
+
+برای هر Import:
+
+- فایل نمونه آماده
+- Header فارسی
+- نمونه یک یا دو Row
+- توضیح ستون‌های اجباری/اختیاری
+
+## 14.3 Import Wizard
+
+```text
+Select File
+→ Detect Columns
+→ Map Columns
+→ Preview
+→ Validate
+→ Import
+→ Result
+```
+
+## 14.4 Duplicate Policy
+
+برای Product:
+
+- Barcode
+- SKU
+- Name + Rule
+
+برای Customer:
+
+- Mobile
+- National ID
+- Customer Code
+
+رفتار:
+
+- Skip
+- Update
+- Ask
+- Merge در موارد مجاز
+
+## 14.5 Validation
+
+پیام خطای فارسی واضح:
+
+- شماره موبایل نامعتبر
+- بارکد تکراری
+- قیمت نامعتبر
+- دسته‌بندی ناموجود
+- Required Field Missing
+
+## 14.6 Import Rollback
+
+Import Batch باید قابل Rollback امن باشد تا اشتباه فایل باعث خرابی Master Data نشود.
+
+## 14.7 Competitor Migration
+
+Adapter برای خروجی‌های قانونی/قابل‌دسترسی:
+
+- Holo
+- Mahak
+- Dasht
+- Baran
+
+## 14.8 Export
+
+- Excel
+- CSV
+- PDF
+- Print
+
+در Gridهای مناسب.
+
+## 14.9 Document Management
+
+Attachment برای:
+
+- Product
+- Customer
+- Supplier
+- Invoice
+- Employee
+- Asset
+- Other relevant entities
+
+Formats:
+
+- PDF
+- Image
+- Contract
+- Receipt
+- Warranty
+
+## 14.10 Print & Device Center
+
+یک مرکز واحد، نه تنظیمات پراکنده.
+
+Device Profiles:
+
+- Receipt Printer
+- A4 Printer
+- Label Printer
+- Customer Display
+- Scale
+- POS Terminal
+
+## 14.11 Sales Receipt Setup
+
+- 58mm / 80mm / Custom
+- Logo
+- Header
+- Footer
+- Customer Info
+- Tax
+- Discount
+- QR
+- Barcode
+- Copy Count
+- Margin
+- Density
+
+## 14.12 Label Printer Setup
+
+- Width/Height
+- Gap
+- Margin
+- Density
+- Speed
+- Orientation
+- Copies
+- Template
+- Test Print
+
+## 14.13 Per-workstation Profile
+
+هر Station تنظیم چاپ و Device مستقل داشته باشد.
+
+مثال:
+
+```text
+Cashier-1:
+Sales Receipt → 80mm Printer
+
+Warehouse-1:
+Product Label → 50x30 Label Printer
+```
+
+## 14.14 Print Preview
+
+قبل از چاپ Designer/Template:
+
+- Preview
+- Test Print
+- Save Profile
+
+---
+
+# فصل 15 — امنیت، نصب، Backup، Update، تست و Delivery
+
+## 15.1 User / Role / Permission
+
+Scope:
+
+- Company
+- Branch
+- Module
+- Action
+- Sensitive Field
+
+## 15.2 Permission Granularity
+
+مثال Cashier:
+
+- View Cost: No
+- Edit Master Price: No
+- Discount <= X: Yes
+- Delete Posted Invoice: No
+
+## 15.3 Manager Approval
+
+PIN شخصی یا روش امن مجاز.
+
+رمز مشترک ممنوع.
+
+Audit:
+
+- درخواست‌کننده
+- تأییدکننده
+- زمان
+- دلیل
+- Old/New Value
+
+## 15.4 Audit Log
+
+جدا از Technical Log.
+
+برای:
+
+- Price Change
+- Discount Override
+- Delete/Archive
+- Accounting Change
+- Inventory Adjustment
+- Approval
+- Security Action
+
+## 15.5 Logging
+
+سه نوع:
+
+- Technical Log
+- Business Audit
+- Security Log
+
+Rotation و Retention مشخص.
+
+## 15.6 Privacy
+
+- Data اصلی Local
+- Cloud فقط داده لازم
+- AI Local اطلاعات را برای پاسخ Local به اینترنت ارسال نمی‌کند
+- Experience Data حداقلی و Permission-aware
+
+## 15.7 One-click Installer
+
+کاربر فقط Setup را اجرا می‌کند.
+
+Installer مسئول:
+
+- Runtime
+- Firebird
+- Local Agent
+- App Files
+- Service Registration
+- Shortcut
+- Initial Database
+- Required Folder/Permission
+- First-run Initialization
+- Hardware Setup Wizard در صورت نیاز
+
+کاربر نباید پیش‌نیاز فنی دستی نصب کند.
+
+## 15.8 Installation Flow
+
+```text
+Run Setup
+→ Install
+→ Business Name
+→ Business Type
+→ Admin User
+→ Start
+```
+
+## 15.9 Business Templates
+
+- Grocery
+- Food
+- Dry Fruits
+- Clothing
+- Spare Parts
+- Cosmetics
+- Production
+- Wholesale
+- Other
+
+Template فقط Default UX/Fields را تنظیم می‌کند؛ Core مشترک است.
+
+## 15.10 Backup
+
+Automatic:
+
+- Daily
+- Weekly
+
+Destination:
+
+- Local Disk
+- External Disk
+- NAS
+- Optional Cloud
+
+## 15.11 Backup Security
+
+- Encryption
+- Verification
+- Health Check
+
+سیستم باید فقط وجود فایل را چک نکند؛ Backup باید قابل اعتبارسنجی باشد.
+
+## 15.12 Migration PC
+
+Export Package:
+
+`Company.erpbackup`
+
+شامل:
+
+- Database
+- Attachments
+- Settings
+- Templates
+- AI Index قابل بازسازی/انتقال
+- Users
+- Workflows
+
+## 15.13 Incremental / Delta Update
+
+**اصل قفل‌شده:** برای تغییر کوچک، دانلود کامل Installer ممنوع است.
+
+Update Package باید Componentized باشد.
+
+Componentهای مستقل نمونه:
+
+- Core App
+- UI Resources
+- Help Content
+- AI Prompt/Knowledge Package
+- Connector
+- Local Agent
+- Report Templates
+- Tax Connector
+
+## 15.14 Update Manifest
+
+هر Release:
+
+- Version
+- Component Version
+- File Hash
+- Dependency
+- Migration Requirement
+- Minimum Compatible Version
+- Signature
+
+## 15.15 Delta Strategy
+
+Updater فقط فایل/Blockهای تغییرکرده را دانلود می‌کند.
+
+Fallback به Full Package فقط وقتی:
+
+- Delta ناممکن است
+- Version خیلی قدیمی است
+- Integrity Check شکست خورده
+
+## 15.16 Update Process
+
+```text
+Check
+→ Show Size & Changes
+→ Download Delta
+→ Verify Signature/Hash
+→ Backup if Needed
+→ Apply
+→ Migrate
+→ Health Check
+→ Complete
+```
+
+## 15.17 Update Rollback
+
+در صورت Failure:
+
+- Restore Previous Binary
+- Database Migration Recovery طبق Strategy
+- App قابل اجرا باقی بماند
+
+## 15.18 Update Channels
+
+- Stable
+- Optional Preview/Internal
+
+مشتری عادی پیش‌فرض Stable.
+
+## 15.19 Diagnostics
+
+Health Center:
+
+- Database
+- Backup
+- Printer
+- Label Printer
+- PC-POS
+- Scale
+- Network
+- Sync
+- Disk
+- AI
+
+CTA:
+
+**بررسی سلامت سیستم**
+
+## 15.20 Error Handling
+
+خطای Technical مستقیماً به کاربر نمایش داده نشود.
+
+مثال درست:
+
+> اتصال به کارتخوان برقرار نیست.
+
+Action:
+
+**بررسی اتصال**
+
+Technical Details فقط برای Diagnostic/Support.
+
+## 15.21 Test Strategy
+
+- Unit
+- Integration
+- Database
+- UI Critical Flow
+- POS
+- Payment
+- Hardware Mock
+- Sync
+- Migration
+- Backup/Restore
+- Update/Rollback
+- Performance
+
+## 15.22 Critical Automated Scenarios
+
+حداقل:
+
+- Cash Sale
+- PC-POS Sale
+- Split Payment
+- Return
+- Exchange
+- Customer Credit
+- Purchase Receipt
+- Warehouse Transfer
+- Stocktake
+- Old/New Price Layers
+- Price/Margin Calculation
+- Production
+- Payroll
+- Backup Restore
+- Offline/Online Sync
+- Incremental Update
+
+## 15.23 Definition of Done
+
+هیچ Feature ای Done نیست مگر اینکه:
+
+1. Domain Logic کامل باشد.
+2. UI ساده و RTL باشد.
+3. Iran-first Rule رعایت شده باشد.
+4. Validation وجود داشته باشد.
+5. Permission وجود داشته باشد.
+6. Audit در صورت نیاز وجود داشته باشد.
+7. Help فارسی آماده باشد.
+8. AI Tutor Metadata آماده باشد.
+9. Error/Empty/Loading State کامل باشد.
+10. Tests وجود داشته باشد.
+11. Performance بررسی شده باشد.
+12. Weak-PC Constraint بررسی شده باشد.
+13. متن فارسی بازبینی املایی شده باشد.
+14. Backup/Update Compatibility در صورت ارتباط بررسی شده باشد.
+15. Shortcut/Keyboard Flow برای Featureهای پرتکرار طراحی و تست شده باشد.
+16. اگر Feature گزارش‌پذیر است، Data Contract آن برای Report Engine تعریف شده باشد.
+
+## 15.24 Development Phases
+
+### Phase 0 — Foundation
+Architecture, Design System, Database, Installer, User, Permission, Audit, Settings, Backup, Update Skeleton, Help/AI Contracts, Navigation/Workbench Skeleton, Keyboard & Shortcut Manager Skeleton.
+
+### Phase 1 — Product & Pricing
+Product, Category, Unit, Variant, Barcode, Custom Field, Price Engine, Profit Analysis, Inventory Layers.
+
+### Phase 2 — Warehouse & Purchasing
+Warehouse, Stock Ledger, Reorder, Smart Replenishment, Supplier, Purchase.
+
+### Phase 3 — POS & Payment
+Customer Quick Create, Cart, Pricing, Promotion, PC-POS, Cash Shift, Return/Exchange, Printing.
+
+### Phase 4 — Finance
+Treasury, Cheque, Bank, Accounting, Fiscal Period, Tax Infrastructure.
+
+### Phase 5 — Production
+BOM, Batch, Production Cost, Label/Scale Integration.
+
+### Phase 6 — CRM & Loyalty
+Customer 360, Loyalty, Wallet, Segment, Survey.
+
+### Phase 7 — Communication & Automation
+SMS, Automation Builder, Notification Rules.
+
+### Phase 8 — HR
+Employee, Attendance, Payroll, Assets.
+
+### Phase 9 — Logistics
+Picking, Packing, Driver, Delivery, Settlement.
+
+### Phase 10 — Online Integration
+API, Sync, Store Connectors.
+
+### Phase 11 — BI
+Workbench Widgets, Dashboard, Report & Analytics Studio, AI Report Builder Contracts, Analytics.
+
+### Phase 12 — AI Expansion
+AI Query, Tutor Enhancements, Analysis, Safe Actions.
+
+## 15.25 اولین Milestone اجرایی
+
+اولین Build:
+
+```text
+Skeleton
+→ Design System
+→ Installer
+→ Database
+→ Users/Permissions
+→ Settings
+→ Product/Category
+→ Warehouse
+→ Inventory Layer
+→ Customer
+→ POS
+→ Payment
+→ Printing
+```
+
+---
+
+# قرارداد نهایی اجرای Codex
+
+Codex و هر برنامه‌نویس باید این قواعد را رعایت کند:
+
+1. این فایل Source of Truth است.
+2. Feature جدید بدون Change Request وارد پروژه نشود.
+3. تعریف یک قابلیت در چند فایل/ماژول با منطق متفاوت ممنوع است.
+4. UI باید مینیمال و خلوت بماند.
+5. هر عملیات اصلی 2 تا 3 مرحله‌ای باشد مگر دلیل UX مستند وجود داشته باشد.
+6. هیچ صفحه عملیاتی نباید به Dashboard شلوغ تبدیل شود.
+7. فارسی و Iran-first پیش‌فرض است.
+8. غلط املایی در UI پذیرفته نیست.
+9. Help و AI Tutor Contract از اولین Commit Feature لازم است.
+10. Database و Business Rule باید قبل از UI Hack طراحی شوند.
+11. کد باید برای برنامه‌نویس بعدی قابل فهم باشد.
+12. One-click Installer Requirement قابل حذف نیست.
+13. Incremental Update Requirement قابل حذف نیست.
+14. Weak-PC Performance قابل قربانی‌کردن برای AI یا Animation نیست.
+15. اسناد مالی Posted حذف فیزیکی نمی‌شوند.
+16. حذف‌های مجاز دو تأیید دارند.
+17. AI برای عدد مالی از Query/Calculation واقعی استفاده می‌کند.
+18. هر Feature باید Owner Module مشخص داشته باشد.
+19. Cross-module interaction از Contract/Event مشخص استفاده می‌کند.
+20. اگر کد با این سند تعارض دارد و Change Request رسمی وجود ندارد، **این سند مرجع است**.
+21. Shortcutها نباید Ad-hoc تعریف شوند؛ تمام Bindingها از Keyboard & Shortcut Manager عبور می‌کنند.
+22. هر Module باید Data Contract لازم برای Report & Analytics Studio را تعریف کند.
+23. AI Report Builder فقط از Query/Calculation واقعی استفاده می‌کند و حق تولید عدد حدسی ندارد.
+24. «میز کار» تنها محل تجمع عملیات روزانه است؛ Featureهای Domain در Owner Module خود باقی می‌مانند.
+
+---
+
+# معیار نهایی موفقیت محصول
+
+کاربر مبتدی باید بتواند بدون آموزش حضوری:
+
+- برنامه را با یک Setup نصب کند
+- فروش را سریع شروع کند
+- در هر صفحه راهنمای فارسی داشته باشد
+- از AI بپرسد «این کار را چطور انجام دهم؟»
+- بدون اینترنت عملیات اصلی را انجام دهد
+
+و در همان زمان مدیر حرفه‌ای باید به:
+
+- حسابداری
+- سود
+- قیمت
+- انبار
+- HR
+- تولید
+- CRM
+- Automation
+- BI
+- Audit
+
+دسترسی عمیق داشته باشد، بدون اینکه این پیچیدگی روی صفحه کاربر عادی ریخته شود.
+
+> **اصل نهایی:** پیچیدگی برای سیستم؛ سادگی برای کاربر.
