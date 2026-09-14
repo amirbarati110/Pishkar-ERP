@@ -42,7 +42,7 @@
 - Consumes: Windows x64، Git و WinGet.
 - Produces: Solution قابل Restore/Build و dependency direction قابل تست.
 
-- [ ] **Step 1: نصب ابزارهای رسمی و بررسی نسخه**
+- [x] **Step 1: نصب ابزارهای رسمی و بررسی نسخه**
 
 ```powershell
 winget install --id Microsoft.DotNet.SDK.10 --exact --silent --accept-package-agreements --accept-source-agreements
@@ -53,7 +53,7 @@ winapp --version
 
 Expected: `dotnet` نسخه `10.0.401` یا patch سازگار جدیدتر و `winapp` نسخه `0.6.0` یا جدیدتر را نشان دهد.
 
-- [ ] **Step 2: ایجاد Git و فایل‌های Build**
+- [x] **Step 2: ایجاد Git و فایل‌های Build**
 
 `global.json`:
 
@@ -82,7 +82,7 @@ Expected: `dotnet` نسخه `10.0.401` یا patch سازگار جدیدتر و `
 </Project>
 ```
 
-- [ ] **Step 3: ایجاد Solution و پروژه‌ها**
+- [x] **Step 3: ایجاد Solution و پروژه‌ها**
 
 ```powershell
 dotnet new sln --name RetailERP --format slnx
@@ -95,11 +95,11 @@ dotnet new xunit --name ERP.Architecture.Tests --output tests/ERP.Architecture.T
 dotnet sln RetailERP.slnx add src/ERP.Domain/ERP.Domain.csproj src/ERP.Application/ERP.Application.csproj src/ERP.Infrastructure/ERP.Infrastructure.csproj src/ERP.Persistence/ERP.Persistence.csproj tests/ERP.Domain.Tests/ERP.Domain.Tests.csproj tests/ERP.Architecture.Tests/ERP.Architecture.Tests.csproj
 ```
 
-- [ ] **Step 4: نوشتن تست جهت وابستگی‌ها**
+- [x] **Step 4: نوشتن تست جهت وابستگی‌ها**
 
 `tests/ERP.Architecture.Tests/ProjectReferenceTests.cs` باید XML پروژه‌ها را بخواند و ثابت کند `ERP.Domain` هیچ ProjectReference ندارد و `ERP.Application` فقط به `ERP.Domain` وابسته است.
 
-- [ ] **Step 5: اجرای Build و تست**
+- [x] **Step 5: اجرای Build و تست**
 
 ```powershell
 dotnet restore RetailERP.slnx
@@ -109,7 +109,7 @@ dotnet test RetailERP.slnx --no-build
 
 Expected: Build و همه تست‌ها PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add .
