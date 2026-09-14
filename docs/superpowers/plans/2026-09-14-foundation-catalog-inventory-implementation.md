@@ -294,7 +294,7 @@ git commit -m "feat: add products barcodes and unit conversions"
 - Consumes: `ProductId`, `Money`, `Quantity`.
 - Produces: `StockLedger.ReceiveOpeningStock`, `GetAvailableQuantity`, `ConsumeFifo` و immutable `StockMovement` history.
 
-- [ ] **Step 1: تست موجودی اولیه**
+- [x] **Step 1: تست موجودی اولیه**
 
 ```csharp
 [Fact]
@@ -307,15 +307,15 @@ public void Opening_stock_creates_layer_and_movement()
 }
 ```
 
-- [ ] **Step 2: تست جلوگیری از موجودی منفی و FIFO**
+- [x] **Step 2: تست جلوگیری از موجودی منفی و FIFO**
 
 مصرف بیشتر از موجودی باید `InsufficientStockException` بدهد و مصرف دو Layer قدیمی‌تر را زودتر کم کند.
 
-- [ ] **Step 3: اجرای FAIL، پیاده‌سازی و اجرای PASS**
+- [x] **Step 3: اجرای FAIL، پیاده‌سازی و اجرای PASS**
 
 Run: `dotnet test tests/ERP.Domain.Tests --filter FullyQualifiedName~StockLedgerTests`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```powershell
 git add src/ERP.Domain/Inventory tests/ERP.Domain.Tests/Inventory
