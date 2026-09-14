@@ -243,9 +243,9 @@ git commit -m "feat: add hierarchical product categories"
 
 **Interfaces:**
 - Consumes: `CategoryId`, `Money`, `Quantity`.
-- Produces: `Product.Create(name, sku, categoryId, baseUnitId)`, `AddBarcode`, `ChangePrice`, `Archive`; `UnitConversion.Create(from, to, factor)`.
+- Produces: `Product.Create(name, optionalSku, categoryId, baseUnitId, salePrice)`, `AddBarcode`, `ChangePrice`, `Archive`; `UnitConversion.Create(from, to, factor)`. SKU برای راحتی کاربر اختیاری است و در Application می‌تواند خودکار تولید شود.
 
-- [ ] **Step 1: تست کالا و بارکد**
+- [x] **Step 1: تست کالا و بارکد**
 
 ```csharp
 [Fact]
@@ -258,7 +258,7 @@ public void AddBarcode_rejects_duplicate_on_same_product()
 }
 ```
 
-- [ ] **Step 2: تست تبدیل واحد**
+- [x] **Step 2: تست تبدیل واحد**
 
 ```csharp
 [Fact]
@@ -269,11 +269,11 @@ public void Convert_multiplies_by_positive_factor()
 }
 ```
 
-- [ ] **Step 3: اجرای FAIL، پیاده‌سازی و اجرای PASS**
+- [x] **Step 3: اجرای FAIL، پیاده‌سازی و اجرای PASS**
 
 Run before and after: `dotnet test tests/ERP.Domain.Tests --filter "FullyQualifiedName~ProductTests|FullyQualifiedName~UnitConversionTests"`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```powershell
 git add src/ERP.Domain/Catalog tests/ERP.Domain.Tests/Catalog
