@@ -40,6 +40,25 @@ public sealed class Category : Entity<CategoryId>
             ValidateSortOrder(sortOrder));
     }
 
+    internal static Category Rehydrate(
+        CategoryId id,
+        string name,
+        CategoryId? parentId,
+        int sortOrder,
+        CategoryStatus status,
+        CategoryVisibility visibility)
+    {
+        var category = new Category(
+            id,
+            NormalizeName(name),
+            parentId,
+            ValidateSortOrder(sortOrder));
+        category.Status = status;
+        category.Visibility = visibility;
+
+        return category;
+    }
+
     public void Rename(string name)
     {
         Name = NormalizeName(name);

@@ -389,23 +389,23 @@ git commit -m "feat: add catalog and opening stock use cases"
 - Consumes: Application repository contracts.
 - Produces: Firebird Embedded repositories and transaction-scoped `IUnitOfWork`.
 
-- [ ] **Step 1: تست Migration روی دیتابیس خالی و اجرای دوباره**
+- [x] **Step 1: تست Migration روی دیتابیس خالی و اجرای دوباره**
 
 Migration اول باید جدول نسخه، Category، Unit، Product، ProductBarcode، InventoryLayer و StockMovement را با UTF8 بسازد. اجرای دوم نباید تغییری ایجاد کند.
 
-- [ ] **Step 2: تست Unique Constraintها**
+- [x] **Step 2: تست Unique Constraintها**
 
 Barcode باید سراسری یکتا و نام دسته در یک Parent یکتا باشد. تست باید `FbException` را به Conflict قابل فهم Application نگاشت کند.
 
-- [ ] **Step 3: تست Rollback تراکنش**
+- [x] **Step 3: تست Rollback تراکنش**
 
 در صورت شکست Insert موجودی، Product و StockMovement هر دو باید Rollback شوند.
 
-- [ ] **Step 4: پیاده‌سازی SQL پارامتری و اجرای تست‌ها**
+- [x] **Step 4: پیاده‌سازی SQL پارامتری و اجرای تست‌ها**
 
 Run: `dotnet test tests/ERP.Persistence.Tests`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add src/ERP.Persistence tests/ERP.Persistence.Tests Directory.Packages.props RetailERP.slnx

@@ -10,6 +10,5 @@ public interface IStockLedgerRepository
         WarehouseId warehouseId,
         CancellationToken cancellationToken);
 
-    Task AddAsync(StockLedger ledger, CancellationToken cancellationToken);
+    Task SaveAsync(StockLedger ledger, CancellationToken cancellationToken);
 }
-

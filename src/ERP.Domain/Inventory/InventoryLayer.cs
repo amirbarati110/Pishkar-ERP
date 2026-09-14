@@ -27,6 +27,29 @@ public sealed class InventoryLayer
 
     public DateOnly ReceivedOn { get; }
 
+    internal static InventoryLayer Rehydrate(
+        InventoryLayerId id,
+        Quantity originalQuantity,
+        StockQuantity remainingQuantity,
+        Money unitCost,
+        DateOnly receivedOn)
+    {
+        if (remainingQuantity.Value > originalQuantity.Value)
+        {
+            throw new DomainException("موجودی باقی‌مانده لایه نمی‌تواند از مقدار اولیه بیشتر باشد.");
+        }
+
+        var layer = new InventoryLayer(id, originalQuantity, unitCost, receivedOn);
+        var consumed = originalQuantity.Value - remainingQuantity.Value;
+
+        if (consumed > 0)
+        {
+            layer.Consume(consumed);
+        }
+
+        return layer;
+    }
+
     internal void Consume(decimal amount)
     {
         if (amount <= 0 || amount > RemainingQuantity.Value)
@@ -37,4 +60,3 @@ public sealed class InventoryLayer
         RemainingQuantity = StockQuantity.From(RemainingQuantity.Value - amount);
     }
 }
-

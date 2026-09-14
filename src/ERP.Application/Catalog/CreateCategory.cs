@@ -70,5 +70,9 @@ public sealed class CreateCategoryHandler
         {
             return Result.Failure<CategoryId>("catalog.category.invalid", exception.Message);
         }
+        catch (DataConflictException exception)
+        {
+            return Result.Failure<CategoryId>(exception.Code, exception.Message);
+        }
     }
 }

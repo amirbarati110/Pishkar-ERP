@@ -9,5 +9,6 @@
     <Project Path="tests/ERP.Application.Tests/ERP.Application.Tests.csproj" />
     <Project Path="tests/ERP.Architecture.Tests/ERP.Architecture.Tests.csproj" />
     <Project Path="tests/ERP.Domain.Tests/ERP.Domain.Tests.csproj" />
+    <Project Path="tests/ERP.Persistence.Tests/ERP.Persistence.Tests.csproj" />
   </Folder>
 </Solution>

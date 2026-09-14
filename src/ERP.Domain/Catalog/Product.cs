@@ -55,6 +55,33 @@ public sealed class Product : Entity<ProductId>
             salePrice);
     }
 
+    internal static Product Rehydrate(
+        ProductId id,
+        string name,
+        string? sku,
+        CategoryId categoryId,
+        UnitId baseUnitId,
+        Money salePrice,
+        ProductStatus status,
+        IEnumerable<string> barcodes)
+    {
+        var product = new Product(
+            id,
+            NormalizeName(name),
+            NormalizeSku(sku),
+            categoryId,
+            baseUnitId,
+            salePrice);
+        product.Status = status;
+
+        foreach (var barcode in barcodes)
+        {
+            product.AddBarcode(barcode);
+        }
+
+        return product;
+    }
+
     public void AddBarcode(string barcode)
     {
         var candidate = ProductBarcode.Create(barcode);

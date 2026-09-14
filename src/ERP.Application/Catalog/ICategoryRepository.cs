@@ -4,6 +4,10 @@ namespace ERP.Application.Catalog;
 
 public interface ICategoryRepository
 {
+    Task<Category?> GetByIdAsync(
+        CategoryId categoryId,
+        CancellationToken cancellationToken);
+
     Task<bool> SiblingNameExistsAsync(
         string name,
         CategoryId? parentId,
@@ -11,4 +15,3 @@ public interface ICategoryRepository
 
     Task AddAsync(Category category, CancellationToken cancellationToken);
 }
-

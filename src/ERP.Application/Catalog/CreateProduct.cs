@@ -84,5 +84,9 @@ public sealed class CreateProductHandler
         {
             return Result.Failure<ProductId>("catalog.product.invalid", exception.Message);
         }
+        catch (DataConflictException exception)
+        {
+            return Result.Failure<ProductId>(exception.Code, exception.Message);
+        }
     }
 }

@@ -28,6 +28,14 @@ internal sealed class CategoryRepository : ICategoryRepository
 {
     public List<Category> Items { get; } = [];
 
+    public Task<Category?> GetByIdAsync(
+        CategoryId categoryId,
+        CancellationToken cancellationToken)
+    {
+        var category = Items.SingleOrDefault(item => item.Id == categoryId);
+        return Task.FromResult(category);
+    }
+
     public Task<bool> SiblingNameExistsAsync(
         string name,
         CategoryId? parentId,
@@ -52,6 +60,16 @@ internal sealed class ProductRepository : IProductRepository
 
     public HashSet<string> ExistingBarcodes { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+    public DataConflictException? ConflictOnAdd { get; set; }
+
+    public Task<Product?> GetByIdAsync(
+        ProductId productId,
+        CancellationToken cancellationToken)
+    {
+        var product = Items.SingleOrDefault(item => item.Id == productId);
+        return Task.FromResult(product);
+    }
+
     public Task<bool> BarcodeExistsAsync(string barcode, CancellationToken cancellationToken)
     {
         return Task.FromResult(ExistingBarcodes.Contains(barcode.Trim()));
@@ -59,6 +77,11 @@ internal sealed class ProductRepository : IProductRepository
 
     public Task AddAsync(Product product, CancellationToken cancellationToken)
     {
+        if (ConflictOnAdd is not null)
+        {
+            throw ConflictOnAdd;
+        }
+
         Items.Add(product);
         return Task.CompletedTask;
     }
@@ -67,6 +90,8 @@ internal sealed class ProductRepository : IProductRepository
 internal sealed class StockLedgerRepository : IStockLedgerRepository
 {
     public List<StockLedger> Items { get; } = [];
+
+    public int SaveCount { get; private set; }
 
     public Task<StockLedger?> GetAsync(
         ProductId productId,
@@ -78,9 +103,17 @@ internal sealed class StockLedgerRepository : IStockLedgerRepository
         return Task.FromResult(ledger);
     }
 
-    public Task AddAsync(StockLedger ledger, CancellationToken cancellationToken)
+    public Task SaveAsync(StockLedger ledger, CancellationToken cancellationToken)
     {
-        Items.Add(ledger);
+        SaveCount++;
+        var existing = Items.SingleOrDefault(item =>
+            item.ProductId == ledger.ProductId && item.WarehouseId == ledger.WarehouseId);
+
+        if (existing is null)
+        {
+            Items.Add(ledger);
+        }
+
         return Task.CompletedTask;
     }
 }
@@ -110,4 +143,3 @@ internal sealed class RecordingUnitOfWork : IUnitOfWork
 internal sealed record TestUserContext(Guid UserId) : IUserContext;
 
 internal sealed record TestClock(DateTimeOffset UtcNow) : IClock;
-

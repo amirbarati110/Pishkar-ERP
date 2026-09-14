@@ -4,6 +4,7 @@
 .idea/
 .vscode/
 .worktrees/
+.tools/
 TestResults/
 artifacts/
 *.user
@@ -13,4 +14,3 @@ artifacts/
 *.log
 *.tmp
 *.bak
-

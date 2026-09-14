@@ -29,6 +29,18 @@ public sealed class StockLedger
         return new StockLedger(productId, warehouseId);
     }
 
+    internal static StockLedger Rehydrate(
+        ProductId productId,
+        WarehouseId warehouseId,
+        IEnumerable<InventoryLayer> layers,
+        IEnumerable<StockMovement> movements)
+    {
+        var ledger = new StockLedger(productId, warehouseId);
+        ledger._layers.AddRange(layers);
+        ledger._movements.AddRange(movements);
+        return ledger;
+    }
+
     public void ReceiveOpeningStock(Quantity quantity, Money unitCost, DateOnly receivedOn)
     {
         if (receivedOn > DateOnly.FromDateTime(DateTime.UtcNow))

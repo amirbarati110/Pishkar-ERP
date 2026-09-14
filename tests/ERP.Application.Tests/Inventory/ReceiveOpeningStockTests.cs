@@ -36,4 +36,32 @@ public sealed class ReceiveOpeningStockTests
         Assert.Equal("inventory.opening-stock.received", Assert.Single(context.Audit.Entries).Action);
         Assert.Equal(1, context.UnitOfWork.CommitCount);
     }
+
+    [Fact]
+    public async Task ExecuteSavesAnExistingLedgerBeforeCommit()
+    {
+        var context = new ApplicationTestContext();
+        var productId = ProductId.New();
+        var warehouseId = WarehouseId.New();
+        context.StockLedgers.Items.Add(StockLedger.Empty(productId, warehouseId));
+        var handler = new ReceiveOpeningStockHandler(
+            context.StockLedgers,
+            context.Audit,
+            context.UnitOfWork,
+            context.User,
+            context.Clock);
+
+        var result = await handler.ExecuteAsync(
+            new ReceiveOpeningStockCommand(
+                productId,
+                warehouseId,
+                4m,
+                750_000,
+                new DateOnly(2026, 9, 14)),
+            CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, context.StockLedgers.SaveCount);
+        Assert.Equal(1, context.UnitOfWork.CommitCount);
+    }
 }

@@ -47,7 +47,6 @@ public sealed class ReceiveOpeningStockHandler
                 command.ProductId,
                 command.WarehouseId,
                 cancellationToken).ConfigureAwait(false);
-            var isNewLedger = ledger is null;
             ledger ??= StockLedger.Empty(command.ProductId, command.WarehouseId);
 
             ledger.ReceiveOpeningStock(
@@ -55,10 +54,7 @@ public sealed class ReceiveOpeningStockHandler
                 Money.FromRials(command.UnitCostRials),
                 command.ReceivedOn);
 
-            if (isNewLedger)
-            {
-                await _stockLedgers.AddAsync(ledger, cancellationToken).ConfigureAwait(false);
-            }
+            await _stockLedgers.SaveAsync(ledger, cancellationToken).ConfigureAwait(false);
 
             await _audit.WriteAsync(
                 new AuditEntry(
