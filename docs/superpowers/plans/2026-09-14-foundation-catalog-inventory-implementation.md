@@ -130,7 +130,7 @@ git commit -m "build: bootstrap clean architecture solution"
 **Interfaces:**
 - Produces: `Money.FromRials(long)`, `Money.FromTomans(long)`, `Money.ToTomansExact()`, `Quantity.Create(decimal)`.
 
-- [ ] **Step 1: تست شکست‌خورده Money**
+- [x] **Step 1: تست شکست‌خورده Money**
 
 ```csharp
 [Fact]
@@ -147,15 +147,15 @@ public void Add_rejects_overflow()
 }
 ```
 
-- [ ] **Step 2: اجرای تست و مشاهده FAIL**
+- [x] **Step 2: اجرای تست و مشاهده FAIL**
 
 Run: `dotnet test tests/ERP.Domain.Tests --filter FullyQualifiedName~MoneyTests`
 
-- [ ] **Step 3: پیاده‌سازی حداقلی با arithmetic checked و Value Equality**
+- [x] **Step 3: پیاده‌سازی حداقلی با arithmetic checked و Value Equality**
 
 `Money` باید `readonly record struct` باشد، مقدار منفی را فقط برای عملیات صریح حسابداری بپذیرد و تبدیل تومان به ریال را با `checked(tomans * 10)` انجام دهد.
 
-- [ ] **Step 4: تست Quantity**
+- [x] **Step 4: تست Quantity**
 
 ```csharp
 [Theory]
@@ -168,7 +168,7 @@ public void Create_rejects_non_positive_value(decimal value)
 }
 ```
 
-- [ ] **Step 5: اجرای همه تست‌ها و Commit**
+- [x] **Step 5: اجرای همه تست‌ها و Commit**
 
 ```powershell
 dotnet test RetailERP.slnx
