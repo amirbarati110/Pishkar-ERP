@@ -188,7 +188,7 @@ git commit -m "feat: add safe money and quantity primitives"
 **Interfaces:**
 - Produces: `Category.Create(string name, CategoryId? parentId, int sortOrder)`, `Rename`, `MoveTo`, `Archive`, `Restore`, `SetVisibility`.
 
-- [ ] **Step 1: تست نام و ساخت دسته**
+- [x] **Step 1: تست نام و ساخت دسته**
 
 ```csharp
 [Theory]
@@ -201,7 +201,7 @@ public void Create_rejects_empty_name(string name)
 }
 ```
 
-- [ ] **Step 2: تست جلوگیری از والدشدن خود دسته**
+- [x] **Step 2: تست جلوگیری از والدشدن خود دسته**
 
 ```csharp
 [Fact]
@@ -213,15 +213,15 @@ public void MoveTo_rejects_self_as_parent()
 }
 ```
 
-- [ ] **Step 3: اجرای تست‌های شکست‌خورده**
+- [x] **Step 3: اجرای تست‌های شکست‌خورده**
 
 Run: `dotnet test tests/ERP.Domain.Tests --filter FullyQualifiedName~CategoryTests`
 
-- [ ] **Step 4: پیاده‌سازی Aggregate و Event**
+- [x] **Step 4: پیاده‌سازی Aggregate و Event**
 
 نام باید Trim شود، طول آن حداکثر 120 نویسه باشد، SortOrder منفی رد شود و Archive وضعیت را تغییر دهد؛ حذف فیزیکی API عمومی ندارد.
 
-- [ ] **Step 5: اجرای تست‌ها و Commit**
+- [x] **Step 5: اجرای تست‌ها و Commit**
 
 ```powershell
 dotnet test RetailERP.slnx
