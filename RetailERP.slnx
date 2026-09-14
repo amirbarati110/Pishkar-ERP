@@ -6,6 +6,7 @@
     <Project Path="src/ERP.Persistence/ERP.Persistence.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ERP.Application.Tests/ERP.Application.Tests.csproj" />
     <Project Path="tests/ERP.Architecture.Tests/ERP.Architecture.Tests.csproj" />
     <Project Path="tests/ERP.Domain.Tests/ERP.Domain.Tests.csproj" />
   </Folder>

@@ -342,7 +342,7 @@ git commit -m "feat: add inventory layers and opening stock ledger"
 **Interfaces:**
 - Produces: async handlers returning `Result<T>` with Persian validation messages and `CancellationToken`.
 
-- [ ] **Step 1: تست Use Case ساخت دسته با نام تکراری**
+- [x] **Step 1: تست Use Case ساخت دسته با نام تکراری**
 
 ```csharp
 [Fact]
@@ -353,17 +353,17 @@ public async Task Execute_returns_persian_error_for_duplicate_sibling_name()
 }
 ```
 
-- [ ] **Step 2: تست ساخت کالا با بارکد سراسری تکراری و موجودی اولیه اتمیک**
+- [x] **Step 2: تست ساخت کالا با بارکد سراسری تکراری و موجودی اولیه اتمیک**
 
 Repository fake باید نشان دهد در صورت خطای ذخیره Movement، هیچ Product یا Layer نیمه‌کاره Commit نمی‌شود.
 
 هر عملیات موفق ساخت/ویرایش/آرشیو دسته، کالا و موجودی اولیه باید دقیقاً یک Audit Record شامل UserId، Action، EntityId، زمان و Old/New Value تولید کند. عملیات ناموفق نباید Audit موفق ثبت کند.
 
-- [ ] **Step 3: اجرای FAIL، پیاده‌سازی و اجرای PASS**
+- [x] **Step 3: اجرای FAIL، پیاده‌سازی و اجرای PASS**
 
 Run: `dotnet test tests/ERP.Application.Tests`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```powershell
 git add src/ERP.Application tests/ERP.Application.Tests RetailERP.slnx
