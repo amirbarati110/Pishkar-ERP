@@ -30,7 +30,8 @@ public sealed class FirebirdSalesService :
     IListSalesOfDayHandler,
     IListHeldSalesHandler,
     IBrowseProductsForSaleHandler,
-    ICancelSaleHandler
+    ICancelSaleHandler,
+    IReadSaleProductsHandler
 {
     private readonly FirebirdConnectionFactory _connectionFactory;
     private readonly IUserContext _userContext;
@@ -195,6 +196,18 @@ public sealed class FirebirdSalesService :
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
         return await new BrowseProductsForSaleHandler(new FirebirdSaleReadReader(unitOfWork), _clock)
+            .ExecuteAsync(query, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyDictionary<Domain.Catalog.ProductId, SaleProductInfo>> ExecuteAsync(
+        ReadSaleProductsQuery query,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new ReadSaleProductsHandler(new FirebirdSaleReadReader(unitOfWork))
             .ExecuteAsync(query, cancellationToken)
             .ConfigureAwait(false);
     }

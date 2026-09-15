@@ -108,7 +108,7 @@ public sealed class CompleteSaleTests
             CancellationToken.None);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("sales.sale.invalid", result.Error?.Code);
+        Assert.Equal("sales.sale.insufficient-stock", result.Error?.Code);
         Assert.Equal(SaleStatus.Draft, sale.Status);
         Assert.Null(sale.Number);
         Assert.Equal(0, context.SaleNumbers.IssuedCount); // فاکتور ردشده شماره هدر نمی‌دهد

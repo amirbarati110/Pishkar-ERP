@@ -1,0 +1,259 @@
+using ERP.Application.Audit;
+using ERP.Application.Catalog;
+using ERP.Application.Common;
+using ERP.Application.Customers;
+using ERP.Application.Inventory;
+using ERP.Application.Sales;
+using ERP.Domain.Catalog;
+using ERP.Domain.Common;
+using ERP.Domain.Customers;
+using ERP.Domain.Inventory;
+using ERP.Domain.Sales;
+using ERP.Presentation.Features.Sales;
+
+namespace ERP.Desktop.Tests.Features.Sales;
+
+/// <summary>
+/// The real Application handlers over in-memory storage, so the sales screen's
+/// view model is tested against the actual business rules (credit limit,
+/// stock, numbering, totals) — not against canned answers.
+/// </summary>
+internal sealed class InMemorySalesBackend :
+    ISaleRepository, IProductRepository, IStockLedgerRepository, ISaleNumberGenerator,
+    ICustomerRepository, ICustomerLedgerReader, ICustomerSearchReader, IAuditWriter, IUnitOfWork,
+    ISaleReadReader, IProductSearchReader, ICatalogLookupReader, IUserContext, IClock
+{
+    private long _nextNumber = 1258;
+
+    public InMemorySalesBackend()
+    {
+        Warehouse = WarehouseId.New();
+        Category = Domain.Catalog.Category.Create("مواد غذایی", null, 1);
+        Unit = Domain.Catalog.Unit.Create("عدد", "عدد", false);
+    }
+
+    public WarehouseId Warehouse { get; }
+
+    public Category Category { get; }
+
+    public Unit Unit { get; }
+
+    public List<Sale> Sales { get; } = [];
+
+    public List<Product> Products { get; } = [];
+
+    public List<StockLedger> Ledgers { get; } = [];
+
+    public List<Customer> Customers { get; } = [];
+
+    public List<AuditEntry> Audit { get; } = [];
+
+    public int CompleteCalls { get; set; }
+
+    public Guid UserId { get; } = Guid.NewGuid();
+
+    public DateTimeOffset UtcNow { get; set; } = new(2026, 9, 14, 7, 0, 0, TimeSpan.Zero);
+
+    public Product AddProduct(string name, string sku, string barcode, long tomans, decimal stock)
+    {
+        var product = Product.Create(name, sku, Category.Id, Unit.Id, Money.FromTomans(tomans));
+        product.AddBarcode(barcode);
+        Products.Add(product);
+
+        var ledger = StockLedger.Empty(product.Id, Warehouse);
+        if (stock > 0)
+        {
+            ledger.ReceiveOpeningStock(Quantity.Create(stock), Money.FromTomans(tomans / 2), new DateOnly(2026, 9, 1));
+        }
+
+        Ledgers.Add(ledger);
+        return product;
+    }
+
+    public SalesBackend Build()
+    {
+        return new SalesBackend(
+            new StartSaleHandler(this, this, this),
+            new AddSaleLineHandler(this, this, this),
+            new ChangeSaleLineHandler(this, this, this),
+            new RemoveSaleLineHandler(this, this),
+            new SetSaleChargesHandler(this, this),
+            new SetSaleCustomerHandler(this, this, this),
+            new CountingComplete(this, new CompleteSaleHandler(this, this, this, this, this, this, this, this, this)),
+            new CancelSaleHandler(this, this, this, this, this),
+            new GetSaleDetailsHandler(this, this, this),
+            new ListHeldSalesHandler(this),
+            new ListSalesOfDayHandler(this),
+            new BrowseProductsForSaleHandler(this, this),
+            new ReadSaleProductsHandler(this),
+            new SearchProductsHandler(this),
+            this,
+            new SearchCustomersHandler(this),
+            new QuickCreateCustomerHandler(this, this, this, this, this),
+            new GetCustomerAccountHandler(this, this),
+            this);
+    }
+
+    // ── ISaleRepository / ISaleNumberGenerator ──
+    Task<Sale?> ISaleRepository.GetAsync(SaleId saleId, CancellationToken cancellationToken) =>
+        Task.FromResult(Sales.SingleOrDefault(sale => sale.Id == saleId));
+
+    Task ISaleRepository.SaveAsync(Sale sale, CancellationToken cancellationToken)
+    {
+        if (!Sales.Contains(sale))
+        {
+            Sales.Add(sale);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    Task<SaleNumber> ISaleNumberGenerator.NextAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(SaleNumber.From(_nextNumber++));
+
+    // ── IProductRepository ──
+    Task<Product?> IProductRepository.GetByIdAsync(ProductId productId, CancellationToken cancellationToken) =>
+        Task.FromResult(Products.SingleOrDefault(product => product.Id == productId));
+
+    Task<bool> IProductRepository.BarcodeExistsAsync(string barcode, CancellationToken cancellationToken) =>
+        Task.FromResult(Products.Any(product => product.Barcodes.Any(item => item.Value == barcode)));
+
+    Task IProductRepository.AddAsync(Product product, CancellationToken cancellationToken)
+    {
+        Products.Add(product);
+        return Task.CompletedTask;
+    }
+
+    Task IProductRepository.UpdateAsync(Product product, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    // ── IStockLedgerRepository ──
+    Task<StockLedger?> IStockLedgerRepository.GetAsync(ProductId productId, WarehouseId warehouseId, CancellationToken cancellationToken) =>
+        Task.FromResult(Ledgers.SingleOrDefault(ledger => ledger.ProductId == productId && ledger.WarehouseId == warehouseId));
+
+    Task IStockLedgerRepository.SaveAsync(StockLedger ledger, CancellationToken cancellationToken)
+    {
+        if (!Ledgers.Contains(ledger))
+        {
+            Ledgers.Add(ledger);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    // ── customers ──
+    Task<Customer?> ICustomerRepository.GetByIdAsync(CustomerId customerId, CancellationToken cancellationToken) =>
+        Task.FromResult(Customers.SingleOrDefault(customer => customer.Id == customerId));
+
+    Task<Customer?> ICustomerRepository.FindByMobileAsync(string normalizedMobile, CancellationToken cancellationToken) =>
+        Task.FromResult(Customers.SingleOrDefault(customer => customer.Mobile == normalizedMobile));
+
+    Task ICustomerRepository.AddAsync(Customer customer, CancellationToken cancellationToken)
+    {
+        Customers.Add(customer);
+        return Task.CompletedTask;
+    }
+
+    Task<CustomerLedgerEntries> ICustomerLedgerReader.ReadAsync(CustomerId customerId, CancellationToken cancellationToken)
+    {
+        var invoices = Sales
+            .Where(sale => sale.CustomerId == customerId && sale.Status == SaleStatus.Completed && sale.PaymentMethod == PaymentMethod.Credit)
+            .Select(sale => new CreditInvoice(sale.Number!.Value.Value, sale.CompletedAtUtc!.Value, sale.Totals!.Total))
+            .ToList();
+        return Task.FromResult(new CustomerLedgerEntries(invoices, []));
+    }
+
+    Task<IReadOnlyList<CustomerSearchResult>> ICustomerSearchReader.SearchAsync(
+        string nameTerm, string? mobileDigits, int maxResults, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<CustomerSearchResult>>(Customers
+            .Where(customer => customer.Name.Contains(nameTerm, StringComparison.Ordinal)
+                || (mobileDigits is not null && customer.Mobile.Contains(mobileDigits, StringComparison.Ordinal)))
+            .Take(maxResults)
+            .Select(customer => new CustomerSearchResult(customer.Id, customer.Name, customer.Mobile))
+            .ToList());
+
+    // ── audit / unit of work ──
+    Task IAuditWriter.WriteAsync(AuditEntry entry, CancellationToken cancellationToken)
+    {
+        Audit.Add(entry);
+        return Task.CompletedTask;
+    }
+
+    Task IUnitOfWork.CommitAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    // ── read side ──
+    Task<IReadOnlyDictionary<ProductId, SaleProductInfo>> ISaleReadReader.ReadProductsAsync(
+        WarehouseId warehouseId, IReadOnlyCollection<ProductId> productIds, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyDictionary<ProductId, SaleProductInfo>>(Products
+            .Where(product => productIds.Contains(product.Id))
+            .ToDictionary(product => product.Id, product => new SaleProductInfo(
+                product.Id, product.Name, product.Sku, Unit.Symbol, Available(product.Id))));
+
+    Task<IReadOnlyList<SaleListItem>> ISaleReadReader.ListCompletedAsync(
+        DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<SaleListItem>>(Sales
+            .Where(sale => sale.Status == SaleStatus.Completed && sale.CompletedAtUtc >= fromUtc && sale.CompletedAtUtc < toUtc)
+            .OrderByDescending(sale => sale.Number!.Value.Value)
+            .Select(sale => ToListItem(sale, sale.Totals?.Total))
+            .ToList());
+
+    Task<IReadOnlyList<SaleListItem>> ISaleReadReader.ListDraftsWithItemsAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<SaleListItem>>(Sales
+            .Where(sale => sale.Status == SaleStatus.Draft && sale.Lines.Count > 0)
+            .OrderBy(sale => sale.OpenedAtUtc)
+            .Select(sale => ToListItem(sale, sale.Subtotal))
+            .ToList());
+
+    Task<(IReadOnlyList<SaleProductListItem> Items, int TotalCount)> ISaleReadReader.BrowseProductsAsync(
+        ProductListCriteria criteria, CancellationToken cancellationToken)
+    {
+        var all = Products
+            .Select(product => new SaleProductListItem(product.Id, product.Name, product.Sku, Unit.Symbol, product.SalePrice, Available(product.Id)))
+            .Where(item => criteria.Filter != ProductListFilter.LowStock || item.Available.Value <= criteria.LowStockAtOrBelow)
+            .Where(item => criteria.Filter != ProductListFilter.TopSelling || Sales.Any(sale =>
+                sale.Status == SaleStatus.Completed && sale.Lines.Any(line => line.ProductId == item.Id)))
+            .OrderBy(item => item.Name, StringComparer.Ordinal)
+            .ToList();
+        return Task.FromResult<(IReadOnlyList<SaleProductListItem>, int)>(
+            (all.Skip(criteria.Offset).Take(criteria.Limit).ToList(), all.Count));
+    }
+
+    Task<IReadOnlyList<ProductSearchResult>> IProductSearchReader.SearchAsync(SearchProductsQuery query, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<ProductSearchResult>>(Products
+            .Where(product => product.Name.Contains(query.Term, StringComparison.Ordinal))
+            .Take(query.MaxResults)
+            .Select(ToSearchResult)
+            .ToList());
+
+    Task<ProductSearchResult?> IProductSearchReader.FindByExactCodeAsync(string code, CancellationToken cancellationToken) =>
+        Task.FromResult(Products
+            .Where(product => string.Equals(product.Sku, code, StringComparison.OrdinalIgnoreCase)
+                || product.Barcodes.Any(barcode => barcode.Value == code))
+            .Select(ToSearchResult)
+            .FirstOrDefault());
+
+    Task<CatalogLookupSnapshot> ICatalogLookupReader.LoadAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(new CatalogLookupSnapshot(
+            [new CategoryLookupItem(Category.Id, Category.Name, null, 1)],
+            [new UnitLookupItem(Unit.Id, Unit.Name, Unit.Symbol, Unit.AllowsFractions)],
+            []));
+
+    private StockBalance Available(ProductId productId) =>
+        Ledgers.SingleOrDefault(ledger => ledger.ProductId == productId)?.AvailableQuantity ?? StockBalance.From(0);
+
+    private SaleListItem ToListItem(Sale sale, Money? amount) => new(
+        sale.Id, sale.Number, sale.OpenedAtUtc, sale.CompletedAtUtc, sale.CustomerId,
+        sale.CustomerId is { } id ? Customers.Single(customer => customer.Id == id).Name : null,
+        sale.Lines.Count, amount, sale.PaymentMethod);
+
+    private static ProductSearchResult ToSearchResult(Product product) =>
+        new(product.Id, product.Name, product.Sku, product.Barcodes.Count > 0 ? product.Barcodes[0].Value : null, product.SalePrice);
+
+    private sealed class CountingComplete(InMemorySalesBackend owner, ICompleteSaleHandler inner) : ICompleteSaleHandler
+    {
+        public Task<Result<CompletedSale>> ExecuteAsync(CompleteSaleCommand command, CancellationToken cancellationToken)
+        {
+            owner.CompleteCalls++;
+            return inner.ExecuteAsync(command, cancellationToken);
+        }
+    }
+}

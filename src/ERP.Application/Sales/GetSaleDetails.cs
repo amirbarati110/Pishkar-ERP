@@ -8,7 +8,12 @@ using ERP.Domain.Sales;
 
 namespace ERP.Application.Sales;
 
-public sealed record GetSaleDetailsQuery(SaleId SaleId);
+/// <param name="PreviewTaxRatePercent">
+/// For a draft, the tax rate the screen is currently showing; the answer then
+/// carries <see cref="SaleDetails.Preview"/> computed by the aggregate itself,
+/// so the footer on screen is the exact amount completion will charge.
+/// </param>
+public sealed record GetSaleDetailsQuery(SaleId SaleId, decimal? PreviewTaxRatePercent = null);
 
 /// <summary>A cart row as the reference screen lays it out: کالا (کد، موجودی) · واحد · تعداد · قیمت واحد · تخفیف · مبلغ.</summary>
 public sealed record SaleLineDetails(
@@ -39,7 +44,8 @@ public sealed record SaleDetails(
     Money Discount,
     Money ServiceCharge,
     PaymentMethod? PaymentMethod,
-    SaleTotals? Totals);
+    SaleTotals? Totals,
+    SaleTotals? Preview);
 
 public interface IGetSaleDetailsHandler
 {
@@ -106,6 +112,21 @@ public sealed class GetSaleDetailsHandler : IGetSaleDetailsHandler
             })
             .ToList();
 
+        SaleTotals? preview = null;
+        if (sale.Status == SaleStatus.Draft && query.PreviewTaxRatePercent is { } rate)
+        {
+            try
+            {
+                preview = sale.PreviewTotals(rate);
+            }
+            catch (DomainException)
+            {
+                // An invoice discount left larger than the goods (lines removed
+                // after it was typed) has no valid footer; the screen shows the
+                // subtotal and completion will explain the problem.
+            }
+        }
+
         return Result.Success(new SaleDetails(
             sale.Id,
             sale.Status,
@@ -119,6 +140,7 @@ public sealed class GetSaleDetailsHandler : IGetSaleDetailsHandler
             sale.Discount,
             sale.ServiceCharge,
             sale.PaymentMethod,
-            sale.Totals));
+            sale.Totals,
+            preview));
     }
 }

@@ -194,7 +194,7 @@ public sealed class SalesServiceTests
             CancellationToken.None);
 
         Assert.False(complete.IsSuccess);
-        Assert.Equal("sales.sale.invalid", complete.Error?.Code);
+        Assert.Equal("sales.sale.insufficient-stock", complete.Error?.Code);
 
         // Nothing about the failed completion should have stuck: the sale is
         // still a Draft and the rice stock is untouched (10 received, 0 sold).

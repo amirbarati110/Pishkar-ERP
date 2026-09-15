@@ -174,6 +174,12 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
 
             return Result.Success(new CompletedSale(number, totals));
         }
+        catch (InsufficientStockException exception)
+        {
+            // Its own code, so the screen can offer the one way forward
+            // (completing with a tracked shortfall) instead of a dead end.
+            return Result.Failure<CompletedSale>("sales.sale.insufficient-stock", exception.Message);
+        }
         catch (DomainException exception)
         {
             return Result.Failure<CompletedSale>("sales.sale.invalid", exception.Message);
