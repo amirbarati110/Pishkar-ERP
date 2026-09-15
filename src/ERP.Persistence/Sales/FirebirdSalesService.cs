@@ -26,7 +26,9 @@ public sealed class FirebirdSalesService :
     IChangeSaleLineHandler,
     ISetSaleChargesHandler,
     ISetSaleCustomerHandler,
-    IGetSaleSummaryHandler
+    IGetSaleDetailsHandler,
+    IListSalesOfDayHandler,
+    IListHeldSalesHandler
 {
     private readonly FirebirdConnectionFactory _connectionFactory;
     private readonly IUserContext _userContext;
@@ -144,14 +146,41 @@ public sealed class FirebirdSalesService :
             .ConfigureAwait(false);
     }
 
-    public async Task<Result<SaleSummary>> ExecuteAsync(
-        GetSaleSummaryQuery query,
+    public async Task<Result<SaleDetails>> ExecuteAsync(
+        GetSaleDetailsQuery query,
         CancellationToken cancellationToken)
     {
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
-        return await new GetSaleSummaryHandler(new FirebirdSaleRepository(unitOfWork))
+        return await new GetSaleDetailsHandler(
+                new FirebirdSaleRepository(unitOfWork),
+                new FirebirdSaleReadReader(unitOfWork),
+                new FirebirdCustomerRepository(unitOfWork))
+            .ExecuteAsync(query, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<SalesOfDay> ExecuteAsync(
+        ListSalesOfDayQuery query,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new ListSalesOfDayHandler(new FirebirdSaleReadReader(unitOfWork))
+            .ExecuteAsync(query, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<SaleListItem>> ExecuteAsync(
+        ListHeldSalesQuery query,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new ListHeldSalesHandler(new FirebirdSaleReadReader(unitOfWork))
             .ExecuteAsync(query, cancellationToken)
             .ConfigureAwait(false);
     }

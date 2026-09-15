@@ -274,6 +274,97 @@ public sealed class SalesServiceTests
         Assert.Empty(settled.Value.OpenInvoiceNumbers);
     }
 
+    [Fact]
+    public async Task TheDayListSplitsInvoicesAtTehranMidnightNotUtcMidnight()
+    {
+        var context = await SetupAsync();
+        var afternoon = ServiceAt(context, new DateTimeOffset(2026, 9, 14, 10, 0, 0, TimeSpan.Zero));      // ۲۳ شهریور ۱۳:۳۰
+        var afterMidnight = ServiceAt(context, new DateTimeOffset(2026, 9, 14, 21, 0, 0, TimeSpan.Zero));  // ۲۴ شهریور ۰۰:۳۰
+
+        var first = await StartSaleWithAsync(context, context.RiceId, 1);
+        var second = await StartSaleWithAsync(context, context.OilId, 1);
+        var firstDone = await afternoon.ExecuteAsync(
+            new CompleteSaleCommand(first, PaymentMethod.Cash, 0, 0), CancellationToken.None);
+        var secondDone = await afterMidnight.ExecuteAsync(
+            new CompleteSaleCommand(second, PaymentMethod.Card, 0, 0), CancellationToken.None);
+
+        var day23 = await context.Sales.ExecuteAsync(
+            new ListSalesOfDayQuery(PersianDate.Create(1405, 6, 23)), CancellationToken.None);
+        var day24 = await context.Sales.ExecuteAsync(
+            new ListSalesOfDayQuery(PersianDate.Create(1405, 6, 24)), CancellationToken.None);
+
+        var only23 = Assert.Single(day23.Sales);
+        Assert.Equal(firstDone.Value!.Number, only23.Number);
+        Assert.Equal(245_000, only23.Amount!.Value.ToTomansExact());
+        Assert.Equal(1, only23.ItemCount);
+        Assert.Equal(245_000, day23.TotalsByPaymentMethod[PaymentMethod.Cash].ToTomansExact());
+
+        var only24 = Assert.Single(day24.Sales);
+        Assert.Equal(secondDone.Value!.Number, only24.Number);
+        Assert.Equal(PaymentMethod.Card, only24.PaymentMethod);
+    }
+
+    [Fact]
+    public async Task HeldInvoicesAreDraftsWithItemsAndShowTheirSubtotalAndCustomer()
+    {
+        var context = await SetupAsync();
+        var customers = new FirebirdCustomerService(
+            context.Factory, new TestUserContext(Guid.NewGuid()), new TestClock(DateTimeOffset.UtcNow));
+        var customer = await customers.ExecuteAsync(
+            new QuickCreateCustomerCommand("محمد رضایی", "09123456789"), CancellationToken.None);
+
+        var held = await StartSaleWithAsync(context, context.RiceId, 3);
+        await context.Sales.ExecuteAsync(
+            new ChangeSaleLineCommand(held, context.RiceId, 3, Money.FromTomans(245_000).Rials, Money.FromTomans(35_000).Rials),
+            CancellationToken.None);
+        await context.Sales.ExecuteAsync(new SetSaleCustomerCommand(held, customer.Value), CancellationToken.None);
+
+        await context.Sales.ExecuteAsync(new StartSaleCommand(context.Defaults.MainWarehouseId), CancellationToken.None); // خالی
+        var completed = await StartSaleWithAsync(context, context.OilId, 1);
+        await context.Sales.ExecuteAsync(new CompleteSaleCommand(completed, PaymentMethod.Cash, 0, 0), CancellationToken.None);
+
+        var list = await context.Sales.ExecuteAsync(new ListHeldSalesQuery(), CancellationToken.None);
+
+        var item = Assert.Single(list);
+        Assert.Equal(held, item.SaleId);
+        Assert.Null(item.Number);
+        Assert.Equal("محمد رضایی", item.CustomerName);
+        Assert.Equal(1, item.ItemCount);
+
+        var aggregate = await context.SaleRepository.GetAsync(held, CancellationToken.None);
+        Assert.Equal(aggregate!.Subtotal, item.Amount); // ۳×۲۴۵٬۰۰۰ − ۳۵٬۰۰۰ = ۷۰۰٬۰۰۰
+        Assert.Equal(700_000, item.Amount!.Value.ToTomansExact());
+    }
+
+    [Fact]
+    public async Task DetailsShowNamesUnitsAndStockThatAgreesWithTheLedgerEvenWhenNegative()
+    {
+        var context = await SetupAsync();
+
+        // ۱۰ برنج موجود؛ ۱۲ تا با اجازه‌ی فروش منفی فروخته می‌شود → موجودی −۲
+        var oversold = await StartSaleWithAsync(context, context.RiceId, 12);
+        await context.Sales.ExecuteAsync(
+            new CompleteSaleCommand(oversold, PaymentMethod.Cash, 0, 0, AllowNegativeStock: true), CancellationToken.None);
+
+        var next = await StartSaleWithAsync(context, context.RiceId, 1);
+        var details = await context.Sales.ExecuteAsync(new GetSaleDetailsQuery(next), CancellationToken.None);
+
+        Assert.True(details.IsSuccess);
+        var line = Assert.Single(details.Value!.Lines);
+        Assert.Equal("برنج ایرانی", line.ProductName);
+        Assert.Equal("RICE-1", line.Sku);
+        Assert.Equal("عدد", line.UnitSymbol);
+
+        var ledger = await context.StockLedgers.GetAsync(context.RiceId, context.Defaults.MainWarehouseId, CancellationToken.None);
+        Assert.Equal(ledger!.AvailableQuantity.Value, line.Available.Value);
+        Assert.Equal(-2, line.Available.Value);
+    }
+
+    private static FirebirdSalesService ServiceAt(TestContext context, DateTimeOffset now)
+    {
+        return new FirebirdSalesService(context.Factory, new TestUserContext(Guid.NewGuid()), new TestClock(now));
+    }
+
     private static async Task<SaleId> StartSaleWithAsync(TestContext context, ProductId productId, decimal quantity)
     {
         var start = await context.Sales.ExecuteAsync(

@@ -53,15 +53,16 @@ public static class PersianNumber
     /// </summary>
     public static string FormatGrouped(long value)
     {
-        return ToPersianDigits(value.ToString("#,0", CultureInfo.InvariantCulture));
+        return DigitsToPersian(value.ToString("#,0", CultureInfo.InvariantCulture));
     }
 
     public static string Format(decimal value)
     {
-        return ToPersianDigits(value.ToString("G29", CultureInfo.InvariantCulture));
+        return DigitsToPersian(value.ToString("G29", CultureInfo.InvariantCulture));
     }
 
-    private static string ToPersianDigits(string invariant)
+    /// <summary>Replaces Latin digits in <paramref name="invariant"/> with Persian ones, leaving everything else.</summary>
+    public static string DigitsToPersian(string invariant)
     {
         return string.Create(invariant.Length, invariant, static (span, source) =>
         {
