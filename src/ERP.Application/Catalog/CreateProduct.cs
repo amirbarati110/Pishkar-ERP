@@ -13,7 +13,14 @@ public sealed record CreateProductCommand(
     Money SalePrice,
     IReadOnlyCollection<string> Barcodes);
 
-public sealed class CreateProductHandler
+public interface ICreateProductHandler
+{
+    Task<Result<ProductId>> ExecuteAsync(
+        CreateProductCommand command,
+        CancellationToken cancellationToken);
+}
+
+public sealed class CreateProductHandler : ICreateProductHandler
 {
     private readonly IProductRepository _products;
     private readonly IAuditWriter _audit;

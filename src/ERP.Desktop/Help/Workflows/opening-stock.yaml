@@ -1,0 +1,15 @@
+page: opening-stock
+title_fa: ثبت موجودی اولیه
+steps:
+  - control: opening-product
+    instruction_fa: کالایی را انتخاب کنید که موجودی آن را شمرده‌اید.
+    action: focus
+  - control: opening-quantity
+    instruction_fa: تعداد واقعی موجود در فروشگاه یا انبار را وارد کنید.
+    action: focus
+  - control: opening-unit-cost
+    instruction_fa: بهای خرید هر واحد را به تومان وارد کنید.
+    action: focus
+  - control: save-opening-stock
+    instruction_fa: اطلاعات را بررسی و موجودی اولیه را ثبت کنید.
+    action: invoke

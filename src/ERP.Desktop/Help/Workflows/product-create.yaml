@@ -1,0 +1,15 @@
+page: product-editor
+title_fa: ثبت کالای جدید
+steps:
+  - control: product-name
+    instruction_fa: نامی را وارد کنید که فروشنده سریع پیدا کند.
+    action: focus
+  - control: product-barcode
+    instruction_fa: بارکدخوان را بگیرید یا بارکد را دستی بنویسید؛ این بخش اختیاری است.
+    action: focus
+  - control: product-price
+    instruction_fa: قیمت فروش را به تومان وارد کنید؛ رقم فارسی و انگلیسی هر دو پذیرفته می‌شود.
+    action: focus
+  - control: save-product
+    instruction_fa: برای ذخیره کالا دکمه را بزنید یا Ctrl+S را فشار دهید.
+    action: invoke

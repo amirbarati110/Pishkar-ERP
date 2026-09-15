@@ -47,6 +47,23 @@ public readonly record struct Money
         return new Money(result);
     }
 
+    /// <summary>
+    /// Scales this amount by <paramref name="factor"/> (typically a sale line's
+    /// quantity, which can be fractional for weighed goods) and rounds to the
+    /// nearest whole Rial — the currency has no smaller unit, so a line total
+    /// must never carry fractional Rials forward into a sum.
+    /// </summary>
+    public Money Multiply(decimal factor)
+    {
+        if (factor < 0)
+        {
+            throw new DomainException("ضریب نمی‌تواند منفی باشد.");
+        }
+
+        var scaled = checked(Rials * factor);
+        return new Money((long)Math.Round(scaled, 0, MidpointRounding.AwayFromZero));
+    }
+
     public long ToTomansExact()
     {
         if (Rials % RialsPerToman != 0)

@@ -1,0 +1,9 @@
+page: categories
+title_fa: مدیریت دسته‌بندی‌ها
+steps:
+  - control: category-name
+    instruction_fa: نام کوتاه و قابل فهمی مثل «نوشیدنی» وارد کنید.
+    action: focus
+  - control: save-category
+    instruction_fa: برای ساخت دسته‌بندی، این دکمه را بزنید یا کلیدهای Ctrl+S را فشار دهید.
+    action: invoke

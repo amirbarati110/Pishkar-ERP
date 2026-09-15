@@ -1,14 +1,20 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/ERP.Application/ERP.Application.csproj" />
+    <Project Path="src/ERP.Desktop/ERP.Desktop.csproj">
+      <Platform Project="x86" />
+    </Project>
     <Project Path="src/ERP.Domain/ERP.Domain.csproj" />
     <Project Path="src/ERP.Infrastructure/ERP.Infrastructure.csproj" />
     <Project Path="src/ERP.Persistence/ERP.Persistence.csproj" />
+    <Project Path="src/ERP.Presentation/ERP.Presentation.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ERP.Application.Tests/ERP.Application.Tests.csproj" />
     <Project Path="tests/ERP.Architecture.Tests/ERP.Architecture.Tests.csproj" />
+    <Project Path="tests/ERP.Desktop.Tests/ERP.Desktop.Tests.csproj" />
     <Project Path="tests/ERP.Domain.Tests/ERP.Domain.Tests.csproj" />
+    <Project Path="tests/ERP.Infrastructure.Tests/ERP.Infrastructure.Tests.csproj" />
     <Project Path="tests/ERP.Persistence.Tests/ERP.Persistence.Tests.csproj" />
   </Folder>
 </Solution>

@@ -1,0 +1,138 @@
+using ERP.Application.Common;
+using ERP.Application.Sales;
+using ERP.Domain.Sales;
+using ERP.Persistence.Audit;
+using ERP.Persistence.Catalog;
+using ERP.Persistence.Database;
+using ERP.Persistence.Inventory;
+
+namespace ERP.Persistence.Sales;
+
+/// <summary>
+/// Composition root for the Sales/POS use cases, mirroring
+/// <see cref="Services.FirebirdRetailSetupService"/>'s pattern one call at a
+/// time: each method opens its own <see cref="FirebirdUnitOfWork"/>, wires the
+/// real handler with repositories bound to it, and lets that single transaction
+/// commit or roll back as a unit. Kept as its own service (not folded into
+/// FirebirdRetailSetupService) because Sales is its own bounded context with
+/// its own owner module (source-of-truth rule #18).
+/// </summary>
+public sealed class FirebirdSalesService :
+    IStartSaleHandler,
+    IAddSaleLineHandler,
+    IRemoveSaleLineHandler,
+    ICompleteSaleHandler,
+    IChangeSaleLineHandler,
+    ISetSaleChargesHandler,
+    IGetSaleSummaryHandler
+{
+    private readonly FirebirdConnectionFactory _connectionFactory;
+    private readonly IUserContext _userContext;
+    private readonly IClock _clock;
+
+    public FirebirdSalesService(
+        FirebirdConnectionFactory connectionFactory,
+        IUserContext userContext,
+        IClock clock)
+    {
+        _connectionFactory = connectionFactory;
+        _userContext = userContext;
+        _clock = clock;
+    }
+
+    public async Task<Result<SaleId>> ExecuteAsync(
+        StartSaleCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new StartSaleHandler(new FirebirdSaleRepository(unitOfWork), unitOfWork, _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(
+        AddSaleLineCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new AddSaleLineHandler(
+                new FirebirdSaleRepository(unitOfWork),
+                new FirebirdProductRepository(unitOfWork),
+                unitOfWork)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(
+        RemoveSaleLineCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new RemoveSaleLineHandler(new FirebirdSaleRepository(unitOfWork), unitOfWork)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<SaleTotals>> ExecuteAsync(
+        CompleteSaleCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new CompleteSaleHandler(
+                new FirebirdSaleRepository(unitOfWork),
+                new FirebirdStockLedgerRepository(unitOfWork),
+                new FirebirdAuditWriter(unitOfWork),
+                unitOfWork,
+                _userContext,
+                _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(
+        ChangeSaleLineCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new ChangeSaleLineHandler(
+                new FirebirdSaleRepository(unitOfWork),
+                new FirebirdProductRepository(unitOfWork),
+                unitOfWork)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(
+        SetSaleChargesCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new SetSaleChargesHandler(new FirebirdSaleRepository(unitOfWork), unitOfWork)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<SaleSummary>> ExecuteAsync(
+        GetSaleSummaryQuery query,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new GetSaleSummaryHandler(new FirebirdSaleRepository(unitOfWork))
+            .ExecuteAsync(query, cancellationToken)
+            .ConfigureAwait(false);
+    }
+}

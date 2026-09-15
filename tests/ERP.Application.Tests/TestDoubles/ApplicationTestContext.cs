@@ -2,8 +2,10 @@ using ERP.Application.Audit;
 using ERP.Application.Common;
 using ERP.Application.Catalog;
 using ERP.Application.Inventory;
+using ERP.Application.Sales;
 using ERP.Domain.Catalog;
 using ERP.Domain.Inventory;
+using ERP.Domain.Sales;
 
 namespace ERP.Application.Tests.TestDoubles;
 
@@ -14,6 +16,8 @@ internal sealed class ApplicationTestContext
     public ProductRepository Products { get; } = new();
 
     public StockLedgerRepository StockLedgers { get; } = new();
+
+    public SaleRepository Sales { get; } = new();
 
     public RecordingAuditWriter Audit { get; } = new();
 
@@ -85,6 +89,14 @@ internal sealed class ProductRepository : IProductRepository
         Items.Add(product);
         return Task.CompletedTask;
     }
+
+    public int UpdateCount { get; private set; }
+
+    public Task UpdateAsync(Product product, CancellationToken cancellationToken)
+    {
+        UpdateCount++;
+        return Task.CompletedTask;
+    }
 }
 
 internal sealed class StockLedgerRepository : IStockLedgerRepository
@@ -112,6 +124,30 @@ internal sealed class StockLedgerRepository : IStockLedgerRepository
         if (existing is null)
         {
             Items.Add(ledger);
+        }
+
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class SaleRepository : ISaleRepository
+{
+    public List<Sale> Items { get; } = [];
+
+    public int SaveCount { get; private set; }
+
+    public Task<Sale?> GetAsync(SaleId saleId, CancellationToken cancellationToken)
+    {
+        var sale = Items.SingleOrDefault(item => item.Id == saleId);
+        return Task.FromResult(sale);
+    }
+
+    public Task SaveAsync(Sale sale, CancellationToken cancellationToken)
+    {
+        SaveCount++;
+        if (!Items.Contains(sale))
+        {
+            Items.Add(sale);
         }
 
         return Task.CompletedTask;

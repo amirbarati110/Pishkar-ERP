@@ -13,7 +13,14 @@ public sealed record ReceiveOpeningStockCommand(
     long UnitCostRials,
     DateOnly ReceivedOn);
 
-public sealed class ReceiveOpeningStockHandler
+public interface IReceiveOpeningStockHandler
+{
+    Task<Result<bool>> ExecuteAsync(
+        ReceiveOpeningStockCommand command,
+        CancellationToken cancellationToken);
+}
+
+public sealed class ReceiveOpeningStockHandler : IReceiveOpeningStockHandler
 {
     private readonly IStockLedgerRepository _stockLedgers;
     private readonly IAuditWriter _audit;

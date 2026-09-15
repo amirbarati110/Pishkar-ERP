@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="ERP.Desktop.Features.Inventory.OpeningStockPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource AppBackgroundBrush}"
+    FlowDirection="RightToLeft">
+
+    <ScrollViewer>
+        <Grid MaxWidth="900" Padding="28,24">
+            <StackPanel Spacing="16">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Spacing="3"><TextBlock Style="{StaticResource AppPageTitleStyle}" Text="موجودی اولیه" /><TextBlock Style="{StaticResource AppMutedTextStyle}" Text="شروع دقیق انبار با تعداد و بهای واقعی" /></StackPanel>
+                    <Border Grid.Column="1" Padding="11,6" Background="{ThemeResource AppPrimarySoftBrush}" CornerRadius="7"><TextBlock Foreground="{ThemeResource AppPrimaryBrush}" Text="مرحله ۳ از ۳" /></Border>
+                </Grid>
+
+                <Border Padding="14" Background="{ThemeResource AppSurfaceBrush}" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1" CornerRadius="9">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="7"><Border Width="24" Height="24" Background="{ThemeResource AppPrimarySoftBrush}" CornerRadius="12"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource AppPrimaryBrush}" Text="✓" /></Border><TextBlock VerticalAlignment="Center" Text="دسته‌بندی" /></StackPanel>
+                        <TextBlock Grid.Column="1" VerticalAlignment="Center" Foreground="{ThemeResource AppTextMutedBrush}" Text="←" />
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="7"><Border Width="24" Height="24" Background="{ThemeResource AppPrimarySoftBrush}" CornerRadius="12"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource AppPrimaryBrush}" Text="✓" /></Border><TextBlock VerticalAlignment="Center" Text="اطلاعات کالا" /></StackPanel>
+                        <TextBlock Grid.Column="3" VerticalAlignment="Center" Foreground="{ThemeResource AppTextMutedBrush}" Text="←" />
+                        <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="7"><Border Width="24" Height="24" Background="{ThemeResource AppPrimaryBrush}" CornerRadius="12"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" Text="۳" /></Border><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="موجودی" /></StackPanel>
+                    </Grid>
+                </Border>
+
+                <InfoBar IsClosable="False" IsOpen="True" Message="انتخاب کالا از فهرست، در حال اتصال به این فرم است. بخش دیتابیس و کنترل موجودی فعال است." Severity="Informational" Title="نسخه در حال تکمیل" />
+
+                <Border Style="{StaticResource AppCardStyle}">
+                    <StackPanel Spacing="15">
+                        <TextBlock Style="{StaticResource AppSectionTitleStyle}" Text="اطلاعات ورود به انبار" />
+                        <StackPanel Spacing="5">
+                            <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="کالا *" />
+                            <ComboBox
+                                AutomationProperties.Name="انتخاب کالا"
+                                DisplayMemberPath="Name"
+                                HorizontalAlignment="Stretch"
+                                ItemsSource="{x:Bind ViewModel.Products, Mode=OneWay}"
+                                PlaceholderText="کالا را انتخاب کنید"
+                                SelectedValue="{x:Bind ViewModel.ProductId, Mode=TwoWay}"
+                                SelectedValuePath="Id" />
+                            <TextBlock Style="{StaticResource AppErrorTextStyle}" Text="{x:Bind ViewModel.ProductError, Mode=OneWay}" />
+                        </StackPanel>
+
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <StackPanel Spacing="5">
+                                <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="تعداد *" />
+                                <TextBox AutomationProperties.Name="تعداد موجودی" InputScope="Number" PlaceholderText="مثلاً ۱۲٫۵" Style="{StaticResource AppTextBoxStyle}" Text="{x:Bind ViewModel.QuantityText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource AppErrorTextStyle}" Text="{x:Bind ViewModel.QuantityError, Mode=OneWay}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Spacing="5">
+                                <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="بهای هر واحد (تومان) *" />
+                                <TextBox AutomationProperties.Name="بهای هر واحد به تومان" InputScope="Number" PlaceholderText="مثلاً ۱۰۰٬۰۰۰" Style="{StaticResource AppTextBoxStyle}" Text="{x:Bind ViewModel.UnitCostTomansText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource AppErrorTextStyle}" Text="{x:Bind ViewModel.UnitCostError, Mode=OneWay}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel Spacing="5"><TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="انبار" /><ComboBox AutomationProperties.Name="انتخاب انبار" HorizontalAlignment="Stretch" IsEnabled="False" SelectedIndex="0"><ComboBoxItem Content="انبار اصلی" /></ComboBox></StackPanel>
+                        <Border Height="1" Background="{ThemeResource AppBorderBrush}" />
+                        <Grid>
+                            <StackPanel><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="موجودی منفی مجاز نیست و همه تغییرات قابل پیگیری‌اند." /><TextBlock Foreground="{ThemeResource AppSuccessBrush}" Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" /></StackPanel>
+                            <StackPanel HorizontalAlignment="Left" Orientation="Horizontal" Spacing="10"><ProgressRing Width="24" Height="24" IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" /><Button Command="{x:Bind ViewModel.SaveCommand}" Content="ثبت موجودی" Style="{StaticResource AppPrimaryButtonStyle}"><Button.KeyboardAccelerators><KeyboardAccelerator Key="S" Modifiers="Control" /></Button.KeyboardAccelerators></Button></StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Page>

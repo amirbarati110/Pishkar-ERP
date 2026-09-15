@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="ERP.Desktop.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource AppBackgroundBrush}">
+
+    <!--
+        Native NavigationView instead of a hand-rolled StackPanel-of-Buttons pane
+        (source-of-truth Appendix A #10). This is free wins over the old sidebar:
+        built-in keyboard navigation and focus visuals, a real selected-item visual
+        state, hover/pressed states, and standard automation/accessibility support
+        (WinUI stack guidance: "Use NavigationView for hierarchy" / handle back
+        navigation). FlowDirection is RightToLeft so PaneDisplayMode="Left" renders
+        the pane on the visual right, matching the Figma "Pishkar ERP" layout and
+        Iran-first RTL (source-of-truth §3.1).
+
+        The brush aliases below (NavigationViewExpandedPaneBackground etc.) are
+        WinUI 3's documented mechanism for reskinning built-in controls without
+        rewriting their control template: they point NavigationView's own internal
+        theme-resource lookups at this app's brand brushes instead of the Windows
+        default blue. If a key name here doesn't match the current WinUI 3 default
+        style exactly, it fails silently (NavigationView keeps its default look for
+        that one visual) rather than breaking anything — there is no unstyled/broken
+        state possible from this list.
+    -->
+    <NavigationView
+        x:Name="RootNavigationView"
+        FlowDirection="RightToLeft"
+        IsBackButtonVisible="Collapsed"
+        IsSettingsVisible="False"
+        OpenPaneLength="236"
+        PaneDisplayMode="Left"
+        SelectionChanged="OnNavigationSelectionChanged"
+        Background="{ThemeResource AppBackgroundBrush}">
+
+        <NavigationView.Resources>
+            <ThemeResource x:Key="NavigationViewExpandedPaneBackground" ResourceKey="AppNavBrush" />
+            <ThemeResource x:Key="NavigationViewDefaultPaneBackground" ResourceKey="AppNavBrush" />
+            <ThemeResource x:Key="NavigationViewItemForeground" ResourceKey="AppNavTextBrush" />
+            <ThemeResource x:Key="NavigationViewItemForegroundPointerOver" ResourceKey="AppNavTextBrush" />
+            <ThemeResource x:Key="NavigationViewItemForegroundSelected" ResourceKey="AppOnPrimaryBrush" />
+            <ThemeResource x:Key="NavigationViewItemForegroundPressed" ResourceKey="AppNavTextBrush" />
+            <ThemeResource x:Key="NavigationViewItemBackground" ResourceKey="AppNavBrush" />
+            <ThemeResource x:Key="NavigationViewItemBackgroundPointerOver" ResourceKey="AppNavHoverBrush" />
+            <ThemeResource x:Key="NavigationViewItemBackgroundSelected" ResourceKey="AppNavSelectedBrush" />
+            <ThemeResource x:Key="NavigationViewItemBackgroundSelectedPointerOver" ResourceKey="AppNavSelectedBrush" />
+            <ThemeResource x:Key="NavigationViewSelectionIndicatorForeground" ResourceKey="AppNavSelectedBrush" />
+        </NavigationView.Resources>
+
+        <NavigationView.PaneHeader>
+            <StackPanel Margin="0,4,0,20" Spacing="16" FlowDirection="RightToLeft">
+                <StackPanel Spacing="3">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock FontFamily="{StaticResource AppBodyFont}" FontSize="21" FontWeight="Bold" Foreground="White" Text="پیشکار" />
+                        <TextBlock FontFamily="{StaticResource AppBodyFont}" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AppNavTextMutedBrush}" Text="ERP" VerticalAlignment="Bottom" Margin="0,0,0,2" />
+                    </StackPanel>
+                    <TextBlock FontFamily="{StaticResource AppBodyFont}" FontSize="12" Foreground="{ThemeResource AppNavTextMutedBrush}" Text="فروشگاه مرکزی · صندوق ۱" />
+                </StackPanel>
+
+                <Border Padding="10,8" Background="{ThemeResource AppNavHoverBrush}" CornerRadius="7">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="8" /></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock FontFamily="{StaticResource AppBodyFont}" FontSize="12" Foreground="{ThemeResource AppNavTextMutedBrush}" Text="وضعیت سیستم" />
+                            <TextBlock FontFamily="{StaticResource AppBodyFont}" FontSize="13" Foreground="White" Text="آماده و متصل" />
+                        </StackPanel>
+                        <Ellipse Grid.Column="1" Width="8" Height="8" VerticalAlignment="Center" Fill="{ThemeResource AppSuccessBrush}" />
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </NavigationView.PaneHeader>
+
+        <NavigationView.MenuItems>
+            <NavigationViewItem x:Name="HomeNavItem" AccessKey="H" AutomationProperties.Name="میز کار" Content="میز کار" IsSelected="True" Tag="home">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="Home" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem x:Name="ProductsNavItem" AccessKey="P" AutomationProperties.Name="کالا و قیمت‌گذاری" Content="کالا و قیمت‌گذاری" Tag="products">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="Shop" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem x:Name="CategoriesNavItem" AccessKey="C" AutomationProperties.Name="دسته‌بندی‌ها" Content="دسته‌بندی‌ها" Tag="categories">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="Bullets" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem x:Name="InventoryNavItem" AccessKey="I" AutomationProperties.Name="انبار و موجودی" Content="انبار و موجودی" Tag="inventory">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="AllApps" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.MenuItems>
+
+        <NavigationView.FooterMenuItems>
+            <NavigationViewItem x:Name="SettingsNavItem" AccessKey="S" AutomationProperties.Name="تنظیمات" Content="تنظیمات" Tag="settings">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="Setting" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.FooterMenuItems>
+
+        <NavigationView.PaneFooter>
+            <TextBlock Margin="24,8" FontFamily="{StaticResource AppBodyFont}" FontSize="11" Foreground="{ThemeResource AppNavTextMutedBrush}" Text="نسخه آزمایشی عملیاتی" />
+        </NavigationView.PaneFooter>
+
+        <Frame x:Name="ContentFrame" />
+    </NavigationView>
+</Page>

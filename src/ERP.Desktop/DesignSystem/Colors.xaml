@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        Brand tokens synced with design-system/retail-erp/MASTER.md and the
+        Figma "Pishkar ERP" brand page (00 — Cover & Brand):
+        Primary/brand green #059669, Accent/amber #D97706, Navy #0F172A.
+        Do not hand-pick new hex values here; add a token instead and reuse it.
+    -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F6F8FA" />
+            <SolidColorBrush x:Key="AppSurfaceBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="AppSurfaceMutedBrush" Color="#EEF2F6" />
+            <SolidColorBrush x:Key="AppPrimaryBrush" Color="#059669" />
+            <SolidColorBrush x:Key="AppPrimarySoftBrush" Color="#E1F4ED" />
+            <SolidColorBrush x:Key="AppAccentBrush" Color="#D97706" />
+            <SolidColorBrush x:Key="AppAccentSoftBrush" Color="#FDF0E1" />
+            <SolidColorBrush x:Key="AppOnAccentBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="AppTextBrush" Color="#0F172A" />
+            <SolidColorBrush x:Key="AppTextMutedBrush" Color="#475467" />
+            <SolidColorBrush x:Key="AppBorderBrush" Color="#D0D5DD" />
+            <SolidColorBrush x:Key="AppErrorBrush" Color="#B42318" />
+            <SolidColorBrush x:Key="AppSuccessBrush" Color="#087A55" />
+            <SolidColorBrush x:Key="AppOnPrimaryBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="AppNavBrush" Color="#0F172A" />
+            <SolidColorBrush x:Key="AppNavHoverBrush" Color="#1D2939" />
+            <SolidColorBrush x:Key="AppNavSelectedBrush" Color="#059669" />
+            <SolidColorBrush x:Key="AppNavTextBrush" Color="#EAECF0" />
+            <SolidColorBrush x:Key="AppNavTextMutedBrush" Color="#98A2B3" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0E1714" />
+            <SolidColorBrush x:Key="AppSurfaceBrush" Color="#17231F" />
+            <SolidColorBrush x:Key="AppSurfaceMutedBrush" Color="#21312B" />
+            <SolidColorBrush x:Key="AppPrimaryBrush" Color="#62C6A1" />
+            <SolidColorBrush x:Key="AppPrimarySoftBrush" Color="#193D31" />
+            <SolidColorBrush x:Key="AppAccentBrush" Color="#F2A650" />
+            <SolidColorBrush x:Key="AppAccentSoftBrush" Color="#3A2A14" />
+            <SolidColorBrush x:Key="AppOnAccentBrush" Color="#2B1B04" />
+            <SolidColorBrush x:Key="AppTextBrush" Color="#F1F7F4" />
+            <SolidColorBrush x:Key="AppTextMutedBrush" Color="#B8C9C2" />
+            <SolidColorBrush x:Key="AppBorderBrush" Color="#334840" />
+            <SolidColorBrush x:Key="AppErrorBrush" Color="#FFB4AB" />
+            <SolidColorBrush x:Key="AppSuccessBrush" Color="#7DDDB8" />
+            <SolidColorBrush x:Key="AppOnPrimaryBrush" Color="#08251C" />
+            <SolidColorBrush x:Key="AppNavBrush" Color="#080D18" />
+            <SolidColorBrush x:Key="AppNavHoverBrush" Color="#1D2939" />
+            <SolidColorBrush x:Key="AppNavSelectedBrush" Color="#62C6A1" />
+            <SolidColorBrush x:Key="AppNavTextBrush" Color="#F2F4F7" />
+            <SolidColorBrush x:Key="AppNavTextMutedBrush" Color="#8896A6" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

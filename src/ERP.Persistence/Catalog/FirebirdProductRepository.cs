@@ -133,6 +133,23 @@ public sealed class FirebirdProductRepository : IProductRepository
         }
     }
 
+    public async Task UpdateAsync(Product product, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(product);
+
+        await using var command = CreateCommand(
+            """
+            UPDATE PRODUCT
+            SET NAME = @NAME, SALE_PRICE_RIALS = @SALE_PRICE_RIALS, STATUS = @STATUS
+            WHERE ID = @ID
+            """);
+        command.Parameters.Add("@ID", FbDbType.Char).Value = product.Id.ToString();
+        command.Parameters.Add("@NAME", FbDbType.VarChar).Value = product.Name;
+        command.Parameters.Add("@SALE_PRICE_RIALS", FbDbType.BigInt).Value = product.SalePrice.Rials;
+        command.Parameters.Add("@STATUS", FbDbType.SmallInt).Value = (short)product.Status;
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task<IReadOnlyList<string>> ReadBarcodesAsync(
         ProductId productId,
         CancellationToken cancellationToken)

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="ERP.Desktop.DashboardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource AppBackgroundBrush}"
+    FlowDirection="RightToLeft">
+
+    <ScrollViewer>
+        <Grid MaxWidth="1180" Padding="28,24">
+            <StackPanel Spacing="18">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Spacing="3">
+                        <TextBlock Style="{StaticResource AppPageTitleStyle}" Text="میز کار" />
+                        <TextBlock Style="{StaticResource AppMutedTextStyle}" Text="خلاصه وضعیت فروشگاه و کارهای امروز" />
+                    </StackPanel>
+                    <Border Grid.Column="1" Padding="12,7" Background="{ThemeResource AppPrimarySoftBrush}" CornerRadius="7">
+                        <StackPanel Orientation="Horizontal" Spacing="7">
+                            <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="#12B76A" />
+                            <TextBlock Foreground="{ThemeResource AppPrimaryBrush}" Text="دیتابیس متصل است" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource AppCardStyle}">
+                        <StackPanel Spacing="5"><TextBlock Style="{StaticResource AppMutedTextStyle}" Text="صندوق‌های فعال" /><TextBlock FontSize="26" FontWeight="SemiBold" Text="۱" /><TextBlock FontSize="12" Foreground="{ThemeResource AppSuccessBrush}" Text="آماده فروش آزمایشی" /></StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Style="{StaticResource AppCardStyle}">
+                        <StackPanel Spacing="5"><TextBlock Style="{StaticResource AppMutedTextStyle}" Text="شعبه" /><TextBlock FontSize="26" FontWeight="SemiBold" Text="۱" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="فروشگاه مرکزی" /></StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource AppCardStyle}">
+                        <StackPanel Spacing="5"><TextBlock Style="{StaticResource AppMutedTextStyle}" Text="حالت اجرا" /><TextBlock FontSize="20" FontWeight="SemiBold" Text="آزمایشی" /><TextBlock FontSize="12" Foreground="{ThemeResource AppAccentBrush}" Text="اطلاعات واقعی ذخیره می‌شود" /></StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid ColumnSpacing="14" FlowDirection="LeftToRight">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="0.9*" /><ColumnDefinition Width="1.5*" /></Grid.ColumnDefinitions>
+
+                    <Border Style="{StaticResource AppCardStyle}" FlowDirection="RightToLeft">
+                        <StackPanel Spacing="14">
+                            <TextBlock Style="{StaticResource AppSectionTitleStyle}" Text="وضعیت راه‌اندازی" />
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Width="28" Height="28" Background="{ThemeResource AppPrimaryBrush}" CornerRadius="14"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" Text="۱" /></Border>
+                                <StackPanel Grid.Column="1"><TextBlock FontWeight="SemiBold" Text="دسته‌بندی کالاها" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="آماده ثبت" /></StackPanel>
+                            </Grid>
+                            <Border Height="1" Background="{ThemeResource AppBorderBrush}" />
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Width="28" Height="28" Background="{ThemeResource AppSurfaceMutedBrush}" CornerRadius="14"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="۲" /></Border>
+                                <StackPanel Grid.Column="1"><TextBlock FontWeight="SemiBold" Text="کالاها و بارکد" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="بعد از دسته‌بندی" /></StackPanel>
+                            </Grid>
+                            <Border Height="1" Background="{ThemeResource AppBorderBrush}" />
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Width="28" Height="28" Background="{ThemeResource AppSurfaceMutedBrush}" CornerRadius="14"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="۳" /></Border>
+                                <StackPanel Grid.Column="1"><TextBlock FontWeight="SemiBold" Text="موجودی اولیه" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="گام نهایی آماده‌سازی" /></StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource AppCardStyle}" FlowDirection="RightToLeft">
+                        <StackPanel Spacing="14">
+                            <StackPanel Spacing="3"><TextBlock Style="{StaticResource AppSectionTitleStyle}" Text="شروع سریع" /><TextBlock Style="{StaticResource AppMutedTextStyle}" Text="اطلاعات پایه را به‌ترتیب وارد کن." /></StackPanel>
+                            <Grid ColumnSpacing="10" RowSpacing="10">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Padding="16" Background="{ThemeResource AppSurfaceMutedBrush}" CornerRadius="8">
+                                    <StackPanel Spacing="6"><SymbolIcon HorizontalAlignment="Right" Foreground="{ThemeResource AppAccentBrush}" Symbol="Bullets" /><TextBlock FontWeight="SemiBold" Text="ساخت دسته‌بندی" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="چیدمان گروه‌های کالا" /></StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Padding="16" Background="{ThemeResource AppSurfaceMutedBrush}" CornerRadius="8">
+                                    <StackPanel Spacing="6"><SymbolIcon HorizontalAlignment="Right" Foreground="{ThemeResource AppAccentBrush}" Symbol="Shop" /><TextBlock FontWeight="SemiBold" Text="ثبت دستی کالا" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="نام، بارکد و قیمت" /></StackPanel>
+                                </Border>
+                                <Border Grid.Row="1" Padding="16" Background="{ThemeResource AppSurfaceMutedBrush}" CornerRadius="8">
+                                    <StackPanel Spacing="6"><SymbolIcon HorizontalAlignment="Right" Foreground="{ThemeResource AppAccentBrush}" Symbol="AllApps" /><TextBlock FontWeight="SemiBold" Text="موجودی اولیه" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="تعداد و بهای خرید" /></StackPanel>
+                                </Border>
+                                <Border Grid.Row="1" Grid.Column="1" Padding="16" Background="{ThemeResource AppSurfaceMutedBrush}" CornerRadius="8" Opacity="0.7">
+                                    <StackPanel Spacing="6"><SymbolIcon HorizontalAlignment="Right" Foreground="{ThemeResource AppTextMutedBrush}" Symbol="OpenFile" /><TextBlock FontWeight="SemiBold" Text="ورود از اکسل" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="در حال ساخت" /></StackPanel>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Page>

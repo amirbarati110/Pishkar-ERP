@@ -93,6 +93,61 @@ public sealed class StockLedgerTests
         Assert.Equal(5m, ledger.AvailableQuantity.Value);
     }
 
+    [Fact]
+    public void ConsumeFifoAllowingBackorderCoversWhatItCanAndRecordsTheRestAsBackorder()
+    {
+        // "بار اومده، فروش رفته، ولی هنوز فاکتور خرید ثبت نشده": 5 in stock,
+        // cashier sells 8 anyway with the override on.
+        var ledger = CreateEmptyLedger();
+        ledger.ReceiveOpeningStock(Quantity.Create(5m), Money.FromTomans(100_000), new DateOnly(2026, 9, 1));
+
+        var allocations = ledger.ConsumeFifoAllowingBackorder(Quantity.Create(8m), "sale-2001");
+
+        var allocation = Assert.Single(allocations);
+        Assert.Equal(5m, allocation.Quantity.Value);
+        Assert.Equal(0m, ledger.Layers[0].RemainingQuantity.Value);
+        Assert.Equal(-3m, ledger.AvailableQuantity.Value);
+        Assert.True(ledger.AvailableQuantity.IsNegative);
+        Assert.Collection(
+            ledger.Movements,
+            opening => Assert.Equal(StockMovementType.OpeningBalance, opening.Type),
+            sale =>
+            {
+                Assert.Equal(StockMovementType.Sale, sale.Type);
+                Assert.Equal(5m, sale.Quantity.Value);
+            },
+            backorder =>
+            {
+                Assert.Equal(StockMovementType.BackorderSale, backorder.Type);
+                Assert.Equal(3m, backorder.Quantity.Value);
+            });
+    }
+
+    [Fact]
+    public void ConsumeFifoAllowingBackorderWithNoStockAtAllRecordsAPureBackorder()
+    {
+        var ledger = CreateEmptyLedger();
+
+        var allocations = ledger.ConsumeFifoAllowingBackorder(Quantity.Create(4m), "sale-2002");
+
+        Assert.Empty(allocations);
+        Assert.Equal(-4m, ledger.AvailableQuantity.Value);
+        var movement = Assert.Single(ledger.Movements);
+        Assert.Equal(StockMovementType.BackorderSale, movement.Type);
+        Assert.Equal(4m, movement.Quantity.Value);
+    }
+
+    [Fact]
+    public void ConsumeFifoAllowingBackorderStacksOnTopOfAnExistingBackorder()
+    {
+        var ledger = CreateEmptyLedger();
+        ledger.ConsumeFifoAllowingBackorder(Quantity.Create(2m), "sale-2003");
+
+        ledger.ConsumeFifoAllowingBackorder(Quantity.Create(1m), "sale-2004");
+
+        Assert.Equal(-3m, ledger.AvailableQuantity.Value);
+    }
+
     private static StockLedger CreateEmptyLedger()
     {
         return StockLedger.Empty(ProductId.New(), WarehouseId.New());

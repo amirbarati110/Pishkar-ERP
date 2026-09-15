@@ -7,7 +7,14 @@ namespace ERP.Application.Catalog;
 
 public sealed record CreateCategoryCommand(string Name, CategoryId? ParentId, int SortOrder);
 
-public sealed class CreateCategoryHandler
+public interface ICreateCategoryHandler
+{
+    Task<Result<CategoryId>> ExecuteAsync(
+        CreateCategoryCommand command,
+        CancellationToken cancellationToken);
+}
+
+public sealed class CreateCategoryHandler : ICreateCategoryHandler
 {
     private readonly ICategoryRepository _categories;
     private readonly IAuditWriter _audit;
