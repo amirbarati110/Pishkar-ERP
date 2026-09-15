@@ -31,6 +31,7 @@ public sealed partial class SalesPage : Page
         ViewModel = new SalesWorkspaceViewModel(App.Services.SalesBackend, App.Services.Defaults.MainWarehouseId);
         InitializeComponent();
 
+        ViewModel.ReportUnexpectedError = App.TryLogCrash;
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         _clock.Tick += (_, _) => UpdateClock();
         _noticeTimer.Tick += (_, _) =>
@@ -328,6 +329,25 @@ public sealed partial class SalesPage : Page
 
     // ───── clicks ─────
 
+    /// <summary>
+    /// The row a template button belongs to. Read from Tag="{x:Bind}", not from
+    /// DataContext: inside x:Bind templates — ItemsRepeater in particular — a
+    /// button's DataContext is not guaranteed to be the item, and relying on it
+    /// crashed the page when a product tile was clicked.
+    /// </summary>
+    private static T? ItemOf<T>(object sender)
+        where T : class =>
+        (sender as FrameworkElement)?.Tag as T ?? (sender as FrameworkElement)?.DataContext as T;
+
+    private static void RunWithItem<T>(object sender, System.Windows.Input.ICommand command)
+        where T : class
+    {
+        if (ItemOf<T>(sender) is { } item)
+        {
+            command.Execute(item);
+        }
+    }
+
     private void OnExitClick(object sender, RoutedEventArgs e)
     {
         if (Frame.CanGoBack)
@@ -341,24 +361,24 @@ public sealed partial class SalesPage : Page
     }
 
     private void OnTabTapped(object sender, TappedRoutedEventArgs e) =>
-        ViewModel.SelectTabCommand.Execute(((FrameworkElement)sender).DataContext as InvoiceTab);
+        RunWithItem<InvoiceTab>(sender, ViewModel.SelectTabCommand);
 
     private void OnCloseTabClick(object sender, RoutedEventArgs e)
     {
-        if (((FrameworkElement)sender).DataContext is InvoiceTab tab)
+        if (ItemOf<InvoiceTab>(sender) is { } tab)
         {
             ViewModel.CloseTabCommand.Execute(tab);
         }
     }
 
     private void OnCategoryClick(object sender, RoutedEventArgs e) =>
-        ViewModel.SelectCategoryCommand.Execute(((FrameworkElement)sender).DataContext as CategoryChip);
+        RunWithItem<CategoryChip>(sender, ViewModel.SelectCategoryCommand);
 
     private void OnProductClick(object sender, RoutedEventArgs e) =>
-        ViewModel.AddProductCommand.Execute(((FrameworkElement)sender).DataContext as ProductRow);
+        RunWithItem<ProductRow>(sender, ViewModel.AddProductCommand);
 
-    private void OnProductListItemClick(object sender, ItemClickEventArgs e) =>
-        ViewModel.AddProductCommand.Execute(e.ClickedItem as ProductRow);
+    private void OnProductListItemClick(object sender, ItemClickEventArgs e)
+        { if (e.ClickedItem is ProductRow product) { ViewModel.AddProductCommand.Execute(product); } }
 
     private void OnFocusSearchClick(object sender, RoutedEventArgs e) => ProductSearchBox.Focus(FocusState.Programmatic);
 
@@ -375,16 +395,16 @@ public sealed partial class SalesPage : Page
     private void OnNextProductPageClick(object sender, RoutedEventArgs e) => ViewModel.ChangeProductPageCommand.Execute(1);
 
     private void OnEditLineClick(object sender, RoutedEventArgs e) =>
-        ViewModel.OpenEditLineCommand.Execute(((FrameworkElement)sender).DataContext as CartLineRow);
+        RunWithItem<CartLineRow>(sender, ViewModel.OpenEditLineCommand);
 
     private void OnRemoveLineClick(object sender, RoutedEventArgs e) =>
-        ViewModel.RemoveLineCommand.Execute(((FrameworkElement)sender).DataContext as CartLineRow);
+        RunWithItem<CartLineRow>(sender, ViewModel.RemoveLineCommand);
 
     private void OnIncreaseLineClick(object sender, RoutedEventArgs e) =>
-        ViewModel.IncreaseLineCommand.Execute(((FrameworkElement)sender).DataContext as CartLineRow);
+        RunWithItem<CartLineRow>(sender, ViewModel.IncreaseLineCommand);
 
     private void OnDecreaseLineClick(object sender, RoutedEventArgs e) =>
-        ViewModel.DecreaseLineCommand.Execute(((FrameworkElement)sender).DataContext as CartLineRow);
+        RunWithItem<CartLineRow>(sender, ViewModel.DecreaseLineCommand);
 
     private void OnChargesLostFocus(object sender, RoutedEventArgs e)
     {
@@ -439,6 +459,6 @@ public sealed partial class SalesPage : Page
         }
     }
 
-    private void OnHeldInvoiceClick(object sender, ItemClickEventArgs e) =>
-        ViewModel.ResumeHeldInvoiceCommand.Execute(e.ClickedItem as InvoiceListRow);
+    private void OnHeldInvoiceClick(object sender, ItemClickEventArgs e)
+        { if (e.ClickedItem is InvoiceListRow row) { ViewModel.ResumeHeldInvoiceCommand.Execute(row); } }
 }

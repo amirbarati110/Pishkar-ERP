@@ -88,7 +88,7 @@ public partial class App : Microsoft.UI.Xaml.Application
         // failure is now recorded instead of vanishing silently.
     }
 
-    private static void TryLogCrash(Exception exception)
+    internal static void TryLogCrash(Exception exception)
     {
         try
         {

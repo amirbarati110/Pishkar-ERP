@@ -182,14 +182,14 @@
                                   Background="{x:Bind local:SalesPage.TabBackground(IsCurrent), Mode=OneWay}"
                                   BorderBrush="{ThemeResource SalesLineBrush}"
                                   BorderThickness="{x:Bind local:SalesPage.TabBorder(IsCurrent), Mode=OneWay}"
-                                  Tapped="OnTabTapped">
+                                  Tapped="OnTabTapped" Tag="{x:Bind}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="{x:Bind Title, Mode=OneWay}" VerticalAlignment="Center" FontSize="13.5"
                                            FontWeight="{x:Bind local:SalesPage.TabWeight(IsCurrent), Mode=OneWay}" />
-                                <Button Grid.Column="1" Click="OnCloseTabClick" Width="22" Height="22" Padding="0" CornerRadius="6"
+                                <Button Grid.Column="1" Click="OnCloseTabClick" Tag="{x:Bind}" Width="22" Height="22" Padding="0" CornerRadius="6"
                                         Background="Transparent" BorderThickness="0" FontSize="10"
                                         AutomationProperties.Name="بستن و معلق کردن فاکتور"
                                         ToolTipService.ToolTip="بستن تب — فاکتورِ دارای کالا معلق می‌ماند">
@@ -244,7 +244,7 @@
                             </ItemsRepeater.Layout>
                             <ItemsRepeater.ItemTemplate>
                                 <DataTemplate x:DataType="sales:CategoryChip">
-                                    <Button Click="OnCategoryClick" Padding="13,6" CornerRadius="9" FontSize="13" FontWeight="SemiBold"
+                                    <Button Click="OnCategoryClick" Tag="{x:Bind}" Padding="13,6" CornerRadius="9" FontSize="13" FontWeight="SemiBold"
                                            
                                             Background="{x:Bind local:SalesPage.ChipBackground(IsSelected), Mode=OneWay}"
                                             Foreground="{x:Bind local:SalesPage.ChipForeground(IsSelected), Mode=OneWay}"
@@ -262,7 +262,7 @@
                             </ItemsRepeater.Layout>
                             <ItemsRepeater.ItemTemplate>
                                 <DataTemplate x:DataType="sales:ProductRow">
-                                    <Button Click="OnProductClick" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                    <Button Click="OnProductClick" Tag="{x:Bind}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                                             HorizontalContentAlignment="Center" Padding="8,10" CornerRadius="12"
                                             Background="{ThemeResource AppSurfaceBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1.5"
                                             AutomationProperties.Name="{x:Bind Name}">
@@ -536,7 +536,7 @@
                                                 <ColumnDefinition Width="104" />
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Orientation="Horizontal" Spacing="2" HorizontalAlignment="Center">
-                                                <Button Click="OnEditLineClick" Style="{StaticResource SalesSmallIconButton}" Width="28" Height="28"
+                                                <Button Click="OnEditLineClick" Tag="{x:Bind}" Style="{StaticResource SalesSmallIconButton}" Width="28" Height="28"
                                                         AutomationProperties.Name="ویرایش سطر" ToolTipService.ToolTip="ویرایش سطر (قیمت، تخفیف)">
                                                     <Viewbox Width="14" Height="14">
                                                         <Canvas Width="24" Height="24">
@@ -544,7 +544,7 @@
                                                         </Canvas>
                                                     </Viewbox>
                                                 </Button>
-                                                <Button Click="OnRemoveLineClick" Style="{StaticResource SalesSmallIconButton}" Width="28" Height="28"
+                                                <Button Click="OnRemoveLineClick" Tag="{x:Bind}" Style="{StaticResource SalesSmallIconButton}" Width="28" Height="28"
                                                         AutomationProperties.Name="حذف سطر" ToolTipService.ToolTip="حذف این سطر">
                                                     <Viewbox Width="14" Height="14">
                                                         <Canvas Width="24" Height="24">
@@ -560,9 +560,9 @@
                                                            Visibility="{x:Bind HasWarning}" TextWrapping="Wrap" />
                                             </StackPanel>
                                             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <Button Click="OnIncreaseLineClick" Style="{StaticResource SalesStepButton}" Content="+" AutomationProperties.Name="یکی بیشتر" />
+                                                <Button Click="OnIncreaseLineClick" Tag="{x:Bind}" Style="{StaticResource SalesStepButton}" Content="+" AutomationProperties.Name="یکی بیشتر" />
                                                 <TextBlock Text="{x:Bind QuantityText}" FontWeight="Bold" VerticalAlignment="Center" MinWidth="18" TextAlignment="Center" />
-                                                <Button Click="OnDecreaseLineClick" Style="{StaticResource SalesStepButton}" Content="−" AutomationProperties.Name="یکی کمتر" />
+                                                <Button Click="OnDecreaseLineClick" Tag="{x:Bind}" Style="{StaticResource SalesStepButton}" Content="−" AutomationProperties.Name="یکی کمتر" />
                                                 <TextBlock Text="{x:Bind UnitSymbol}" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" VerticalAlignment="Center" />
                                             </StackPanel>
                                             <TextBlock Grid.Column="3" Text="{x:Bind UnitPriceText}" HorizontalAlignment="Center" VerticalAlignment="Center" />

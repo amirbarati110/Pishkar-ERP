@@ -162,7 +162,7 @@ public sealed partial class SalesWorkspaceViewModel : ObservableObject
     });
 
     [RelayCommand]
-    private void SelectTab(InvoiceTab tab) => CurrentTab = tab;
+    private void SelectTab(InvoiceTab? tab) => CurrentTab = tab ?? CurrentTab;
 
     [RelayCommand]
     private void PreviousTab() => MoveTab(-1);
@@ -176,7 +176,7 @@ public sealed partial class SalesWorkspaceViewModel : ObservableObject
     /// The last tab is never left closed — the screen always has an invoice.
     /// </summary>
     [RelayCommand]
-    private Task CloseTabAsync(InvoiceTab tab) => RunAsync(async () =>
+    private Task CloseTabAsync(InvoiceTab? tab) => tab is null ? Task.CompletedTask : RunAsync(async () =>
     {
         var wasHeld = !tab.IsEmpty;
         var index = Tabs.IndexOf(tab);
@@ -224,7 +224,7 @@ public sealed partial class SalesWorkspaceViewModel : ObservableObject
     // ───── product list and tiles ─────
 
     [RelayCommand]
-    private Task SelectCategoryAsync(CategoryChip chip) => RunAsync(async () =>
+    private Task SelectCategoryAsync(CategoryChip? chip) => chip is null ? Task.CompletedTask : RunAsync(async () =>
     {
         foreach (var item in Categories)
         {
@@ -386,16 +386,16 @@ public sealed partial class SalesWorkspaceViewModel : ObservableObject
     // ───── cart ─────
 
     [RelayCommand]
-    private Task AddProductAsync(ProductRow product) => RunAsync(() => AddProductCoreAsync(product.Id));
+    private Task AddProductAsync(ProductRow? product) => product is null ? Task.CompletedTask : RunAsync(() => AddProductCoreAsync(product.Id));
 
     [RelayCommand]
-    private Task IncreaseLineAsync(CartLineRow row) => RunAsync(() => ChangeQuantityCoreAsync(row, row.Line.Quantity + 1));
+    private Task IncreaseLineAsync(CartLineRow? row) => row is null ? Task.CompletedTask : RunAsync(() => ChangeQuantityCoreAsync(row, row.Line.Quantity + 1));
 
     [RelayCommand]
-    private Task DecreaseLineAsync(CartLineRow row) => RunAsync(() => ChangeQuantityCoreAsync(row, row.Line.Quantity - 1));
+    private Task DecreaseLineAsync(CartLineRow? row) => row is null ? Task.CompletedTask : RunAsync(() => ChangeQuantityCoreAsync(row, row.Line.Quantity - 1));
 
     [RelayCommand]
-    private Task RemoveLineAsync(CartLineRow row) => RunAsync(async () =>
+    private Task RemoveLineAsync(CartLineRow? row) => row is null ? Task.CompletedTask : RunAsync(async () =>
     {
         var tab = RequireTab();
         Check(await _backend.RemoveLine.ExecuteAsync(new RemoveSaleLineCommand(tab.SaleId, row.ProductId), CancellationToken.None));
@@ -529,9 +529,22 @@ public sealed partial class SalesWorkspaceViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Where an unexpected failure is written (the app's log). Set by the page;
+    /// null only in tests, where such a failure should surface anyway.
+    /// </summary>
+    public Action<Exception>? ReportUnexpectedError { get; set; }
+
+    /// <summary>
     /// Runs one cashier action: refuses to start while another is running, and
     /// turns an expected failure (<see cref="SalesScreenException"/>) into a
-    /// notice. Anything else is a bug and is left to the global crash handler.
+    /// notice.
+    ///
+    /// Anything else is a bug — but one click must not close the till with
+    /// customers waiting and invoices open. Every amount on screen is re-read
+    /// from the server after each action, and nothing is committed half-way
+    /// (each action is one transaction), so the screen can safely carry on: the
+    /// failure is logged, the cashier gets a plain message, and the open invoice
+    /// is reloaded. Without a logger (tests) it is rethrown so it is not hidden.
     /// </summary>
     private async Task RunAsync(Func<Task> action)
     {
@@ -549,9 +562,32 @@ public sealed partial class SalesWorkspaceViewModel : ObservableObject
         {
             ShowNotice(exception.Message, isError: true);
         }
+        catch (Exception exception) when (ReportUnexpectedError is not null)
+        {
+            ReportUnexpectedError(exception);
+            ShowNotice("این کار انجام نشد و خطا برای پشتیبانی ثبت شد. فاکتور دوباره خوانده شد؛ یک بار دیگر امتحان کنید.", isError: true);
+            await TryReloadCurrentInvoiceAsync();
+        }
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private async Task TryReloadCurrentInvoiceAsync()
+    {
+        if (CurrentTab is not { } tab)
+        {
+            return;
+        }
+
+        try
+        {
+            await RefreshInvoiceAsync(tab, CancellationToken.None);
+        }
+        catch (Exception exception) when (ReportUnexpectedError is not null)
+        {
+            ReportUnexpectedError(exception);
         }
     }
 }

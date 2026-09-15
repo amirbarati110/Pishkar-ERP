@@ -38,7 +38,7 @@ public sealed partial class SalesWorkspaceViewModel
     }
 
     [RelayCommand]
-    private Task ChooseCustomerAsync(CustomerSearchResult customer) => RunAsync(async () =>
+    private Task ChooseCustomerAsync(CustomerSearchResult? customer) => customer is null ? Task.CompletedTask : RunAsync(async () =>
     {
         var tab = RequireTab();
         Check(await _backend.SetCustomer.ExecuteAsync(new SetSaleCustomerCommand(tab.SaleId, customer.Id), CancellationToken.None));

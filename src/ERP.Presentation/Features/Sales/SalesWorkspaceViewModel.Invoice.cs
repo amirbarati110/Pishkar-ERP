@@ -57,8 +57,13 @@ public sealed partial class SalesWorkspaceViewModel
     public partial string? EditError { get; set; }
 
     [RelayCommand]
-    private void OpenEditLine(CartLineRow row)
+    private void OpenEditLine(CartLineRow? row)
     {
+        if (row is null)
+        {
+            return;
+        }
+
         _editingRow = row;
         EditProductName = row.Name;
         _syncingEditDiscount = true;
@@ -373,7 +378,7 @@ public sealed partial class SalesWorkspaceViewModel
 
     /// <summary>Brings a held invoice back into a tab (or to the front, if it is already open).</summary>
     [RelayCommand]
-    private Task ResumeHeldInvoiceAsync(InvoiceListRow row) => RunAsync(async () =>
+    private Task ResumeHeldInvoiceAsync(InvoiceListRow? row) => row is null ? Task.CompletedTask : RunAsync(async () =>
     {
         var open = Tabs.FirstOrDefault(tab => tab.SaleId == row.Item.SaleId);
         if (open is null)
