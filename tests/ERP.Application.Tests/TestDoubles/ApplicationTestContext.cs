@@ -1,9 +1,12 @@
 using ERP.Application.Audit;
 using ERP.Application.Common;
 using ERP.Application.Catalog;
+using ERP.Application.Customers;
 using ERP.Application.Inventory;
 using ERP.Application.Sales;
 using ERP.Domain.Catalog;
+using ERP.Domain.Common;
+using ERP.Domain.Customers;
 using ERP.Domain.Inventory;
 using ERP.Domain.Sales;
 
@@ -20,6 +23,10 @@ internal sealed class ApplicationTestContext
     public SaleRepository Sales { get; } = new();
 
     public SequentialSaleNumberGenerator SaleNumbers { get; } = new(firstNumber: 1258);
+
+    public CustomerRepository Customers { get; } = new();
+
+    public CustomerLedgerReader CustomerLedger { get; } = new();
 
     public RecordingAuditWriter Audit { get; } = new();
 
@@ -153,6 +160,39 @@ internal sealed class SaleRepository : ISaleRepository
         }
 
         return Task.CompletedTask;
+    }
+}
+
+internal sealed class CustomerRepository : ICustomerRepository
+{
+    public List<Customer> Items { get; } = [];
+
+    public Task<Customer?> GetByIdAsync(CustomerId customerId, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(Items.SingleOrDefault(item => item.Id == customerId));
+    }
+
+    public Task<Customer?> FindByMobileAsync(string normalizedMobile, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(Items.SingleOrDefault(item => item.Mobile == normalizedMobile));
+    }
+
+    public Task AddAsync(Customer customer, CancellationToken cancellationToken)
+    {
+        Items.Add(customer);
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class CustomerLedgerReader : ICustomerLedgerReader
+{
+    public List<CreditInvoice> CreditInvoices { get; } = [];
+
+    public List<Money> Payments { get; } = [];
+
+    public Task<CustomerLedgerEntries> ReadAsync(CustomerId customerId, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(new CustomerLedgerEntries(CreditInvoices.ToList(), Payments.ToList()));
     }
 }
 

@@ -1,5 +1,6 @@
 using ERP.Domain.Catalog;
 using ERP.Domain.Common;
+using ERP.Domain.Customers;
 using ERP.Domain.Inventory;
 using ERP.Domain.Sales.Events;
 
@@ -20,7 +21,7 @@ public sealed class Sale : Entity<SaleId>
     private Sale(
         SaleId id,
         WarehouseId warehouseId,
-        Guid? customerId,
+        CustomerId? customerId,
         DateTimeOffset openedAtUtc)
         : base(id)
     {
@@ -34,7 +35,8 @@ public sealed class Sale : Entity<SaleId>
 
     public WarehouseId WarehouseId { get; }
 
-    public Guid? CustomerId { get; }
+    /// <summary>Null is the walk-in cash sale («مشتری نقدی», §6.3).</summary>
+    public CustomerId? CustomerId { get; private set; }
 
     public DateTimeOffset OpenedAtUtc { get; }
 
@@ -56,11 +58,22 @@ public sealed class Sale : Entity<SaleId>
 
     public DateTimeOffset? CompletedAtUtc { get; private set; }
 
+    /// <summary>
+    /// The tax charged, fixed at completion. Stored rather than recomputed
+    /// because the VAT rate is a setting that changes over time, and a posted
+    /// invoice must keep the amount it was actually issued with. Null for a
+    /// draft, and for sales completed before totals were recorded.
+    /// </summary>
+    public Money? Tax { get; private set; }
+
+    /// <summary>The footer of a completed invoice; null while it is a draft.</summary>
+    public SaleTotals? Totals => Tax is { } tax ? BuildTotals(tax) : null;
+
     public IReadOnlyList<SaleLine> Lines => _lines.AsReadOnly();
 
     public Money Subtotal => _lines.Aggregate(Money.Zero, (total, line) => total.Add(line.LineTotal));
 
-    public static Sale OpenDraft(WarehouseId warehouseId, Guid? customerId, DateTimeOffset openedAtUtc)
+    public static Sale OpenDraft(WarehouseId warehouseId, CustomerId? customerId, DateTimeOffset openedAtUtc)
     {
         return new Sale(SaleId.New(), warehouseId, customerId, openedAtUtc);
     }
@@ -68,7 +81,7 @@ public sealed class Sale : Entity<SaleId>
     internal static Sale Rehydrate(
         SaleId id,
         WarehouseId warehouseId,
-        Guid? customerId,
+        CustomerId? customerId,
         DateTimeOffset openedAtUtc,
         SaleStatus status,
         SaleNumber? number,
@@ -76,6 +89,7 @@ public sealed class Sale : Entity<SaleId>
         Money serviceCharge,
         PaymentMethod? paymentMethod,
         DateTimeOffset? completedAtUtc,
+        Money? tax,
         IEnumerable<(ProductId ProductId, decimal Quantity, long UnitPriceRials, long DiscountRials, long CatalogPriceRials)> lines)
     {
         var sale = new Sale(id, warehouseId, customerId, openedAtUtc)
@@ -86,6 +100,7 @@ public sealed class Sale : Entity<SaleId>
             ServiceCharge = serviceCharge,
             PaymentMethod = paymentMethod,
             CompletedAtUtc = completedAtUtc,
+            Tax = tax,
         };
 
         foreach (var line in lines)
@@ -150,6 +165,19 @@ public sealed class Sale : Entity<SaleId>
         existing.Change(quantity, unitPrice, discount);
     }
 
+    /// <summary>
+    /// Sets or changes who the invoice is for — «انتخاب مشتری» (F4) can happen
+    /// at any point while the cart is being built, not only before the first
+    /// scan. Null returns it to the walk-in cash sale. Whether the customer
+    /// exists and may buy is checked by the Application handler, which can see
+    /// the customer; this aggregate only guards its own lifecycle.
+    /// </summary>
+    public void AssignCustomer(CustomerId? customerId)
+    {
+        EnsureDraft();
+        CustomerId = customerId;
+    }
+
     public void ApplyDiscount(Money discount)
     {
         EnsureDraft();
@@ -204,6 +232,33 @@ public sealed class Sale : Entity<SaleId>
             throw new DomainException("فاکتور خالی است؛ حداقل یک کالا اضافه کنید.");
         }
 
+        // نسیه و چک یعنی کسی باید پول را بعداً بدهد؛ بدون مشتری معلوم نیست چه کسی.
+        if (paymentMethod is Sales.PaymentMethod.Credit or Sales.PaymentMethod.Cheque && CustomerId is null)
+        {
+            throw new DomainException("برای فروش نسیه یا چکی، اول مشتری را انتخاب کنید.");
+        }
+
+        var totals = PreviewTotals(taxRatePercent);
+
+        Status = SaleStatus.Completed;
+        Number = number;
+        PaymentMethod = paymentMethod;
+        CompletedAtUtc = completedAtUtc;
+        Tax = totals.Tax;
+
+        Raise(new SaleCompleted(Id, WarehouseId, CustomerId, totals.Total, completedAtUtc));
+
+        return totals;
+    }
+
+    /// <summary>
+    /// What the footer would show if the sale were completed now at
+    /// <paramref name="taxRatePercent"/>. Used before completion by checks
+    /// that need the payable amount — the credit limit (§6.7) — and by
+    /// <see cref="Complete"/> itself, so both always agree to the Rial.
+    /// </summary>
+    public SaleTotals PreviewTotals(decimal taxRatePercent)
+    {
         if (taxRatePercent < 0)
         {
             throw new DomainException("درصد مالیات نمی‌تواند منفی باشد.");
@@ -211,16 +266,12 @@ public sealed class Sale : Entity<SaleId>
 
         // جمع کالاها − تخفیف + خدمات/هزینه → مالیات روی همین مبلغ → قابل پرداخت
         var taxableAmount = Subtotal.Subtract(Discount).Add(ServiceCharge);
-        var tax = taxableAmount.Multiply(taxRatePercent / 100m);
-        var total = taxableAmount.Add(tax);
+        return BuildTotals(taxableAmount.Multiply(taxRatePercent / 100m));
+    }
 
-        Status = SaleStatus.Completed;
-        Number = number;
-        PaymentMethod = paymentMethod;
-        CompletedAtUtc = completedAtUtc;
-
-        Raise(new SaleCompleted(Id, WarehouseId, CustomerId, total, completedAtUtc));
-
+    private SaleTotals BuildTotals(Money tax)
+    {
+        var total = Subtotal.Subtract(Discount).Add(ServiceCharge).Add(tax);
         return new SaleTotals(Subtotal, Discount, ServiceCharge, tax, total);
     }
 

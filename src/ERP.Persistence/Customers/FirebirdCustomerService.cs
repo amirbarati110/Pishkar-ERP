@@ -13,7 +13,9 @@ namespace ERP.Persistence.Customers;
 /// </summary>
 public sealed class FirebirdCustomerService :
     IQuickCreateCustomerHandler,
-    ISearchCustomersHandler
+    ISearchCustomersHandler,
+    IGetCustomerAccountHandler,
+    IRecordCustomerPaymentHandler
 {
     private readonly FirebirdConnectionFactory _connectionFactory;
     private readonly IUserContext _userContext;
@@ -38,6 +40,38 @@ public sealed class FirebirdCustomerService :
             .ConfigureAwait(false);
         return await new QuickCreateCustomerHandler(
                 new FirebirdCustomerRepository(unitOfWork),
+                new FirebirdAuditWriter(unitOfWork),
+                unitOfWork,
+                _userContext,
+                _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<CustomerAccountSummary>> ExecuteAsync(
+        GetCustomerAccountQuery query,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new GetCustomerAccountHandler(
+                new FirebirdCustomerRepository(unitOfWork),
+                new FirebirdCustomerLedgerReader(unitOfWork))
+            .ExecuteAsync(query, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<Guid>> ExecuteAsync(
+        RecordCustomerPaymentCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new RecordCustomerPaymentHandler(
+                new FirebirdCustomerRepository(unitOfWork),
+                new FirebirdCustomerPaymentRepository(unitOfWork),
                 new FirebirdAuditWriter(unitOfWork),
                 unitOfWork,
                 _userContext,

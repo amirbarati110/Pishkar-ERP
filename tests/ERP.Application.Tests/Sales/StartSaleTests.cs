@@ -14,7 +14,7 @@ public sealed class StartSaleTests
         var warehouseId = WarehouseId.New();
 
         var result = await handler.ExecuteAsync(
-            new StartSaleCommand(warehouseId, CustomerId: null),
+            new StartSaleCommand(warehouseId),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);

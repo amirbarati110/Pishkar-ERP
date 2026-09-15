@@ -115,27 +115,6 @@ public sealed class CustomerHandlersTests
             context.Clock);
     }
 
-    private sealed class CustomerRepository : ICustomerRepository
-    {
-        public List<Customer> Items { get; } = [];
-
-        public Task<Customer?> GetByIdAsync(CustomerId customerId, CancellationToken cancellationToken)
-        {
-            return Task.FromResult(Items.SingleOrDefault(item => item.Id == customerId));
-        }
-
-        public Task<Customer?> FindByMobileAsync(string normalizedMobile, CancellationToken cancellationToken)
-        {
-            return Task.FromResult(Items.SingleOrDefault(item => item.Mobile == normalizedMobile));
-        }
-
-        public Task AddAsync(Customer customer, CancellationToken cancellationToken)
-        {
-            Items.Add(customer);
-            return Task.CompletedTask;
-        }
-    }
-
     private sealed class RecordingCustomerSearchReader : ICustomerSearchReader
     {
         public int CallCount { get; private set; }

@@ -14,6 +14,6 @@ namespace ERP.Domain.Sales.Events;
 public sealed record SaleCompleted(
     SaleId SaleId,
     WarehouseId WarehouseId,
-    Guid? CustomerId,
+    Customers.CustomerId? CustomerId,
     Money Total,
     DateTimeOffset OccurredAtUtc) : IDomainEvent;

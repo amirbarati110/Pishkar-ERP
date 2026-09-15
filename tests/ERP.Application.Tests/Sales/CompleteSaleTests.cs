@@ -122,6 +122,8 @@ public sealed class CompleteSaleTests
             context.Sales,
             context.StockLedgers,
             context.SaleNumbers,
+            context.Customers,
+            context.CustomerLedger,
             context.Audit,
             context.UnitOfWork,
             context.User,

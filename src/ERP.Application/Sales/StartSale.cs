@@ -4,7 +4,12 @@ using ERP.Domain.Sales;
 
 namespace ERP.Application.Sales;
 
-public sealed record StartSaleCommand(WarehouseId WarehouseId, Guid? CustomerId);
+/// <summary>
+/// Every sale starts as the walk-in cash sale; a customer is chosen afterwards
+/// through <see cref="SetSaleCustomerCommand"/>, the one path that checks the
+/// customer exists and is active.
+/// </summary>
+public sealed record StartSaleCommand(WarehouseId WarehouseId);
 
 public interface IStartSaleHandler
 {
@@ -36,7 +41,7 @@ public sealed class StartSaleHandler : IStartSaleHandler
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        var sale = Sale.OpenDraft(command.WarehouseId, command.CustomerId, _clock.UtcNow);
+        var sale = Sale.OpenDraft(command.WarehouseId, customerId: null, _clock.UtcNow);
         await _sales.SaveAsync(sale, cancellationToken).ConfigureAwait(false);
         await _unitOfWork.CommitAsync(cancellationToken).ConfigureAwait(false);
 

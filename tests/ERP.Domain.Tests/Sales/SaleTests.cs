@@ -1,5 +1,6 @@
 using ERP.Domain.Catalog;
 using ERP.Domain.Common;
+using ERP.Domain.Customers;
 using ERP.Domain.Inventory;
 using ERP.Domain.Sales;
 using ERP.Domain.Sales.Events;
@@ -210,13 +211,59 @@ public sealed class SaleTests
     {
         foreach (var method in new[] { PaymentMethod.Credit, PaymentMethod.Cheque })
         {
-            var sale = Sale.OpenDraft(Warehouse, null, Now);
+            var sale = Sale.OpenDraft(Warehouse, CustomerId.New(), Now);
             sale.AddOrIncreaseLine(ProductId.New(), Quantity.Create(1), Money.FromTomans(10_000));
 
             sale.Complete(Number, method, taxRatePercent: 0, Now);
 
             Assert.Equal(method, sale.PaymentMethod);
         }
+    }
+
+    [Theory]
+    [InlineData(PaymentMethod.Credit)]
+    [InlineData(PaymentMethod.Cheque)]
+    public void CreditAndChequeSalesNeedACustomer(PaymentMethod method)
+    {
+        var sale = Sale.OpenDraft(Warehouse, customerId: null, Now);
+        sale.AddOrIncreaseLine(ProductId.New(), Quantity.Create(1), Money.FromTomans(10_000));
+
+        var exception = Assert.Throws<DomainException>(() => sale.Complete(Number, method, 0, Now));
+
+        Assert.Equal("برای فروش نسیه یا چکی، اول مشتری را انتخاب کنید.", exception.Message);
+        Assert.Equal(SaleStatus.Draft, sale.Status);
+    }
+
+    [Fact]
+    public void TheCustomerCanBeChosenOrClearedWhileTheCartIsOpenButNotAfterCompletion()
+    {
+        var sale = Sale.OpenDraft(Warehouse, customerId: null, Now);
+        sale.AddOrIncreaseLine(ProductId.New(), Quantity.Create(1), Money.FromTomans(10_000));
+        var customer = CustomerId.New();
+
+        sale.AssignCustomer(customer);
+        Assert.Equal(customer, sale.CustomerId);
+
+        sale.AssignCustomer(null);
+        Assert.Null(sale.CustomerId);
+
+        sale.Complete(Number, PaymentMethod.Cash, 0, Now);
+        Assert.Throws<DomainException>(() => { sale.AssignCustomer(customer); });
+    }
+
+    [Fact]
+    public void CompletionFixesTheTaxSoTheInvoiceKeepsItsTotalsAndPreviewAgrees()
+    {
+        var sale = Sale.OpenDraft(Warehouse, null, Now);
+        sale.AddOrIncreaseLine(ProductId.New(), Quantity.Create(1), Money.FromTomans(1_000_000));
+        Assert.Null(sale.Totals);
+
+        var preview = sale.PreviewTotals(9);
+        var completed = sale.Complete(Number, PaymentMethod.Cash, 9, Now);
+
+        Assert.Equal(preview, completed);
+        Assert.Equal(completed, sale.Totals);
+        Assert.Equal(90_000, sale.Tax!.Value.ToTomansExact());
     }
 
     [Fact]

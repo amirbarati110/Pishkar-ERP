@@ -1,19 +1,29 @@
 using System.Globalization;
 using ERP.Application.Audit;
 using ERP.Application.Common;
+using ERP.Application.Customers;
 using ERP.Application.Inventory;
 using ERP.Domain.Common;
+using ERP.Domain.Customers;
 using ERP.Domain.Inventory;
 using ERP.Domain.Sales;
 
 namespace ERP.Application.Sales;
 
+/// <param name="ApproveCreditOverLimit">
+/// Set only after the screen has shown that this نسیه sale takes the customer
+/// past their credit limit and someone has confirmed it (§6.7 «Manager
+/// Approval»). There is no permission system yet (appendix A.6), so the flag
+/// cannot check that the person confirming is a manager; the approval is
+/// recorded in the audit trail with the user who completed the sale.
+/// </param>
 public sealed record CompleteSaleCommand(
     SaleId SaleId,
     PaymentMethod PaymentMethod,
     long DiscountRials,
     decimal TaxRatePercent,
-    bool AllowNegativeStock = false);
+    bool AllowNegativeStock = false,
+    bool ApproveCreditOverLimit = false);
 
 /// <summary>
 /// What the cashier needs right after «ثبت»: the number to read out and print,
@@ -50,6 +60,8 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
     private readonly ISaleRepository _sales;
     private readonly IStockLedgerRepository _stockLedgers;
     private readonly ISaleNumberGenerator _numbers;
+    private readonly ICustomerRepository _customers;
+    private readonly ICustomerLedgerReader _customerLedger;
     private readonly IAuditWriter _audit;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
@@ -59,6 +71,8 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
         ISaleRepository sales,
         IStockLedgerRepository stockLedgers,
         ISaleNumberGenerator numbers,
+        ICustomerRepository customers,
+        ICustomerLedgerReader customerLedger,
         IAuditWriter audit,
         IUnitOfWork unitOfWork,
         IUserContext userContext,
@@ -67,6 +81,8 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
         _sales = sales;
         _stockLedgers = stockLedgers;
         _numbers = numbers;
+        _customers = customers;
+        _customerLedger = customerLedger;
         _audit = audit;
         _unitOfWork = unitOfWork;
         _userContext = userContext;
@@ -90,6 +106,14 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
             if (command.DiscountRials > 0)
             {
                 sale.ApplyDiscount(Money.FromRials(command.DiscountRials));
+            }
+
+            // Every check that can turn the sale away runs before stock moves
+            // and before a number is drawn.
+            var creditRejection = await CheckCreditAsync(sale, command, cancellationToken).ConfigureAwait(false);
+            if (creditRejection is not null)
+            {
+                return creditRejection;
             }
 
             foreach (var line in sale.Lines)
@@ -127,9 +151,25 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
                     null,
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"number={number};total={totals.Total.Rials}"),
+                        $"number={number};total={totals.Total.Rials};method={command.PaymentMethod};customer={sale.CustomerId}"),
                     _clock.UtcNow),
                 cancellationToken).ConfigureAwait(false);
+
+            if (command.ApproveCreditOverLimit && command.PaymentMethod == PaymentMethod.Credit)
+            {
+                await _audit.WriteAsync(
+                    new AuditEntry(
+                        Guid.NewGuid(),
+                        _userContext.UserId,
+                        "sales.credit.over-limit-approved",
+                        nameof(Domain.Sales.Sale),
+                        sale.Id.ToString(),
+                        null,
+                        string.Create(CultureInfo.InvariantCulture, $"number={number};total={totals.Total.Rials}"),
+                        _clock.UtcNow),
+                    cancellationToken).ConfigureAwait(false);
+            }
+
             await _unitOfWork.CommitAsync(cancellationToken).ConfigureAwait(false);
 
             return Result.Success(new CompletedSale(number, totals));
@@ -139,4 +179,70 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
             return Result.Failure<CompletedSale>("sales.sale.invalid", exception.Message);
         }
     }
+
+    /// <summary>
+    /// Source-of-truth §6.7. Returns a failure to hand back to the screen, or
+    /// null when the sale may go ahead.
+    ///
+    /// Only نسیه is checked against the credit limit. A cheque clears the
+    /// customer's account when received (see <see cref="CustomerAccount"/>);
+    /// the risk it carries — bouncing — is judged by the cheque history that
+    /// Treasury will track (§6.7 «Returned Cheque»), not by the open balance.
+    /// </summary>
+    private async Task<Result<CompletedSale>?> CheckCreditAsync(
+        Sale sale,
+        CompleteSaleCommand command,
+        CancellationToken cancellationToken)
+    {
+        if (command.PaymentMethod is not (PaymentMethod.Credit or PaymentMethod.Cheque))
+        {
+            return null;
+        }
+
+        if (sale.CustomerId is not { } customerId)
+        {
+            return Result.Failure<CompletedSale>(
+                "sales.sale.customer-required",
+                "برای فروش نسیه یا چکی، اول مشتری را انتخاب کنید.");
+        }
+
+        var customer = await _customers.GetByIdAsync(customerId, cancellationToken).ConfigureAwait(false);
+        if (customer is null)
+        {
+            return Result.Failure<CompletedSale>("customers.customer.not-found", "مشتری این فاکتور یافت نشد.");
+        }
+
+        if (command.PaymentMethod != PaymentMethod.Credit)
+        {
+            return null;
+        }
+
+        var account = await CustomerAccounts.LoadAsync(customer, _customerLedger, cancellationToken).ConfigureAwait(false);
+        var amount = sale.PreviewTotals(command.TaxRatePercent).Total;
+
+        switch (customer.EvaluateCredit(account.Debt, amount))
+        {
+            case CreditDecision.Allowed:
+                return null;
+
+            case CreditDecision.RequiresApproval when command.ApproveCreditOverLimit:
+                return null;
+
+            case CreditDecision.RequiresApproval:
+                return Result.Failure<CompletedSale>(
+                    "sales.credit.requires-approval",
+                    $"با این فاکتور، بدهی «{customer.Name}» به {FormatToman(account.Debt.Add(amount))} تومان می‌رسد " +
+                    $"و از سقف اعتبار ({FormatToman(customer.CreditLimit)} تومان) بیشتر می‌شود؛ تأیید مدیر لازم است.");
+
+            default:
+                return Result.Failure<CompletedSale>(
+                    "sales.credit.blocked",
+                    customer.Status == CustomerStatus.Active
+                        ? $"بدهی «{customer.Name}» با این فاکتور خیلی بیشتر از سقف اعتبار می‌شود؛ فروش نسیه ممکن نیست."
+                        : $"«{customer.Name}» بایگانی شده است؛ فروش نسیه به او ممکن نیست.");
+        }
+    }
+
+    // Whole Tomans for the message only; the check itself compared exact Rials.
+    private static string FormatToman(Money amount) => PersianNumber.FormatGrouped(amount.Rials / 10);
 }

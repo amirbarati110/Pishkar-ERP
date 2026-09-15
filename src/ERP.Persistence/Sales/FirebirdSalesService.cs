@@ -3,6 +3,7 @@ using ERP.Application.Sales;
 using ERP.Domain.Sales;
 using ERP.Persistence.Audit;
 using ERP.Persistence.Catalog;
+using ERP.Persistence.Customers;
 using ERP.Persistence.Database;
 using ERP.Persistence.Inventory;
 
@@ -24,6 +25,7 @@ public sealed class FirebirdSalesService :
     ICompleteSaleHandler,
     IChangeSaleLineHandler,
     ISetSaleChargesHandler,
+    ISetSaleCustomerHandler,
     IGetSaleSummaryHandler
 {
     private readonly FirebirdConnectionFactory _connectionFactory;
@@ -90,6 +92,8 @@ public sealed class FirebirdSalesService :
                 new FirebirdSaleRepository(unitOfWork),
                 new FirebirdStockLedgerRepository(unitOfWork),
                 new FirebirdSaleNumberGenerator(unitOfWork),
+                new FirebirdCustomerRepository(unitOfWork),
+                new FirebirdCustomerLedgerReader(unitOfWork),
                 new FirebirdAuditWriter(unitOfWork),
                 unitOfWork,
                 _userContext,
@@ -121,6 +125,21 @@ public sealed class FirebirdSalesService :
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
         return await new SetSaleChargesHandler(new FirebirdSaleRepository(unitOfWork), unitOfWork)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(
+        SetSaleCustomerCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new SetSaleCustomerHandler(
+                new FirebirdSaleRepository(unitOfWork),
+                new FirebirdCustomerRepository(unitOfWork),
+                unitOfWork)
             .ExecuteAsync(command, cancellationToken)
             .ConfigureAwait(false);
     }

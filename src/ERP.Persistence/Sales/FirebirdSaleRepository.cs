@@ -2,6 +2,7 @@ using System.Data;
 using ERP.Application.Sales;
 using ERP.Domain.Catalog;
 using ERP.Domain.Common;
+using ERP.Domain.Customers;
 using ERP.Domain.Inventory;
 using ERP.Domain.Sales;
 using ERP.Persistence.Database;
@@ -23,14 +24,16 @@ public sealed class FirebirdSaleRepository : ISaleRepository
         await using var command = CreateCommand(
             """
             SELECT WAREHOUSE_ID, CUSTOMER_ID, STATUS, DISCOUNT_RIALS,
-                   PAYMENT_METHOD, OPENED_AT_UTC, COMPLETED_AT_UTC, SERVICE_CHARGE_RIALS, NUMBER
+                   PAYMENT_METHOD, OPENED_AT_UTC, COMPLETED_AT_UTC, SERVICE_CHARGE_RIALS, NUMBER,
+                   TAX_RIALS
             FROM SALE
             WHERE ID = @ID
             """);
         command.Parameters.Add("@ID", FbDbType.Char).Value = saleId.ToString();
 
         WarehouseId warehouseId;
-        Guid? customerId;
+        CustomerId? customerId;
+        Money? tax;
         SaleStatus status;
         SaleNumber? number;
         long discountRials;
@@ -47,7 +50,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             }
 
             warehouseId = WarehouseId.From(Guid.Parse(reader.GetString(0)));
-            customerId = reader.IsDBNull(1) ? null : Guid.Parse(reader.GetString(1));
+            customerId = reader.IsDBNull(1) ? null : CustomerId.From(Guid.Parse(reader.GetString(1)));
             status = (SaleStatus)reader.GetInt16(2);
             discountRials = reader.GetInt64(3);
             paymentMethod = reader.IsDBNull(4) ? null : (PaymentMethod)reader.GetInt16(4);
@@ -57,6 +60,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
                 : new DateTimeOffset(DateTime.SpecifyKind(reader.GetDateTime(6), DateTimeKind.Utc));
             serviceChargeRials = reader.GetInt64(7);
             number = reader.IsDBNull(8) ? null : SaleNumber.From(reader.GetInt64(8));
+            tax = reader.IsDBNull(9) ? null : Money.FromRials(reader.GetInt64(9));
         }
 
         var lines = await ReadLinesAsync(saleId, cancellationToken).ConfigureAwait(false);
@@ -72,6 +76,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             Money.FromRials(serviceChargeRials),
             paymentMethod,
             completedAtUtc,
+            tax,
             lines);
     }
 
@@ -83,10 +88,12 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             """
             UPDATE OR INSERT INTO SALE (
                 ID, WAREHOUSE_ID, CUSTOMER_ID, STATUS, DISCOUNT_RIALS,
-                PAYMENT_METHOD, OPENED_AT_UTC, COMPLETED_AT_UTC, SERVICE_CHARGE_RIALS, NUMBER)
+                PAYMENT_METHOD, OPENED_AT_UTC, COMPLETED_AT_UTC, SERVICE_CHARGE_RIALS, NUMBER,
+                TAX_RIALS, TOTAL_RIALS)
             VALUES (
                 @ID, @WAREHOUSE_ID, @CUSTOMER_ID, @STATUS, @DISCOUNT_RIALS,
-                @PAYMENT_METHOD, @OPENED_AT_UTC, @COMPLETED_AT_UTC, @SERVICE_CHARGE_RIALS, @NUMBER)
+                @PAYMENT_METHOD, @OPENED_AT_UTC, @COMPLETED_AT_UTC, @SERVICE_CHARGE_RIALS, @NUMBER,
+                @TAX_RIALS, @TOTAL_RIALS)
             MATCHING (ID)
             """))
         {
@@ -104,6 +111,10 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             command.Parameters.Add("@OPENED_AT_UTC", FbDbType.TimeStamp).Value = sale.OpenedAtUtc.UtcDateTime;
             command.Parameters.Add("@COMPLETED_AT_UTC", FbDbType.TimeStamp).Value =
                 sale.CompletedAtUtc is { } completedAt ? completedAt.UtcDateTime : DBNull.Value;
+            command.Parameters.Add("@TAX_RIALS", FbDbType.BigInt).Value =
+                sale.Totals is { } taxTotals ? taxTotals.Tax.Rials : DBNull.Value;
+            command.Parameters.Add("@TOTAL_RIALS", FbDbType.BigInt).Value =
+                sale.Totals is { } totals ? totals.Total.Rials : DBNull.Value;
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 

@@ -115,7 +115,7 @@ public partial class QuickSaleViewModel : ObservableObject
     {
         ErrorMessage = null;
         var result = await _startSale
-            .ExecuteAsync(new StartSaleCommand(_warehouseId, CustomerId: null), cancellationToken)
+            .ExecuteAsync(new StartSaleCommand(_warehouseId), cancellationToken)
             .ConfigureAwait(true);
 
         if (result.IsSuccess)

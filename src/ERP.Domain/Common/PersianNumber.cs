@@ -47,9 +47,22 @@ public static class PersianNumber
         return new string(buffer[..length]);
     }
 
+    /// <summary>
+    /// A whole amount with thousands separators in Persian digits —
+    /// «۱۲,۵۰۰,۰۰۰», the form source-of-truth §3.4 gives for money on screen.
+    /// </summary>
+    public static string FormatGrouped(long value)
+    {
+        return ToPersianDigits(value.ToString("#,0", CultureInfo.InvariantCulture));
+    }
+
     public static string Format(decimal value)
     {
-        var invariant = value.ToString("G29", CultureInfo.InvariantCulture);
+        return ToPersianDigits(value.ToString("G29", CultureInfo.InvariantCulture));
+    }
+
+    private static string ToPersianDigits(string invariant)
+    {
         return string.Create(invariant.Length, invariant, static (span, source) =>
         {
             for (var index = 0; index < source.Length; index++)

@@ -1,11 +1,14 @@
 using ERP.Application.Catalog;
 using ERP.Application.Common;
+using ERP.Application.Customers;
 using ERP.Application.Inventory;
 using ERP.Application.Sales;
 using ERP.Domain.Catalog;
 using ERP.Domain.Common;
+using ERP.Domain.Customers;
 using ERP.Domain.Sales;
 using ERP.Persistence.Catalog;
+using ERP.Persistence.Customers;
 using ERP.Persistence.Database;
 using ERP.Persistence.Inventory;
 using ERP.Persistence.Sales;
@@ -22,7 +25,7 @@ public sealed class SalesServiceTests
         var context = await SetupAsync();
 
         var start = await context.Sales.ExecuteAsync(
-            new StartSaleCommand(context.Defaults.MainWarehouseId, CustomerId: null),
+            new StartSaleCommand(context.Defaults.MainWarehouseId),
             CancellationToken.None);
         Assert.True(start.IsSuccess);
         var saleId = start.Value;
@@ -71,7 +74,7 @@ public sealed class SalesServiceTests
         var context = await SetupAsync();
 
         var start = await context.Sales.ExecuteAsync(
-            new StartSaleCommand(context.Defaults.MainWarehouseId, CustomerId: null),
+            new StartSaleCommand(context.Defaults.MainWarehouseId),
             CancellationToken.None);
         var saleId = start.Value;
         await context.Sales.ExecuteAsync(
@@ -107,7 +110,7 @@ public sealed class SalesServiceTests
         Assert.Equal(20_000, reloaded.Discount.ToTomansExact());
 
         var complete = await context.Sales.ExecuteAsync(
-            new CompleteSaleCommand(saleId, PaymentMethod.Cheque, 0, 9),
+            new CompleteSaleCommand(saleId, PaymentMethod.Card, 0, 9),
             CancellationToken.None);
         Assert.True(complete.IsSuccess);
         // (۵۵۰٬۰۰۰ − ۲۰٬۰۰۰ + ۳۰٬۰۰۰) = ۵۶۰٬۰۰۰ → مالیات ۹٪ = ۵۰٬۴۰۰ → ۶۱۰٬۴۰۰
@@ -121,7 +124,7 @@ public sealed class SalesServiceTests
     {
         var context = await SetupAsync();
         var start = await context.Sales.ExecuteAsync(
-            new StartSaleCommand(context.Defaults.MainWarehouseId, CustomerId: null),
+            new StartSaleCommand(context.Defaults.MainWarehouseId),
             CancellationToken.None);
         await context.Sales.ExecuteAsync(
             new AddSaleLineCommand(start.Value, context.OilId, 1),
@@ -137,7 +140,7 @@ public sealed class SalesServiceTests
 
         // فاکتور بعدی باید قیمت جدید کالا را بردارد
         var next = await context.Sales.ExecuteAsync(
-            new StartSaleCommand(context.Defaults.MainWarehouseId, CustomerId: null),
+            new StartSaleCommand(context.Defaults.MainWarehouseId),
             CancellationToken.None);
         await context.Sales.ExecuteAsync(
             new AddSaleLineCommand(next.Value, context.OilId, 1),
@@ -153,7 +156,7 @@ public sealed class SalesServiceTests
         var context = await SetupAsync();
 
         var start = await context.Sales.ExecuteAsync(
-            new StartSaleCommand(context.Defaults.MainWarehouseId, CustomerId: null),
+            new StartSaleCommand(context.Defaults.MainWarehouseId),
             CancellationToken.None);
         var saleId = start.Value;
         // Only 10 rice on record; cashier sells 12 anyway with the override on.
@@ -179,7 +182,7 @@ public sealed class SalesServiceTests
         var context = await SetupAsync();
 
         var start = await context.Sales.ExecuteAsync(
-            new StartSaleCommand(context.Defaults.MainWarehouseId, CustomerId: null),
+            new StartSaleCommand(context.Defaults.MainWarehouseId),
             CancellationToken.None);
         var saleId = start.Value;
         await context.Sales.ExecuteAsync(
@@ -232,10 +235,49 @@ public sealed class SalesServiceTests
         Assert.Null(reloadedRejected!.Number);
     }
 
+    [Fact]
+    public async Task ACreditSaleToACustomerShowsOnTheirAccountUntilTheyPay()
+    {
+        var context = await SetupAsync();
+        var customers = new FirebirdCustomerService(
+            context.Factory,
+            new TestUserContext(Guid.NewGuid()),
+            new TestClock(new DateTimeOffset(2026, 9, 15, 10, 0, 0, TimeSpan.Zero)));
+        var customer = await customers.ExecuteAsync(
+            new QuickCreateCustomerCommand("محمد رضایی", "09123456789"), CancellationToken.None);
+
+        var saleId = await StartSaleWithAsync(context, context.OilId, 2); // ۲ × ۸۵۰٬۰۰۰
+        var assign = await context.Sales.ExecuteAsync(
+            new SetSaleCustomerCommand(saleId, customer.Value), CancellationToken.None);
+        Assert.True(assign.IsSuccess);
+
+        var complete = await context.Sales.ExecuteAsync(
+            new CompleteSaleCommand(saleId, PaymentMethod.Credit, 0, TaxRatePercent: 0), CancellationToken.None);
+        Assert.True(complete.IsSuccess);
+
+        var reloaded = await context.SaleRepository.GetAsync(saleId, CancellationToken.None);
+        Assert.Equal(customer.Value, reloaded!.CustomerId);
+        Assert.Equal(complete.Value!.Totals, reloaded.Totals); // مبلغ نهایی ثبت و بازخوانی شد
+
+        var owing = await customers.ExecuteAsync(new GetCustomerAccountQuery(customer.Value), CancellationToken.None);
+        Assert.Equal(1_700_000, owing.Value!.Debt.ToTomansExact());
+        Assert.Equal([complete.Value.Number.Value], owing.Value.OpenInvoiceNumbers);
+
+        var paid = await customers.ExecuteAsync(
+            new RecordCustomerPaymentCommand(
+                customer.Value, Money.FromTomans(1_700_000).Rials, CustomerPaymentMethod.Card, null),
+            CancellationToken.None);
+        Assert.True(paid.IsSuccess);
+
+        var settled = await customers.ExecuteAsync(new GetCustomerAccountQuery(customer.Value), CancellationToken.None);
+        Assert.Equal(0, settled.Value!.Debt.Rials);
+        Assert.Empty(settled.Value.OpenInvoiceNumbers);
+    }
+
     private static async Task<SaleId> StartSaleWithAsync(TestContext context, ProductId productId, decimal quantity)
     {
         var start = await context.Sales.ExecuteAsync(
-            new StartSaleCommand(context.Defaults.MainWarehouseId, CustomerId: null),
+            new StartSaleCommand(context.Defaults.MainWarehouseId),
             CancellationToken.None);
         await context.Sales.ExecuteAsync(
             new AddSaleLineCommand(start.Value, productId, quantity),
@@ -281,6 +323,7 @@ public sealed class SalesServiceTests
 
         return new TestContext(
             database,
+            factory,
             defaults,
             rice.Value,
             oil.Value,
@@ -291,6 +334,7 @@ public sealed class SalesServiceTests
 
     private sealed record TestContext(
         FirebirdTestDatabase Database,
+        FirebirdConnectionFactory Factory,
         RetailSetupDefaults Defaults,
         ProductId RiceId,
         ProductId OilId,
