@@ -1,0 +1,21 @@
+page: sales-workspace
+title_fa: فروش سریع
+steps:
+  - control: product-search
+    instruction_fa: بارکد کالا را اسکن کنید یا نیمی از نام کالا را بنویسید؛ لازم نیست اول روی جعبه‌ی جست‌وجو کلیک کنید. با Enter کالا به فاکتور اضافه می‌شود.
+    action: focus
+  - control: product-list
+    instruction_fa: یا از لیست کالاها و کارت‌های دسته‌بندی، روی کالا بزنید تا به فاکتور اضافه شود.
+    action: invoke
+  - control: customer-box
+    instruction_fa: اگر فروش نسیه یا چکی است، نام یا موبایل مشتری را بنویسید و انتخاب کنید؛ مشتری جدید را با «+ مشتری جدید» ثبت کنید.
+    action: focus
+  - control: invoice-lines
+    instruction_fa: تعداد را با + و − عوض کنید؛ برای تغییر قیمت همین فاکتور یا تخفیف سطر، مداد را بزنید.
+    action: invoke
+  - control: receive-payment
+    instruction_fa: «دریافت وجه» (F6) را بزنید، روش پرداخت را انتخاب کنید و «ثبت نهایی فاکتور» را بزنید.
+    action: invoke
+  - control: invoice-list
+    instruction_fa: فاکتورهای معلق و فاکتورهای امروز را از «لیست فاکتورها» (F2) ببینید.
+    action: invoke

@@ -15,6 +15,12 @@ public sealed class PersianDateTests
     }
 
     [Fact]
+    public void KnowsItsWeekday()
+    {
+        Assert.Equal(DayOfWeek.Monday, PersianDate.Create(1405, 6, 23).DayOfWeek); // 14 September 2026
+    }
+
+    [Fact]
     public void JustAfterMidnightInTehranIsAlreadyTheNextDayEvenThoughUtcIsNot()
     {
         // 00:30 Tehran on ۲۴ شهریور = 21:00 UTC on 14 September

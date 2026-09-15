@@ -132,7 +132,20 @@ public sealed partial class SalesWorkspaceViewModel : ObservableObject
         });
     }
 
-    partial void OnCurrentTabChanged(InvoiceTab? value) => OnPropertyChanged(nameof(TabPositionText));
+    partial void OnCurrentTabChanged(InvoiceTab? oldValue, InvoiceTab? newValue)
+    {
+        if (oldValue is not null)
+        {
+            oldValue.IsCurrent = false;
+        }
+
+        if (newValue is not null)
+        {
+            newValue.IsCurrent = true;
+        }
+
+        OnPropertyChanged(nameof(TabPositionText));
+    }
 
     partial void OnProductPageChanged(int value) => OnPropertyChanged(nameof(ProductPageText));
 
@@ -504,6 +517,9 @@ public sealed partial class SalesWorkspaceViewModel : ObservableObject
             throw new SalesScreenException(result.Error?.Message ?? "عملیات انجام نشد.");
         }
     }
+
+    /// <summary>For a key or button whose feature is not built yet: say so plainly instead of doing nothing.</summary>
+    public void ShowNotSoonNotice(string message) => ShowNotice(message, isError: true);
 
     private void ShowNotice(string message, bool isError = false)
     {

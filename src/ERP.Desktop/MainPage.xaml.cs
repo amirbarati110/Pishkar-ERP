@@ -1,6 +1,7 @@
 using ERP.Desktop.Features.Categories;
 using ERP.Desktop.Features.Inventory;
 using ERP.Desktop.Features.Products;
+using ERP.Desktop.Features.Sales;
 using Microsoft.UI.Xaml.Controls;
 
 namespace ERP.Desktop;
@@ -26,6 +27,15 @@ public sealed partial class MainPage : Page
     {
         if (args.SelectedItem is not NavigationViewItem { Tag: string tag })
         {
+            return;
+        }
+
+        // The sales workspace is its own full-window space with an exit button
+        // (approved design): it replaces this page instead of opening inside it.
+        if (tag == "sales")
+        {
+            sender.SelectedItem = HomeNavItem;
+            Frame.Navigate(typeof(SalesPage));
             return;
         }
 

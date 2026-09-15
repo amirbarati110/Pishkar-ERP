@@ -50,6 +50,30 @@ public static class SalesText
         return PersianInputParser.TryParseDecimal(text, out var value) && value >= 0 ? value : null;
     }
 
+    private static readonly string[] MonthNames =
+        ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+
+    /// <summary>«سه‌شنبه ۲۴ شهریور ۱۴۰۵» — the date line under the clock (§3.2: Persian month names).</summary>
+    public static string LongDate(PersianDate date)
+    {
+        var weekday = date.DayOfWeek switch
+        {
+            DayOfWeek.Saturday => "شنبه",
+            DayOfWeek.Sunday => "یکشنبه",
+            DayOfWeek.Monday => "دوشنبه",
+            DayOfWeek.Tuesday => "سه‌شنبه",
+            DayOfWeek.Wednesday => "چهارشنبه",
+            DayOfWeek.Thursday => "پنجشنبه",
+            _ => "جمعه",
+        };
+
+        return $"{weekday} {PersianNumber.FormatGrouped(date.Day)} {MonthNames[date.Month - 1]} {PersianNumber.DigitsToPersian(date.Year.ToString(System.Globalization.CultureInfo.InvariantCulture))}";
+    }
+
+    /// <summary>«۱۰:۱۷» in Tehran time.</summary>
+    public static string ClockTime(DateTimeOffset utcNow) =>
+        PersianNumber.DigitsToPersian(PersianDate.TimeOfDayInIran(utcNow).ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
+
     public static string PaymentMethodName(PaymentMethod method) => method switch
     {
         PaymentMethod.Cash => "نقدی",

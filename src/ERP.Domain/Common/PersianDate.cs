@@ -66,6 +66,8 @@ public readonly record struct PersianDate : IComparable<PersianDate>
         return TimeOnly.FromDateTime(TimeZoneInfo.ConvertTime(moment, IranTimeZone.Value).DateTime);
     }
 
+    public DayOfWeek DayOfWeek => Calendar.ToDateTime(Year, Month, Day, 0, 0, 0, 0).DayOfWeek;
+
     public PersianDate AddDays(int days)
     {
         var shifted = Calendar.ToDateTime(Year, Month, Day, 0, 0, 0, 0).AddDays(days);

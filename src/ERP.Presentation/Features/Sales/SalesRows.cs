@@ -212,6 +212,10 @@ public sealed partial class InvoiceTab : ObservableObject
     [ObservableProperty]
     public partial bool IsEmpty { get; set; } = true;
 
+    /// <summary>True for the tab whose invoice is on screen — drives the tab's highlighted look.</summary>
+    [ObservableProperty]
+    public partial bool IsCurrent { get; set; }
+
     public decimal TaxRatePercent { get; set; } = DefaultTaxRatePercent;
 
     public Money Subtotal { get; private set; } = Money.Zero;

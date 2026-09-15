@@ -75,6 +75,9 @@
             <NavigationViewItem x:Name="HomeNavItem" AccessKey="H" AutomationProperties.Name="میز کار" Content="میز کار" IsSelected="True" Tag="home">
                 <NavigationViewItem.Icon><SymbolIcon Symbol="Home" /></NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem x:Name="SalesNavItem" AccessKey="F" AutomationProperties.Name="فروش و صندوق" Content="فروش و صندوق" Tag="sales">
+                <NavigationViewItem.Icon><FontIcon Glyph="&#xE7BF;" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
             <NavigationViewItem x:Name="ProductsNavItem" AccessKey="P" AutomationProperties.Name="کالا و قیمت‌گذاری" Content="کالا و قیمت‌گذاری" Tag="products">
                 <NavigationViewItem.Icon><SymbolIcon Symbol="Shop" /></NavigationViewItem.Icon>
             </NavigationViewItem>

@@ -1,9 +1,11 @@
 using ERP.Application.Catalog;
 using ERP.Application.Common;
 using ERP.Persistence.Catalog;
+using ERP.Persistence.Customers;
 using ERP.Persistence.Database;
 using ERP.Persistence.Sales;
 using ERP.Persistence.Services;
+using ERP.Presentation.Features.Sales;
 
 namespace ERP.Desktop;
 
@@ -12,6 +14,7 @@ public sealed record AppServices(
     FirebirdSalesService Sales,
     ICatalogLookupReader CatalogLookup,
     ISearchProductsHandler ProductSearch,
+    SalesBackend SalesBackend,
     RetailSetupDefaults Defaults)
 {
     public static async Task<AppServices> InitializeAsync(CancellationToken cancellationToken)
@@ -37,12 +40,37 @@ public sealed record AppServices(
         var clock = new SystemClock();
         var service = new FirebirdRetailSetupService(factory, userContext, clock);
         var salesService = new FirebirdSalesService(factory, userContext, clock);
+        var customerService = new FirebirdCustomerService(factory, userContext, clock);
+        var catalogLookup = new FirebirdCatalogLookupReader(factory);
+        var productSearch = new SearchProductsHandler(new FirebirdProductSearchReader(factory));
+
+        var salesBackend = new SalesBackend(
+            StartSale: salesService,
+            AddLine: salesService,
+            ChangeLine: salesService,
+            RemoveLine: salesService,
+            SetCharges: salesService,
+            SetCustomer: salesService,
+            Complete: salesService,
+            Cancel: salesService,
+            Details: salesService,
+            HeldSales: salesService,
+            SalesOfDay: salesService,
+            BrowseProducts: salesService,
+            ReadProducts: salesService,
+            SearchProducts: productSearch,
+            CatalogLookup: catalogLookup,
+            SearchCustomers: customerService,
+            QuickCreateCustomer: customerService,
+            CustomerAccount: customerService,
+            Clock: clock);
 
         return new AppServices(
             service,
             salesService,
-            new FirebirdCatalogLookupReader(factory),
-            new SearchProductsHandler(new FirebirdProductSearchReader(factory)),
+            catalogLookup,
+            productSearch,
+            salesBackend,
             defaults);
     }
 

@@ -1,0 +1,953 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    فروش سریع — built from the design approved in session "فاز 1" (1405/06/24),
+    target 1280×1024 till monitor, responsive (see SizeChanged in code-behind).
+    RTL: the first column is on the right — categories | products | invoice.
+    Colours come only from DesignSystem tokens (Sales* / App*); no hex here.
+-->
+<Page
+    x:Class="ERP.Desktop.Features.Sales.SalesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sales="using:ERP.Presentation.Features.Sales"
+    xmlns:customers="using:ERP.Application.Customers"
+    xmlns:local="using:ERP.Desktop.Features.Sales"
+    FlowDirection="RightToLeft"
+    FontFamily="{StaticResource AppBodyFont}"
+    FontSize="14"
+    Background="{ThemeResource SalesCanvasBrush}"
+    KeyboardAcceleratorPlacementMode="Hidden">
+
+    <Page.Resources>
+        <Style x:Key="SalesCard" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource AppSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource SalesLineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+        <Style x:Key="SalesLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Foreground" Value="{ThemeResource SalesMutedTextBrush}" />
+        </Style>
+        <Style x:Key="SalesIcon" TargetType="Path">
+            <Setter Property="Stroke" Value="{ThemeResource SalesMutedTextBrush}" />
+            <Setter Property="StrokeThickness" Value="2" />
+            <Setter Property="StrokeLineJoin" Value="Round" />
+            <Setter Property="StrokeStartLineCap" Value="Round" />
+            <Setter Property="StrokeEndLineCap" Value="Round" />
+        </Style>
+        <Style x:Key="SalesActionButton" TargetType="Button">
+            <Setter Property="Height" Value="46" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="CornerRadius" Value="11" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Background" Value="{ThemeResource AppSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource SalesLineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style x:Key="SalesSmallIconButton" TargetType="Button">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style x:Key="SalesStepButton" TargetType="Button">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Background" Value="{ThemeResource SalesMutedFillBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource SalesLineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style x:Key="SalesFooterBox" TargetType="TextBox">
+            <Setter Property="MinHeight" Value="30" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextAlignment" Value="Left" />
+            <Setter Property="CornerRadius" Value="7" />
+        </Style>
+        <Style x:Key="SalesDialogCard" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource AppSurfaceBrush}" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="SalesDialogTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+        <Style x:Key="SalesPrimaryButton" TargetType="Button">
+            <Setter Property="Height" Value="46" />
+            <Setter Property="Padding" Value="20,0" />
+            <Setter Property="CornerRadius" Value="11" />
+            <Setter Property="FontSize" Value="14.5" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="{ThemeResource SalesPrimaryDarkBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+    </Page.Resources>
+
+    <Grid x:Name="RootGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="52" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ═══ top chrome ═══ -->
+        <Grid Background="{ThemeResource SalesChromeBrush}" Padding="12,0" ColumnSpacing="14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <Border Width="34" Height="34" CornerRadius="10" Background="{ThemeResource AppPrimaryBrush}">
+                    <Viewbox Width="18" Height="18">
+                        <Canvas Width="24" Height="24">
+                            <Path Style="{StaticResource SalesIcon}" Stroke="White" Data="M12 2c-4 3-6 6-6 10a6 6 0 0 0 12 0c0-4-2-7-6-10Z" />
+                        </Canvas>
+                    </Viewbox>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="پیشکار" FontSize="16.5" FontWeight="Bold" Foreground="{ThemeResource SalesChromeTextBrush}" />
+                    <TextBlock Text="فروش و صندوق" FontSize="11" Foreground="{ThemeResource SalesChromeMutedBrush}" />
+                </StackPanel>
+            </StackPanel>
+
+            <Border Grid.Column="1" Width="1" Height="28" Background="{ThemeResource SalesChromeRaisedBrush}" />
+
+            <StackPanel x:Name="ClockPanel" Grid.Column="2" VerticalAlignment="Center">
+                <TextBlock x:Name="ClockText" FontSize="18" FontWeight="Bold" Foreground="{ThemeResource SalesChromeTextBrush}" />
+                <TextBlock x:Name="DateText" FontSize="11" Foreground="{ThemeResource SalesChromeMutedBrush}" />
+            </StackPanel>
+
+            <Border Grid.Column="4" Padding="6,5,12,5" CornerRadius="16" Background="{ThemeResource SalesChromeRaisedBrush}" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Border Width="24" Height="24" CornerRadius="12" Background="{ThemeResource SalesChromeBrush}">
+                        <Viewbox Width="13" Height="13">
+                            <Canvas Width="24" Height="24">
+                                <Path Style="{StaticResource SalesIcon}" Stroke="{ThemeResource SalesChromeTextBrush}" Data="M20 21a8 8 0 1 0-16 0 M16 8a4 4 0 1 1-8 0a4 4 0 1 1 8 0" />
+                            </Canvas>
+                        </Viewbox>
+                    </Border>
+                    <TextBlock Text="کاربر آزمایشی" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"
+                               Foreground="{ThemeResource SalesChromeTextBrush}"
+                               ToolTipService.ToolTip="ورود کاربران هنوز ساخته نشده است (پیوست الف.۵)" />
+                </StackPanel>
+            </Border>
+
+            <Button Grid.Column="5" Click="OnExitClick" Height="36" Padding="14,0" CornerRadius="10" VerticalAlignment="Center"
+                    Background="Transparent" BorderBrush="{ThemeResource SalesChromeRaisedBrush}" BorderThickness="1"
+                    AutomationProperties.Name="خروج از فروش">
+                <StackPanel Orientation="Horizontal" Spacing="7">
+                    <Viewbox Width="16" Height="16">
+                        <Canvas Width="24" Height="24">
+                            <Path Style="{StaticResource SalesIcon}" Stroke="{ThemeResource SalesChromeTextBrush}" Data="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9" />
+                        </Canvas>
+                    </Viewbox>
+                    <TextBlock Text="خروج" FontWeight="SemiBold" Foreground="{ThemeResource SalesChromeTextBrush}" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- ═══ invoice tabs (temporary invoices for several customers at once) ═══ -->
+        <Grid Grid.Row="1" Padding="12,6,12,0" ColumnSpacing="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Tabs}">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Orientation="Horizontal" Spacing="3" />
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="sales:InvoiceTab">
+                            <Grid Padding="14,7,8,8" CornerRadius="10,10,0,0" ColumnSpacing="8"
+                                  Background="{x:Bind local:SalesPage.TabBackground(IsCurrent), Mode=OneWay}"
+                                  BorderBrush="{ThemeResource SalesLineBrush}"
+                                  BorderThickness="{x:Bind local:SalesPage.TabBorder(IsCurrent), Mode=OneWay}"
+                                  Tapped="OnTabTapped">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{x:Bind Title, Mode=OneWay}" VerticalAlignment="Center" FontSize="13.5"
+                                           FontWeight="{x:Bind local:SalesPage.TabWeight(IsCurrent), Mode=OneWay}" />
+                                <Button Grid.Column="1" Click="OnCloseTabClick" Width="22" Height="22" Padding="0" CornerRadius="6"
+                                        Background="Transparent" BorderThickness="0" FontSize="10"
+                                        AutomationProperties.Name="بستن و معلق کردن فاکتور"
+                                        ToolTipService.ToolTip="بستن تب — فاکتورِ دارای کالا معلق می‌ماند">
+                                    <TextBlock Text="✕" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </ScrollViewer>
+            <Button Grid.Column="1" Command="{x:Bind ViewModel.NewInvoiceCommand}" Width="34" Height="30" Padding="0" CornerRadius="8"
+                    Background="Transparent" BorderThickness="0" VerticalAlignment="Center"
+                    AutomationProperties.Name="فاکتور جدید" ToolTipService.ToolTip="فاکتور جدید (Ctrl+N)">
+                <TextBlock Text="+" FontSize="18" FontWeight="Bold" Foreground="{ThemeResource SalesMutedTextBrush}" />
+            </Button>
+        </Grid>
+
+        <!-- ═══ work area ═══ -->
+        <Grid x:Name="WorkGrid" Grid.Row="2" Padding="10,0,10,8" ColumnSpacing="9" RowSpacing="9">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="CategoriesColumn" Width="0.82*" />
+                <ColumnDefinition x:Name="ProductsColumn" Width="1.02*" />
+                <ColumnDefinition x:Name="InvoiceColumn" Width="1.28*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition x:Name="WorkTopRow" Height="*" />
+                <RowDefinition x:Name="WorkBottomRow" Height="0" />
+            </Grid.RowDefinitions>
+
+            <!-- ─── RIGHT: categories and quick tiles ─── -->
+            <Border x:Name="CategoriesCard" Style="{StaticResource SalesCard}">
+                <Grid RowSpacing="8" Padding="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <TextBlock Text="دسته‌بندی کالاها" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" />
+                        <Border HorizontalAlignment="Right" Width="31" Height="31" CornerRadius="9" Background="{ThemeResource AppPrimaryBrush}">
+                            <Viewbox Width="15" Height="15">
+                                <Canvas Width="24" Height="24">
+                                    <Path Style="{StaticResource SalesIcon}" Stroke="White" Data="M4 4h7v7H4Z M13 4h7v7h-7Z M4 13h7v7H4Z M13 13h7v7h-7Z" />
+                                </Canvas>
+                            </Viewbox>
+                        </Border>
+                    </Grid>
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled">
+                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.Categories}">
+                            <ItemsRepeater.Layout>
+                                <StackLayout Orientation="Horizontal" Spacing="6" />
+                            </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="sales:CategoryChip">
+                                    <Button Click="OnCategoryClick" Padding="13,6" CornerRadius="9" FontSize="13" FontWeight="SemiBold"
+                                           
+                                            Background="{x:Bind local:SalesPage.ChipBackground(IsSelected), Mode=OneWay}"
+                                            Foreground="{x:Bind local:SalesPage.ChipForeground(IsSelected), Mode=OneWay}"
+                                            BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1"
+                                            Content="{x:Bind Name}" />
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </ScrollViewer>
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.Tiles}">
+                            <ItemsRepeater.Layout>
+                                <UniformGridLayout MinItemWidth="118" MinItemHeight="96" MinColumnSpacing="8" MinRowSpacing="8"
+                                                   ItemsStretch="Fill" MaximumRowsOrColumns="2" />
+                            </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="sales:ProductRow">
+                                    <Button Click="OnProductClick" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                            HorizontalContentAlignment="Center" Padding="8,10" CornerRadius="12"
+                                            Background="{ThemeResource AppSurfaceBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1.5"
+                                            AutomationProperties.Name="{x:Bind Name}">
+                                        <StackPanel Spacing="5" HorizontalAlignment="Center">
+                                            <Border Width="34" Height="34" CornerRadius="10" HorizontalAlignment="Center"
+                                                   
+                                                    Background="{x:Bind local:SalesPage.TileColor(Name)}">
+                                                <Viewbox Width="17" Height="17">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Style="{StaticResource SalesIcon}" Stroke="White" Data="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z M3 6h18 M16 10a4 4 0 0 1-8 0" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </Border>
+                                            <TextBlock Text="{x:Bind Name}" FontSize="13" FontWeight="SemiBold" TextAlignment="Center"
+                                                       TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind PriceText}" FontSize="12" Foreground="{ThemeResource SalesMutedTextBrush}" TextAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- ─── MIDDLE: product list ─── -->
+            <Border x:Name="ProductsCard" Grid.Column="1" Style="{StaticResource SalesCard}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Padding="10,10,10,8" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="ProductSearchBox"
+                                 Text="{x:Bind ViewModel.ProductSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="جست‌وجوی کالا، بارکد یا کد … (F3)"
+                                 KeyDown="OnProductSearchKeyDown" MinHeight="42" CornerRadius="10" FontSize="14" Padding="12,10"
+                                 AutomationProperties.Name="جست‌وجوی کالا یا اسکن بارکد" />
+                        <Button Grid.Column="1" Click="OnFocusSearchClick" Width="44" Height="42" Padding="0" CornerRadius="10"
+                                Background="{ThemeResource AppSurfaceBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1"
+                                AutomationProperties.Name="آماده اسکن بارکد" ToolTipService.ToolTip="اسکنر را بزنید؛ لازم نیست جایی کلیک کنید">
+                            <Viewbox Width="19" Height="19">
+                                <Canvas Width="24" Height="24">
+                                    <Path Style="{StaticResource SalesIcon}" Data="M3 5v14 M7 5v14 M11 5v14 M14 5v14 M18 5v14 M21 5v14" />
+                                </Canvas>
+                            </Viewbox>
+                        </Button>
+                    </Grid>
+
+                    <Grid x:Name="FilterRow" Grid.Row="1" Padding="10,0,10,9" ColumnSpacing="7" Visibility="{x:Bind ViewModel.IsBrowsing, Mode=OneWay}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="FilterAllButton" Click="OnFilterClick" Tag="All" HorizontalAlignment="Stretch" Height="36" CornerRadius="10" FontSize="13" FontWeight="SemiBold" Content="همه کالاها" />
+                        <Button x:Name="FilterTopButton" Grid.Column="1" Click="OnFilterClick" Tag="TopSelling" HorizontalAlignment="Stretch" Height="36" CornerRadius="10" FontSize="13" FontWeight="SemiBold" Content="پر فروش‌ها" />
+                        <Button x:Name="FilterLowButton" Grid.Column="2" Click="OnFilterClick" Tag="LowStock" HorizontalAlignment="Stretch" Height="36" CornerRadius="10" FontSize="13" FontWeight="SemiBold" Content="موجودی کم" />
+                    </Grid>
+
+                    <Grid Grid.Row="2" Padding="12,8" Background="{ThemeResource SalesMutedFillBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="0,1,0,1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="64" />
+                            <ColumnDefinition Width="96" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="نام کالا" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="1" Text="موجودی" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Text="قیمت (تومان)" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    </Grid>
+
+                    <ListView Grid.Row="3" ItemsSource="{x:Bind ViewModel.Products}" SelectionMode="None" IsItemClickEnabled="True"
+                              ItemClick="OnProductListItemClick" AutomationProperties.Name="لیست کالاها">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="Padding" Value="12,0" />
+                                <Setter Property="MinHeight" Value="50" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="sales:ProductRow">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="64" />
+                                        <ColumnDefinition Width="96" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind CodeText}" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind AvailableText}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Foreground="{x:Bind local:SalesPage.StockBrush(StockLevel)}" />
+                                    <TextBlock Grid.Column="2" Text="{x:Bind PriceText}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <TextBlock Grid.Row="3" Text="کالایی پیدا نشد" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{ThemeResource SalesMutedTextBrush}" Visibility="{x:Bind local:SalesPage.WhenZero(ViewModel.Products.Count), Mode=OneWay}"
+                               />
+
+                    <Grid Grid.Row="4" Padding="10,8" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="0,1,0,0" Visibility="{x:Bind ViewModel.IsBrowsing, Mode=OneWay}">
+                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                            <Button Click="OnPreviousProductPageClick" Width="32" Height="30" Padding="0" CornerRadius="8" AutomationProperties.Name="صفحه قبل">
+                                <TextBlock Text="›" FontSize="16" />
+                            </Button>
+                            <TextBlock Text="{x:Bind ViewModel.ProductPageText, Mode=OneWay}" VerticalAlignment="Center" FontWeight="SemiBold" Margin="8,0" />
+                            <Button Click="OnNextProductPageClick" Width="32" Height="30" Padding="0" CornerRadius="8" AutomationProperties.Name="صفحه بعد">
+                                <TextBlock Text="‹" FontSize="16" />
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- ─── LEFT: the invoice ─── -->
+            <Border x:Name="InvoiceCard" Grid.Column="2" Style="{StaticResource SalesCard}" Padding="10">
+                <Grid RowSpacing="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- number + open-invoices pager -->
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Padding="6,4,12,4" CornerRadius="9" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1"
+                                ToolTipService.ToolTip="شماره فاکتور هنگام ثبت نهایی داده می‌شود (پیوست ج)">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border Width="30" Height="30" CornerRadius="9" Background="{ThemeResource AppPrimaryBrush}">
+                                    <Viewbox Width="16" Height="16">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Style="{StaticResource SalesIcon}" Stroke="White" Data="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z M14 2v6h6 M8 13h8 M8 17h5" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="شماره فاکتور" FontSize="11" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                    <TextBlock Text="پیش‌نویس" FontSize="14" FontWeight="Bold" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                        <StackPanel Grid.Column="1" HorizontalAlignment="Center" Spacing="3">
+                            <TextBlock Text="فاکتورهای باز" FontSize="11" Foreground="{ThemeResource SalesMutedTextBrush}" HorizontalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <Button Command="{x:Bind ViewModel.OpenInvoiceListCommand}" Width="30" Height="30" Padding="0" CornerRadius="9" AutomationProperties.Name="لیست فاکتورها" ToolTipService.ToolTip="لیست فاکتورها (F2)">
+                                    <TextBlock Text="⋮" FontWeight="Bold" />
+                                </Button>
+                                <Button Command="{x:Bind ViewModel.PreviousTabCommand}" Width="30" Height="30" Padding="0" CornerRadius="9" AutomationProperties.Name="فاکتور باز قبلی">
+                                    <TextBlock Text="›" FontSize="16" />
+                                </Button>
+                                <Border Padding="13,4" CornerRadius="9" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
+                                    <TextBlock Text="{x:Bind ViewModel.TabPositionText, Mode=OneWay}" FontWeight="Bold" FontSize="13.5" />
+                                </Border>
+                                <Button Command="{x:Bind ViewModel.NextTabCommand}" Width="30" Height="30" Padding="0" CornerRadius="9" AutomationProperties.Name="فاکتور باز بعدی">
+                                    <TextBlock Text="‹" FontSize="16" />
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- customer -->
+                    <Grid Grid.Row="1" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <AutoSuggestBox x:Name="CustomerBox"
+                                        PlaceholderText="{x:Bind ViewModel.CurrentTab.CustomerName, Mode=OneWay}"
+                                        ItemsSource="{x:Bind ViewModel.CustomerSuggestions}"
+                                        TextChanged="OnCustomerTextChanged" SuggestionChosen="OnCustomerChosen"
+                                        QueryIcon="Find" MinHeight="36"
+                                        AutomationProperties.Name="جست‌وجوی مشتری با نام یا موبایل"
+                                        ToolTipService.ToolTip="نام یا موبایل مشتری را بنویسید؛ خالی یعنی مشتری نقدی">
+                            <AutoSuggestBox.ItemTemplate>
+                                <DataTemplate x:DataType="customers:CustomerSearchResult">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind Mobile}" Foreground="{ThemeResource SalesMutedTextBrush}" FlowDirection="LeftToRight" />
+                                    </Grid>
+                                </DataTemplate>
+                            </AutoSuggestBox.ItemTemplate>
+                        </AutoSuggestBox>
+                        <Button Grid.Column="1" Command="{x:Bind ViewModel.ClearCustomerCommand}" Height="36" Padding="10,0" CornerRadius="10"
+                                Content="مشتری نقدی" FontSize="12.5" AutomationProperties.Name="برگشت به مشتری نقدی" />
+                        <Button Grid.Column="2" Command="{x:Bind ViewModel.OpenNewCustomerCommand}" Height="36" Padding="10,0" CornerRadius="10"
+                                Background="{ThemeResource AppPrimarySoftBrush}" BorderBrush="{ThemeResource AppPrimaryBrush}" BorderThickness="1"
+                                AutomationProperties.Name="ثبت مشتری جدید">
+                            <TextBlock Text="+ مشتری جدید" FontSize="12.5" FontWeight="SemiBold" Foreground="{ThemeResource SalesPrimaryDarkBrush}" />
+                        </Button>
+                    </Grid>
+
+                    <!-- customer balance banner (§6.6) -->
+                    <Border Grid.Row="2" Padding="10,6" CornerRadius="9" Background="{ThemeResource SalesAmberSoftBrush}"
+                            BorderBrush="{ThemeResource SalesAmberLineBrush}" BorderThickness="1"
+                            Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.CurrentTab.BalanceText), Mode=OneWay}"
+                           >
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="!" FontWeight="Bold" Foreground="{ThemeResource SalesAmberBrush}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.CurrentTab.BalanceText, Mode=OneWay}" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource SalesAmberBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.CurrentTab.CustomerMobileText, Mode=OneWay}" FontSize="12.5"
+                                       Foreground="{ThemeResource SalesAmberBrush}" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+
+                    <!-- lines header -->
+                    <Grid Grid.Row="3" Padding="8,8" CornerRadius="10,10,0,0" Background="{ThemeResource SalesMutedFillBrush}"
+                          BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1,1,1,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="118" />
+                            <ColumnDefinition Width="92" />
+                            <ColumnDefinition Width="104" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="عملیات" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="شرح کالا" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" Margin="6,0,0,0" />
+                        <TextBlock Grid.Column="2" Text="مقدار" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="3" Text="قیمت" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="4" Text="مبلغ (تومان)" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    </Grid>
+
+                    <!-- lines -->
+                    <Border Grid.Row="4" CornerRadius="0,0,10,10" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1" MinHeight="200">
+                        <Grid>
+                            <ListView ItemsSource="{x:Bind ViewModel.CurrentTab.Lines, Mode=OneWay}" SelectionMode="None" AutomationProperties.Name="اقلام فاکتور">
+                                <ListView.ItemContainerStyle>
+                                    <Style TargetType="ListViewItem">
+                                        <Setter Property="Padding" Value="8,0" />
+                                        <Setter Property="MinHeight" Value="52" />
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    </Style>
+                                </ListView.ItemContainerStyle>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="sales:CartLineRow">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="60" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="118" />
+                                                <ColumnDefinition Width="92" />
+                                                <ColumnDefinition Width="104" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal" Spacing="2" HorizontalAlignment="Center">
+                                                <Button Click="OnEditLineClick" Style="{StaticResource SalesSmallIconButton}" Width="28" Height="28"
+                                                        AutomationProperties.Name="ویرایش سطر" ToolTipService.ToolTip="ویرایش سطر (قیمت، تخفیف)">
+                                                    <Viewbox Width="14" Height="14">
+                                                        <Canvas Width="24" Height="24">
+                                                            <Path Style="{StaticResource SalesIcon}" Stroke="{ThemeResource SalesBlueBrush}" Data="M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                                        </Canvas>
+                                                    </Viewbox>
+                                                </Button>
+                                                <Button Click="OnRemoveLineClick" Style="{StaticResource SalesSmallIconButton}" Width="28" Height="28"
+                                                        AutomationProperties.Name="حذف سطر" ToolTipService.ToolTip="حذف این سطر">
+                                                    <Viewbox Width="14" Height="14">
+                                                        <Canvas Width="24" Height="24">
+                                                            <Path Style="{StaticResource SalesIcon}" Stroke="{ThemeResource SalesRedBrush}" Data="M3 6h18 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                                        </Canvas>
+                                                    </Viewbox>
+                                                </Button>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="6,0,0,0">
+                                                <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{x:Bind CodeText}" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                                <TextBlock Text="{x:Bind WarningText}" FontSize="11.5" FontWeight="SemiBold" Foreground="{ThemeResource SalesAmberBrush}"
+                                                           Visibility="{x:Bind HasWarning}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Button Click="OnIncreaseLineClick" Style="{StaticResource SalesStepButton}" Content="+" AutomationProperties.Name="یکی بیشتر" />
+                                                <TextBlock Text="{x:Bind QuantityText}" FontWeight="Bold" VerticalAlignment="Center" MinWidth="18" TextAlignment="Center" />
+                                                <Button Click="OnDecreaseLineClick" Style="{StaticResource SalesStepButton}" Content="−" AutomationProperties.Name="یکی کمتر" />
+                                                <TextBlock Text="{x:Bind UnitSymbol}" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="3" Text="{x:Bind UnitPriceText}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="4" Text="{x:Bind LineTotalText}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+
+                            <StackPanel Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        Visibility="{x:Bind ViewModel.CurrentTab.IsEmpty, Mode=OneWay}" IsHitTestVisible="False">
+                                <Viewbox Width="64" Height="64">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Stroke="{ThemeResource SalesLineBrush}" StrokeThickness="1.4" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Data="M10 21a1 1 0 1 1-2 0a1 1 0 1 1 2 0 M20 21a1 1 0 1 1-2 0a1 1 0 1 1 2 0 M2.5 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21 8H6" />
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Text="هنوز کالایی اضافه نشده است" FontSize="15" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                <TextBlock Text="از لیست کالاها انتخاب کنید یا بارکد را اسکن کنید" FontSize="13" HorizontalAlignment="Center" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- footer: totals (§6.10 discount amount/percent, service charge, §10.10 tax) -->
+                    <Grid Grid.Row="5" ColumnSpacing="9">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="300" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Padding="12,6" CornerRadius="10" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
+                            <StackPanel Spacing="4">
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" Spacing="7">
+                                        <Ellipse Width="8" Height="8" Fill="{ThemeResource AppPrimaryBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="مبلغ کل" Style="{StaticResource SalesLabel}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <TextBlock Text="{x:Bind ViewModel.CurrentTab.SubtotalText, Mode=OneWay}" FontWeight="Bold" HorizontalAlignment="Right" />
+                                </Grid>
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" Spacing="7">
+                                        <Ellipse Width="8" Height="8" Fill="{ThemeResource AppAccentBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="تخفیف" Style="{StaticResource SalesLabel}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+                                        <TextBox Text="{x:Bind ViewModel.CurrentTab.DiscountPercentInput, Mode=TwoWay}" Width="54" Style="{StaticResource SalesFooterBox}"
+                                                 Tag="discount-percent" LostFocus="OnChargesLostFocus" KeyDown="OnFooterKeyDown" AutomationProperties.Name="درصد تخفیف فاکتور" />
+                                        <TextBlock Text="٪" Style="{StaticResource SalesLabel}" VerticalAlignment="Center" />
+                                        <TextBox Text="{x:Bind ViewModel.CurrentTab.DiscountInput, Mode=TwoWay}" Width="104" Style="{StaticResource SalesFooterBox}"
+                                                 Tag="discount" LostFocus="OnChargesLostFocus" KeyDown="OnFooterKeyDown" AutomationProperties.Name="مبلغ تخفیف فاکتور به تومان" />
+                                    </StackPanel>
+                                </Grid>
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" Spacing="7">
+                                        <Ellipse Width="8" Height="8" Fill="{ThemeResource SalesPurpleBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="خدمات / هزینه" Style="{StaticResource SalesLabel}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <TextBox Text="{x:Bind ViewModel.CurrentTab.ServiceChargeInput, Mode=TwoWay}" Width="104" Style="{StaticResource SalesFooterBox}" HorizontalAlignment="Right"
+                                             Tag="service" LostFocus="OnChargesLostFocus" KeyDown="OnFooterKeyDown" AutomationProperties.Name="خدمات یا هزینه به تومان" />
+                                </Grid>
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" Spacing="7">
+                                        <Ellipse Width="8" Height="8" Fill="{ThemeResource SalesBlueBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="مالیات" Style="{StaticResource SalesLabel}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+                                        <TextBox Text="{x:Bind ViewModel.CurrentTab.TaxPercentInput, Mode=TwoWay}" Width="54" Style="{StaticResource SalesFooterBox}"
+                                                 LostFocus="OnTaxLostFocus" KeyDown="OnFooterKeyDown" Tag="tax" AutomationProperties.Name="درصد مالیات" />
+                                        <TextBlock Text="٪" Style="{StaticResource SalesLabel}" VerticalAlignment="Center" />
+                                        <Border Width="104" Padding="8,5" CornerRadius="7" Background="{ThemeResource SalesMutedFillBrush}">
+                                            <TextBlock Text="{x:Bind ViewModel.CurrentTab.TaxText, Mode=OneWay}" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource SalesLineBrush}" Margin="0,3" />
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" Spacing="7">
+                                        <Ellipse Width="8" Height="8" Fill="{ThemeResource AppPrimaryBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="قابل پرداخت" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <TextBlock Text="{x:Bind ViewModel.CurrentTab.TotalText, Mode=OneWay}" FontSize="19" FontWeight="Bold"
+                                               Foreground="{ThemeResource SalesPrimaryDarkBrush}" HorizontalAlignment="Right" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Bottom">
+                            <Border Padding="10,8" CornerRadius="9" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="انبار" Style="{StaticResource SalesLabel}" />
+                                    <TextBlock Text="انبار اصلی" FontWeight="SemiBold" />
+                                </StackPanel>
+                            </Border>
+                            <Border Padding="10,8" CornerRadius="9" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="مشتری" Style="{StaticResource SalesLabel}" />
+                                    <TextBlock Text="{x:Bind ViewModel.CurrentTab.CustomerName, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ═══ action bar ═══ -->
+        <Grid Grid.Row="3" Padding="11,8" Background="{ThemeResource AppSurfaceBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="0,1,0,0" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Button Command="{x:Bind ViewModel.AskCancelInvoiceCommand}" Style="{StaticResource SalesActionButton}"
+                    Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" AutomationProperties.Name="حذف فاکتور">
+                <TextBlock Text="حذف" Foreground="{ThemeResource SalesRedBrush}" FontWeight="SemiBold" />
+            </Button>
+            <Button Grid.Column="1" Command="{x:Bind ViewModel.NewInvoiceCommand}" Style="{StaticResource SalesActionButton}"
+                    Background="{ThemeResource SalesBlueSoftBrush}" BorderBrush="{ThemeResource SalesBlueLineBrush}" AutomationProperties.Name="فاکتور جدید">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="جدید" Foreground="{ThemeResource SalesBlueBrush}" FontWeight="SemiBold" />
+                    <TextBlock Text="Ctrl+N" FontSize="11" Foreground="{ThemeResource SalesBlueBrush}" Opacity="0.75" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Column="2" Command="{x:Bind ViewModel.OpenInvoiceListCommand}" Style="{StaticResource SalesActionButton}" AutomationProperties.Name="لیست فاکتورها">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="لیست فاکتورها" />
+                    <TextBlock Text="F2" FontSize="11" Foreground="{ThemeResource SalesMutedTextBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Column="3" Style="{StaticResource SalesActionButton}" IsEnabled="False" Content="مرجوعی"
+                    ToolTipService.ToolTip="مرجوعی در قدم بعدی ساخته می‌شود" AutomationProperties.Name="مرجوعی (به‌زودی)" />
+
+            <Button Grid.Column="5" Style="{StaticResource SalesActionButton}" IsEnabled="False"
+                    ToolTipService.ToolTip="چاپ فاکتور در قدم بعدی ساخته می‌شود" AutomationProperties.Name="ثبت و چاپ (به‌زودی)">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="ثبت و چاپ" />
+                    <TextBlock Text="F4" FontSize="11" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Column="6" Click="OnSaveAndNextClick" Style="{StaticResource SalesActionButton}"
+                    Background="{ThemeResource AppPrimarySoftBrush}" BorderBrush="{ThemeResource AppPrimaryBrush}" AutomationProperties.Name="ثبت و فاکتور بعدی">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="ثبت و بعدی" Foreground="{ThemeResource SalesPrimaryDarkBrush}" FontWeight="SemiBold" />
+                    <TextBlock Text="F5" FontSize="11" Foreground="{ThemeResource SalesPrimaryDarkBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Column="7" Click="OnReceivePaymentClick" Style="{StaticResource SalesPrimaryButton}" Padding="26,0" AutomationProperties.Name="دریافت وجه">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="دریافت وجه" Foreground="White" FontWeight="Bold" />
+                    <TextBlock Text="F6" FontSize="11" Foreground="White" Opacity="0.8" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- ═══ notice (toast) ═══ -->
+        <InfoBar x:Name="NoticeBar" Grid.RowSpan="4" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,58,0,0" MaxWidth="620"
+                 IsOpen="False" IsClosable="True" />
+
+        <!-- ═══ windows ═══ -->
+
+        <!-- edit row -->
+        <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsEditLineOpen, Mode=OneWay}">
+            <Border Style="{StaticResource SalesDialogCard}" Width="460">
+                <StackPanel>
+                    <TextBlock Text="ویرایش سطر فاکتور" Style="{StaticResource SalesDialogTitle}" Margin="18,15" />
+                    <StackPanel Spacing="12" Padding="18,4,18,16">
+                        <TextBlock Text="{x:Bind ViewModel.EditProductName, Mode=OneWay}" FontSize="15" FontWeight="SemiBold" />
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <TextBox Header="مقدار" Text="{x:Bind ViewModel.EditQuantityText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" InputScope="Number" />
+                            <TextBox Grid.Column="1" Header="قیمت واحد این فاکتور (تومان)" Text="{x:Bind ViewModel.EditUnitPriceText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" InputScope="Number" />
+                        </Grid>
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <TextBox Header="تخفیف سطر (تومان)" Text="{x:Bind ViewModel.EditDiscountText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" InputScope="Number" />
+                            <TextBox Grid.Column="1" Header="تخفیف سطر (٪)" Text="{x:Bind ViewModel.EditDiscountPercentText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" InputScope="Number" />
+                        </Grid>
+                        <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesAmberSoftBrush}" BorderBrush="{ThemeResource SalesAmberLineBrush}" BorderThickness="1">
+                            <CheckBox IsChecked="{x:Bind ViewModel.EditUpdateCatalogPrice, Mode=TwoWay}">
+                                <StackPanel>
+                                    <TextBlock Text="قیمت اصلی کالا هم به‌روز شود" FontWeight="SemiBold" />
+                                    <TextBlock Text="اگر تیک نخورد، قیمت جدید فقط روی همین فاکتور اثر دارد." FontSize="12" Foreground="{ThemeResource SalesMutedTextBrush}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </CheckBox>
+                        </Border>
+                        <TextBlock Text="{x:Bind ViewModel.EditError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Grid Padding="18,12" ColumnSpacing="8" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Button Command="{x:Bind ViewModel.CancelEditLineCommand}" Style="{StaticResource SalesActionButton}" Content="انصراف" />
+                        <Button Grid.Column="1" Command="{x:Bind ViewModel.SaveEditLineCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch" Content="ثبت تغییرات" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- new customer -->
+        <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsNewCustomerOpen, Mode=OneWay}">
+            <Border Style="{StaticResource SalesDialogCard}" Width="420">
+                <StackPanel>
+                    <TextBlock Text="مشتری جدید" Style="{StaticResource SalesDialogTitle}" Margin="18,15" />
+                    <StackPanel Spacing="12" Padding="18,4,18,16">
+                        <TextBox x:Name="NewCustomerMobileBox" Header="موبایل" Text="{x:Bind ViewModel.NewCustomerMobile, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 InputScope="TelephoneNumber" PlaceholderText="۰۹۱۲۳۴۵۶۷۸۹" />
+                        <TextBox Header="نام و نام خانوادگی" Text="{x:Bind ViewModel.NewCustomerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Text="{x:Bind ViewModel.NewCustomerError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Grid Padding="18,12" ColumnSpacing="8" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Button Command="{x:Bind ViewModel.CancelNewCustomerCommand}" Style="{StaticResource SalesActionButton}" Content="انصراف" />
+                        <Button Grid.Column="1" Command="{x:Bind ViewModel.SaveNewCustomerCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch" Content="ثبت و انتخاب مشتری" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- payment -->
+        <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsPaymentOpen, Mode=OneWay}">
+            <Border Style="{StaticResource SalesDialogCard}" Width="580">
+                <StackPanel>
+                    <TextBlock Text="دریافت وجه" Style="{StaticResource SalesDialogTitle}" Margin="18,15" />
+                    <StackPanel Spacing="12" Padding="18,4,18,16">
+                        <Border Padding="17,14" CornerRadius="12" Background="{ThemeResource SalesPrimaryDarkBrush}">
+                            <StackPanel>
+                                <TextBlock Text="مبلغ قابل پرداخت" FontSize="12.5" Foreground="White" Opacity="0.9" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="{x:Bind ViewModel.PaymentDueText, Mode=OneWay}" FontSize="28" FontWeight="Bold" Foreground="White" />
+                                    <TextBlock Text="تومان" FontSize="15" Foreground="White" VerticalAlignment="Bottom" Margin="0,0,0,5" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <Button x:Name="PayCashButton" Click="OnPaymentMethodClick" Tag="Cash" HorizontalAlignment="Stretch" Height="68" CornerRadius="11" BorderThickness="1.5"
+                                    AutomationProperties.Name="نقدی" ToolTipService.ToolTip="Alt+1">
+                                <StackPanel Spacing="3"><TextBlock Text="نقدی" FontWeight="SemiBold" HorizontalAlignment="Center" /><TextBlock Text="Alt+۱" FontSize="10.5" Opacity="0.7" HorizontalAlignment="Center" /></StackPanel>
+                            </Button>
+                            <Button x:Name="PayCardButton" Grid.Column="1" Click="OnPaymentMethodClick" Tag="Card" HorizontalAlignment="Stretch" Height="68" CornerRadius="11" BorderThickness="1.5"
+                                    AutomationProperties.Name="کارتخوان" ToolTipService.ToolTip="Alt+2">
+                                <StackPanel Spacing="3"><TextBlock Text="کارتخوان" FontWeight="SemiBold" HorizontalAlignment="Center" /><TextBlock Text="Alt+۲" FontSize="10.5" Opacity="0.7" HorizontalAlignment="Center" /></StackPanel>
+                            </Button>
+                            <Button x:Name="PayCreditButton" Grid.Column="2" Click="OnPaymentMethodClick" Tag="Credit" HorizontalAlignment="Stretch" Height="68" CornerRadius="11" BorderThickness="1.5"
+                                    AutomationProperties.Name="نسیه" ToolTipService.ToolTip="Alt+3">
+                                <StackPanel Spacing="3"><TextBlock Text="نسیه" FontWeight="SemiBold" HorizontalAlignment="Center" /><TextBlock Text="Alt+۳" FontSize="10.5" Opacity="0.7" HorizontalAlignment="Center" /></StackPanel>
+                            </Button>
+                            <Button x:Name="PayChequeButton" Grid.Column="3" Click="OnPaymentMethodClick" Tag="Cheque" HorizontalAlignment="Stretch" Height="68" CornerRadius="11" BorderThickness="1.5"
+                                    AutomationProperties.Name="چک" ToolTipService.ToolTip="Alt+4">
+                                <StackPanel Spacing="3"><TextBlock Text="چک" FontWeight="SemiBold" HorizontalAlignment="Center" /><TextBlock Text="Alt+۴" FontSize="10.5" Opacity="0.7" HorizontalAlignment="Center" /></StackPanel>
+                            </Button>
+                        </Grid>
+                        <Grid ColumnSpacing="10" Visibility="{x:Bind ViewModel.IsCashSelected, Mode=OneWay}">
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <TextBox x:Name="CashReceivedBox" Header="مبلغ دریافتی (تومان)" Text="{x:Bind ViewModel.CashReceivedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     InputScope="Number" KeyDown="OnPaymentKeyDown" FontSize="16" FontWeight="SemiBold" />
+                            <StackPanel Grid.Column="1" Spacing="6">
+                                <TextBlock Text="باقی‌مانده برای برگرداندن" Style="{StaticResource SalesLabel}" />
+                                <Border Padding="11,8" CornerRadius="8" Background="{ThemeResource SalesMutedFillBrush}">
+                                    <TextBlock Text="{x:Bind ViewModel.CashChangeText, Mode=OneWay}" FontSize="16" FontWeight="Bold" />
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                        <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesAmberSoftBrush}" BorderBrush="{ThemeResource SalesAmberLineBrush}" BorderThickness="1">
+                            <CheckBox IsChecked="{x:Bind ViewModel.AllowNegativeStock, Mode=TwoWay}">
+                                <StackPanel>
+                                    <TextBlock Text="اجازه فروش با کسری موجودی" FontWeight="SemiBold" />
+                                    <TextBlock Text="برای وقتی بار رسیده و فروش رفته ولی هنوز در سیستم ثبت نشده. موجودی منفی می‌شود و برای اصلاح علامت می‌خورد." FontSize="12" Foreground="{ThemeResource SalesMutedTextBrush}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </CheckBox>
+                        </Border>
+                        <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
+                                Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.PaymentError), Mode=OneWay}">
+                            <TextBlock Text="{x:Bind ViewModel.PaymentError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                        </Border>
+                    </StackPanel>
+                    <Grid Padding="18,12" ColumnSpacing="8" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Button Command="{x:Bind ViewModel.CancelPaymentCommand}" Style="{StaticResource SalesActionButton}" Content="انصراف" />
+                        <Button Grid.Column="1" Command="{x:Bind ViewModel.ConfirmPaymentCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch"
+                                Visibility="{x:Bind local:SalesPage.WhenFalse(ViewModel.NeedsCreditApproval), Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="ثبت نهایی فاکتور" Foreground="White" FontWeight="Bold" /><TextBlock Text="Enter" FontSize="11" Foreground="White" Opacity="0.8" VerticalAlignment="Center" /></StackPanel>
+                        </Button>
+                        <Button Grid.Column="1" Command="{x:Bind ViewModel.ApproveCreditAndCompleteCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch"
+                                Background="{ThemeResource SalesAmberBrush}" Visibility="{x:Bind ViewModel.NeedsCreditApproval, Mode=OneWay}"
+                                Content="تأیید مدیر و ثبت نسیه" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- completed summary (§6.21/§6.22) -->
+        <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsCompletedSummaryOpen, Mode=OneWay}">
+            <Border Style="{StaticResource SalesDialogCard}" Width="400">
+                <StackPanel Padding="24,22" Spacing="10">
+                    <Border Width="54" Height="54" CornerRadius="27" Background="{ThemeResource AppPrimarySoftBrush}" HorizontalAlignment="Center">
+                        <TextBlock Text="✓" FontSize="26" FontWeight="Bold" Foreground="{ThemeResource SalesPrimaryDarkBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="فروش با موفقیت ثبت شد" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" />
+                    <Grid RowSpacing="6" Margin="0,6">
+                        <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                        <TextBlock Text="شماره فاکتور" Style="{StaticResource SalesLabel}" />
+                        <TextBlock Text="{x:Bind ViewModel.CompletedNumberText, Mode=OneWay}" FontWeight="Bold" HorizontalAlignment="Right" />
+                        <TextBlock Grid.Row="1" Text="مبلغ (تومان)" Style="{StaticResource SalesLabel}" />
+                        <TextBlock Grid.Row="1" Text="{x:Bind ViewModel.CompletedTotalText, Mode=OneWay}" FontWeight="Bold" HorizontalAlignment="Right" />
+                        <TextBlock Grid.Row="2" Text="روش پرداخت" Style="{StaticResource SalesLabel}" />
+                        <TextBlock Grid.Row="2" Text="{x:Bind ViewModel.CompletedMethodText, Mode=OneWay}" FontWeight="Bold" HorizontalAlignment="Right" />
+                    </Grid>
+                    <Button x:Name="StartNextButton" Command="{x:Bind ViewModel.StartNextAfterSummaryCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch">
+                        <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="فروش جدید" Foreground="White" FontWeight="Bold" /><TextBlock Text="Enter" FontSize="11" Foreground="White" Opacity="0.8" VerticalAlignment="Center" /></StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource SalesActionButton}" HorizontalAlignment="Stretch" IsEnabled="False" Content="چاپ فاکتور (به‌زودی)" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- remove confirmation (§3.10) -->
+        <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsCancelConfirmOpen, Mode=OneWay}">
+            <Border Style="{StaticResource SalesDialogCard}" Width="400">
+                <StackPanel Padding="22,20" Spacing="12">
+                    <TextBlock Text="این فاکتور حذف شود؟" FontSize="17" FontWeight="Bold" />
+                    <TextBlock Text="اقلام این فاکتور کنار گذاشته می‌شوند. سابقه‌ی آن برای بازبینی نگه داشته می‌شود." TextWrapping="Wrap" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Button x:Name="KeepInvoiceButton" Command="{x:Bind ViewModel.KeepInvoiceCommand}" Style="{StaticResource SalesActionButton}" HorizontalAlignment="Stretch" Content="نه، نگه دار" />
+                        <Button Grid.Column="1" Command="{x:Bind ViewModel.ConfirmCancelInvoiceCommand}" Style="{StaticResource SalesActionButton}" HorizontalAlignment="Stretch"
+                                Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}">
+                            <TextBlock Text="بله، حذف شود" Foreground="{ThemeResource SalesRedBrush}" FontWeight="SemiBold" />
+                        </Button>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- invoice list (F2) -->
+        <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsInvoiceListOpen, Mode=OneWay}">
+            <Border Style="{StaticResource SalesDialogCard}" Width="820" MaxHeight="720">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <TextBlock Text="لیست فاکتورها" Style="{StaticResource SalesDialogTitle}" Margin="18,15" />
+                    <Pivot Grid.Row="1" Margin="10,0">
+                        <PivotItem Header="فاکتورهای معلق">
+                            <ListView ItemsSource="{x:Bind ViewModel.HeldInvoices}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnHeldInvoiceClick">
+                                <ListView.Header>
+                                    <TextBlock Text="برای ادامه‌ی فاکتور، روی آن بزنید." Style="{StaticResource SalesLabel}" Margin="12,4,12,8" />
+                                </ListView.Header>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="sales:InvoiceListRow">
+                                        <Grid ColumnSpacing="10" Padding="0,8">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /><ColumnDefinition Width="60" /><ColumnDefinition Width="130" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{x:Bind CustomerText}" FontWeight="SemiBold" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind TimeText}" HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{x:Bind ItemCountText}" HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="3" Text="{x:Bind AmountText}" FontWeight="Bold" HorizontalAlignment="Right" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </PivotItem>
+                        <PivotItem Header="فاکتورهای امروز">
+                            <ListView ItemsSource="{x:Bind ViewModel.TodayInvoices}" SelectionMode="None">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="sales:InvoiceListRow">
+                                        <Grid ColumnSpacing="10" Padding="0,8">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="80" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /><ColumnDefinition Width="60" /><ColumnDefinition Width="90" /><ColumnDefinition Width="130" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{x:Bind NumberText}" FontWeight="Bold" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind CustomerText}" FontWeight="SemiBold" />
+                                            <TextBlock Grid.Column="2" Text="{x:Bind TimeText}" HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="3" Text="{x:Bind ItemCountText}" HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="4" Text="{x:Bind MethodText}" HorizontalAlignment="Center" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                            <TextBlock Grid.Column="5" Text="{x:Bind AmountText}" FontWeight="Bold" HorizontalAlignment="Right" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </PivotItem>
+                    </Pivot>
+                    <Grid Grid.Row="2" Padding="18,12" ColumnSpacing="8" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
+                        <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBlock Text="{x:Bind ViewModel.TodaySummaryText, Mode=OneWay}" Style="{StaticResource SalesLabel}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        <Button Grid.Column="1" Command="{x:Bind ViewModel.CloseInvoiceListCommand}" Style="{StaticResource SalesActionButton}" Content="بستن" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>
