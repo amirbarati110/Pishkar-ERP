@@ -23,6 +23,13 @@ public interface IProductSearchReader
     Task<IReadOnlyList<ProductSearchResult>> SearchAsync(
         SearchProductsQuery query,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The active product whose barcode (any of its barcodes) or SKU is exactly
+    /// <paramref name="code"/>, or null. Exact, not ranked: a scanner reads a
+    /// whole code, and a partial match must never add the wrong product.
+    /// </summary>
+    Task<ProductSearchResult?> FindByExactCodeAsync(string code, CancellationToken cancellationToken);
 }
 
 public interface ISearchProductsHandler
@@ -30,6 +37,9 @@ public interface ISearchProductsHandler
     Task<IReadOnlyList<ProductSearchResult>> ExecuteAsync(
         SearchProductsQuery query,
         CancellationToken cancellationToken);
+
+    /// <summary>Scanner path — see <see cref="IProductSearchReader.FindByExactCodeAsync"/>. Blank input finds nothing.</summary>
+    Task<ProductSearchResult?> FindByExactCodeAsync(string code, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -72,5 +82,16 @@ public sealed class SearchProductsHandler : ISearchProductsHandler
         return _reader.SearchAsync(
             query with { Term = term, MaxResults = boundedMaxResults },
             cancellationToken);
+    }
+
+    public Task<ProductSearchResult?> FindByExactCodeAsync(string code, CancellationToken cancellationToken)
+    {
+        // Scanners in Persian keyboard layout still send Latin digits, but a
+        // code typed by hand may arrive in Persian digits; barcodes and SKUs
+        // are stored Latin.
+        var normalized = PersianNumber.DigitsToLatin(code?.Trim() ?? string.Empty);
+        return normalized.Length == 0
+            ? Task.FromResult<ProductSearchResult?>(null)
+            : _reader.FindByExactCodeAsync(normalized, cancellationToken);
     }
 }

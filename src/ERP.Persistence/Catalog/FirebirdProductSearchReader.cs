@@ -101,4 +101,48 @@ public sealed class FirebirdProductSearchReader : IProductSearchReader
 
         return results;
     }
+
+    public async Task<ProductSearchResult?> FindByExactCodeAsync(string code, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+
+        await using var connection = await _connectionFactory
+            .OpenAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        // Barcodes are CHARACTER SET ASCII (see SearchAsync): a non-ASCII code
+        // can only be an SKU, so the barcode branch gets NULL instead of a
+        // value Firebird cannot transliterate.
+        var isAscii = code.All(character => character <= 127);
+        await using var command = new FbCommand(
+            """
+            SELECT FIRST 1 P.ID, P.NAME, P.SKU, P.SALE_PRICE_RIALS,
+                   (SELECT FIRST 1 B.BARCODE FROM PRODUCT_BARCODE B
+                    WHERE B.PRODUCT_ID = P.ID ORDER BY B.BARCODE) AS PRIMARY_BARCODE
+            FROM PRODUCT P
+            WHERE P.STATUS = 1
+              AND (UPPER(P.SKU) = UPPER(@CODE)
+                   OR EXISTS (SELECT 1 FROM PRODUCT_BARCODE MB
+                              WHERE MB.PRODUCT_ID = P.ID AND UPPER(MB.BARCODE) = UPPER(@ASCII_CODE)))
+            """,
+            connection)
+        {
+            CommandType = CommandType.Text,
+        };
+        command.Parameters.Add("@CODE", FbDbType.VarChar).Value = code;
+        command.Parameters.Add("@ASCII_CODE", FbDbType.VarChar).Value = isAscii ? code : DBNull.Value;
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return null;
+        }
+
+        return new ProductSearchResult(
+            ProductId.From(Guid.Parse(reader.GetString(0))),
+            reader.GetString(1),
+            reader.IsDBNull(2) ? null : reader.GetString(2),
+            reader.IsDBNull(4) ? null : reader.GetString(4),
+            Money.FromRials(reader.GetInt64(3)));
+    }
 }

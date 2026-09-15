@@ -134,5 +134,64 @@ public sealed class SaleReadTests
         {
             return Task.FromResult<IReadOnlyList<SaleListItem>>([]);
         }
+
+        public ProductListCriteria? LastCriteria { get; private set; }
+
+        public Task<(IReadOnlyList<SaleProductListItem> Items, int TotalCount)> BrowseProductsAsync(
+            ProductListCriteria criteria,
+            CancellationToken cancellationToken)
+        {
+            LastCriteria = criteria;
+            return Task.FromResult<(IReadOnlyList<SaleProductListItem>, int)>(([], 31));
+        }
+    }
+
+    [Fact]
+    public async Task BrowsingTurnsPagesIntoOffsetsAndLooksBackThirtyDaysForTopSellers()
+    {
+        var context = new ApplicationTestContext();
+        var reader = new FakeSaleReadReader();
+
+        var page = await new BrowseProductsForSaleHandler(reader, context.Clock).ExecuteAsync(
+            new BrowseProductsForSaleQuery(WarehouseId.New(), null, ProductListFilter.TopSelling, Page: 3, PageSize: 15),
+            CancellationToken.None);
+
+        Assert.Equal(30, reader.LastCriteria!.Offset);
+        Assert.Equal(15, reader.LastCriteria.Limit);
+        Assert.Equal(context.Clock.UtcNow.AddDays(-30), reader.LastCriteria.SoldSinceUtc);
+        Assert.Equal(3, page.PageCount); // ۳۱ کالا در صفحه‌های ۱۵تایی
+    }
+
+    [Fact]
+    public async Task CancellingADraftKeepsItAsCancelledAndAuditsWhatWasInTheCart()
+    {
+        var context = new ApplicationTestContext();
+        var sale = Sale.OpenDraft(WarehouseId.New(), null, context.Clock.UtcNow);
+        sale.AddOrIncreaseLine(ProductId.New(), Quantity.Create(2), Money.FromTomans(10_000));
+        context.Sales.Items.Add(sale);
+
+        var result = await new CancelSaleHandler(context.Sales, context.Audit, context.UnitOfWork, context.User, context.Clock)
+            .ExecuteAsync(new CancelSaleCommand(sale.Id), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(SaleStatus.Cancelled, sale.Status);
+        Assert.Equal("sales.sale.cancelled", Assert.Single(context.Audit.Entries).Action);
+    }
+
+    [Fact]
+    public async Task ACompletedInvoiceCannotBeCancelled()
+    {
+        var context = new ApplicationTestContext();
+        var sale = Sale.OpenDraft(WarehouseId.New(), null, context.Clock.UtcNow);
+        sale.AddOrIncreaseLine(ProductId.New(), Quantity.Create(1), Money.FromTomans(10_000));
+        sale.Complete(SaleNumber.From(1), PaymentMethod.Cash, 0, context.Clock.UtcNow);
+        context.Sales.Items.Add(sale);
+
+        var result = await new CancelSaleHandler(context.Sales, context.Audit, context.UnitOfWork, context.User, context.Clock)
+            .ExecuteAsync(new CancelSaleCommand(sale.Id), CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("sales.sale.not-draft", result.Error?.Code);
+        Assert.Equal(0, context.UnitOfWork.CommitCount);
     }
 }

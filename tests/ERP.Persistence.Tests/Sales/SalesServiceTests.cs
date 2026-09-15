@@ -360,6 +360,87 @@ public sealed class SalesServiceTests
         Assert.Equal(-2, line.Available.Value);
     }
 
+    [Fact]
+    public async Task BrowsingFiltersByCategoryTreeTopSellersAndLowStockAndPages()
+    {
+        var context = await SetupAsync();
+        var setup = new FirebirdRetailSetupService(
+            context.Factory, new TestUserContext(Guid.NewGuid()), new TestClock(new DateTimeOffset(2026, 9, 14, 10, 0, 0, TimeSpan.Zero)));
+
+        // «خشکبار» زیر «مواد غذایی»؛ کالای «گردو» فقط ۳ عدد موجودی دارد
+        var foods = await context.Sales.ExecuteAsync(
+            new BrowseProductsForSaleQuery(context.Defaults.MainWarehouseId, null, ProductListFilter.All), CancellationToken.None);
+        var parentCategory = await setup.ExecuteAsync(new CreateCategoryCommand("خوراکی", null, 2), CancellationToken.None);
+        var nuts = await setup.ExecuteAsync(new CreateCategoryCommand("خشکبار", parentCategory.Value, 1), CancellationToken.None);
+        var walnut = await setup.ExecuteAsync(
+            new CreateProductCommand("گردو", "NUT-1", nuts.Value, context.Defaults.EachUnitId, Money.FromTomans(1_250_000), ["6260000009009"]),
+            CancellationToken.None);
+        await setup.ExecuteAsync(
+            new ReceiveOpeningStockCommand(walnut.Value, context.Defaults.MainWarehouseId, 3, 900_000_0, new DateOnly(2026, 9, 14)),
+            CancellationToken.None);
+
+        var inParent = await context.Sales.ExecuteAsync(
+            new BrowseProductsForSaleQuery(context.Defaults.MainWarehouseId, parentCategory.Value, ProductListFilter.All),
+            CancellationToken.None);
+        var item = Assert.Single(inParent.Items); // زیردسته هم شامل می‌شود
+        Assert.Equal("گردو", item.Name);
+        Assert.Equal(3, item.Available.Value);
+        Assert.Equal("عدد", item.UnitSymbol);
+
+        var lowStock = await context.Sales.ExecuteAsync(
+            new BrowseProductsForSaleQuery(context.Defaults.MainWarehouseId, null, ProductListFilter.LowStock), CancellationToken.None);
+        Assert.Equal("گردو", lowStock.Items[0].Name); // کمترین موجودی اول
+
+        // اوایل هیچ‌چیز فروش نرفته → پرفروش خالی؛ بعد از فروش روغن، روغن اول است
+        var noneSold = await context.Sales.ExecuteAsync(
+            new BrowseProductsForSaleQuery(context.Defaults.MainWarehouseId, null, ProductListFilter.TopSelling), CancellationToken.None);
+        Assert.Empty(noneSold.Items);
+
+        var sold = await StartSaleWithAsync(context, context.OilId, 4);
+        await context.Sales.ExecuteAsync(new CompleteSaleCommand(sold, PaymentMethod.Cash, 0, 0), CancellationToken.None);
+        var riceSale = await StartSaleWithAsync(context, context.RiceId, 1);
+        await context.Sales.ExecuteAsync(new CompleteSaleCommand(riceSale, PaymentMethod.Cash, 0, 0), CancellationToken.None);
+
+        var topSelling = await context.Sales.ExecuteAsync(
+            new BrowseProductsForSaleQuery(context.Defaults.MainWarehouseId, null, ProductListFilter.TopSelling), CancellationToken.None);
+        Assert.Equal(["روغن حیوانی", "برنج ایرانی"], topSelling.Items.Select(product => product.Name));
+
+        var firstPage = await context.Sales.ExecuteAsync(
+            new BrowseProductsForSaleQuery(context.Defaults.MainWarehouseId, null, ProductListFilter.All, Page: 1, PageSize: 2),
+            CancellationToken.None);
+        var secondPage = await context.Sales.ExecuteAsync(
+            new BrowseProductsForSaleQuery(context.Defaults.MainWarehouseId, null, ProductListFilter.All, Page: 2, PageSize: 2),
+            CancellationToken.None);
+        Assert.Equal(3, firstPage.TotalCount);
+        Assert.Equal(2, firstPage.Items.Count);
+        Assert.Single(secondPage.Items);
+        Assert.Equal(2, firstPage.PageCount);
+        Assert.Equal(2, foods.TotalCount); // قبل از افزودن گردو
+    }
+
+    [Fact]
+    public async Task AScannedCodeFindsTheProductByAnyBarcodeOrSkuExactly()
+    {
+        var context = await SetupAsync();
+        var search = new SearchProductsHandler(new FirebirdProductSearchReader(context.Factory));
+
+        Assert.Equal(context.RiceId, (await search.FindByExactCodeAsync("6260000009001", CancellationToken.None))?.Id);
+        Assert.Equal(context.OilId, (await search.FindByExactCodeAsync("oil-1", CancellationToken.None))?.Id);
+        Assert.Null(await search.FindByExactCodeAsync("626000000900", CancellationToken.None)); // ناقص → هیچ
+    }
+
+    [Fact]
+    public async Task CancellingADraftTakesItOffTheHeldList()
+    {
+        var context = await SetupAsync();
+        var draft = await StartSaleWithAsync(context, context.RiceId, 1);
+
+        var cancel = await context.Sales.ExecuteAsync(new CancelSaleCommand(draft), CancellationToken.None);
+
+        Assert.True(cancel.IsSuccess);
+        Assert.Empty(await context.Sales.ExecuteAsync(new ListHeldSalesQuery(), CancellationToken.None));
+    }
+
     private static FirebirdSalesService ServiceAt(TestContext context, DateTimeOffset now)
     {
         return new FirebirdSalesService(context.Factory, new TestUserContext(Guid.NewGuid()), new TestClock(now));

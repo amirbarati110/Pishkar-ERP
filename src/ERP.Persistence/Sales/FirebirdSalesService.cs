@@ -28,7 +28,9 @@ public sealed class FirebirdSalesService :
     ISetSaleCustomerHandler,
     IGetSaleDetailsHandler,
     IListSalesOfDayHandler,
-    IListHeldSalesHandler
+    IListHeldSalesHandler,
+    IBrowseProductsForSaleHandler,
+    ICancelSaleHandler
 {
     private readonly FirebirdConnectionFactory _connectionFactory;
     private readonly IUserContext _userContext;
@@ -182,6 +184,35 @@ public sealed class FirebirdSalesService :
             .ConfigureAwait(false);
         return await new ListHeldSalesHandler(new FirebirdSaleReadReader(unitOfWork))
             .ExecuteAsync(query, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<SaleProductListPage> ExecuteAsync(
+        BrowseProductsForSaleQuery query,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new BrowseProductsForSaleHandler(new FirebirdSaleReadReader(unitOfWork), _clock)
+            .ExecuteAsync(query, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(
+        CancelSaleCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new CancelSaleHandler(
+                new FirebirdSaleRepository(unitOfWork),
+                new FirebirdAuditWriter(unitOfWork),
+                unitOfWork,
+                _userContext,
+                _clock)
+            .ExecuteAsync(command, cancellationToken)
             .ConfigureAwait(false);
     }
 }

@@ -54,4 +54,9 @@ public interface ISaleReadReader
 
     /// <summary>Draft invoices that have at least one item, oldest first.</summary>
     Task<IReadOnlyList<SaleListItem>> ListDraftsWithItemsAsync(CancellationToken cancellationToken);
+
+    /// <summary>One page of the product list, with the total number of matching products.</summary>
+    Task<(IReadOnlyList<SaleProductListItem> Items, int TotalCount)> BrowseProductsAsync(
+        ProductListCriteria criteria,
+        CancellationToken cancellationToken);
 }

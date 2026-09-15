@@ -61,6 +61,30 @@ public static class PersianNumber
         return DigitsToPersian(value.ToString("G29", CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// Replaces Persian and Arabic-Indic digits with Latin ones, leaving every
+    /// other character — unlike <see cref="ToLatinDigitsOnly"/>, which drops
+    /// them. For codes that mix letters and digits, such as an SKU.
+    /// </summary>
+    public static string DigitsToLatin(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        return string.Create(value.Length, value, static (span, source) =>
+        {
+            for (var index = 0; index < source.Length; index++)
+            {
+                var character = source[index];
+                span[index] = character switch
+                {
+                    >= '۰' and <= '۹' => (char)('0' + character - '۰'),
+                    >= '٠' and <= '٩' => (char)('0' + character - '٠'),
+                    _ => character,
+                };
+            }
+        });
+    }
+
     /// <summary>Replaces Latin digits in <paramref name="invariant"/> with Persian ones, leaving everything else.</summary>
     public static string DigitsToPersian(string invariant)
     {

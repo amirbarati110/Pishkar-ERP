@@ -126,6 +126,103 @@ public sealed class FirebirdSaleReadReader : ISaleReadReader
         return await ReadListAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// One query per page. The category chip includes its sub-categories
+    /// (recursive CTE); a product is offered only if it is active and its own
+    /// category is active and visible at the till. Stock uses the same formula
+    /// as <see cref="ReadProductsAsync"/>; «sold» counts completed sales from
+    /// this warehouse since <see cref="ProductListCriteria.SoldSinceUtc"/>.
+    /// COUNT(*) OVER () returns the total with the page, so paging needs no
+    /// second round trip.
+    /// </summary>
+    public async Task<(IReadOnlyList<SaleProductListItem> Items, int TotalCount)> BrowseProductsAsync(
+        ProductListCriteria criteria,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(criteria);
+
+        var categoryCte = criteria.CategoryId is null
+            ? string.Empty
+            : """
+              WITH RECURSIVE CATS (ID) AS (
+                  SELECT C.ID FROM CATEGORY C WHERE C.ID = @CATEGORY_ID
+                  UNION ALL
+                  SELECT CHILD.ID FROM CATEGORY CHILD JOIN CATS ON CHILD.PARENT_ID = CATS.ID
+              ),
+              """;
+        var withKeyword = criteria.CategoryId is null ? "WITH " : string.Empty;
+        var categoryFilter = criteria.CategoryId is null ? string.Empty : "AND P.CATEGORY_ID IN (SELECT ID FROM CATS)";
+
+        var (filterClause, orderClause) = criteria.Filter switch
+        {
+            ProductListFilter.TopSelling => ("WHERE SOLD > 0", "ORDER BY SOLD DESC, NAME"),
+            ProductListFilter.LowStock => ("WHERE AVAILABLE <= @LOW_STOCK", "ORDER BY AVAILABLE, NAME"),
+            _ => (string.Empty, "ORDER BY NAME"),
+        };
+
+        await using var command = CreateCommand(
+            $"""
+            {categoryCte}
+            {withKeyword}LIST AS (
+                SELECT P.ID, P.NAME, P.SKU, U.SYMBOL, P.SALE_PRICE_RIALS,
+                       COALESCE((SELECT SUM(IL.REMAINING_QTY) FROM INVENTORY_LAYER IL
+                                 WHERE IL.PRODUCT_ID = P.ID AND IL.WAREHOUSE_ID = @WAREHOUSE_ID), 0)
+                     - COALESCE((SELECT SUM(SM.QUANTITY) FROM STOCK_MOVEMENT SM
+                                 WHERE SM.PRODUCT_ID = P.ID AND SM.WAREHOUSE_ID = @WAREHOUSE_ID
+                                   AND SM.MOVEMENT_TYPE = @BACKORDER), 0) AS AVAILABLE,
+                       COALESCE((SELECT SUM(L.QUANTITY) FROM SALE_LINE L
+                                 JOIN SALE S ON S.ID = L.SALE_ID
+                                 WHERE L.PRODUCT_ID = P.ID AND S.STATUS = @COMPLETED
+                                   AND S.WAREHOUSE_ID = @WAREHOUSE_ID
+                                   AND S.COMPLETED_AT_UTC >= @SOLD_SINCE), 0) AS SOLD
+                FROM PRODUCT P
+                JOIN PRODUCT_UNIT U ON U.ID = P.BASE_UNIT_ID
+                JOIN CATEGORY PC ON PC.ID = P.CATEGORY_ID
+                WHERE P.STATUS = 1 AND PC.STATUS = 1 AND PC.VIS_POS = TRUE
+                {categoryFilter}
+            )
+            SELECT ID, NAME, SKU, SYMBOL, SALE_PRICE_RIALS, AVAILABLE, COUNT(*) OVER () AS TOTAL_COUNT
+            FROM LIST
+            {filterClause}
+            {orderClause}
+            OFFSET @OFFSET ROWS FETCH NEXT @LIMIT ROWS ONLY
+            """);
+        command.Parameters.Add("@WAREHOUSE_ID", FbDbType.Char).Value = criteria.WarehouseId.ToString();
+        command.Parameters.Add("@BACKORDER", FbDbType.SmallInt).Value = (short)StockMovementType.BackorderSale;
+        command.Parameters.Add("@COMPLETED", FbDbType.SmallInt).Value = (short)SaleStatus.Completed;
+        command.Parameters.Add("@SOLD_SINCE", FbDbType.TimeStamp).Value = criteria.SoldSinceUtc.UtcDateTime;
+        command.Parameters.Add("@OFFSET", FbDbType.Integer).Value = criteria.Offset;
+        command.Parameters.Add("@LIMIT", FbDbType.Integer).Value = criteria.Limit;
+        if (criteria.CategoryId is { } categoryId)
+        {
+            command.Parameters.Add("@CATEGORY_ID", FbDbType.Char).Value = categoryId.ToString();
+        }
+
+        if (criteria.Filter == ProductListFilter.LowStock)
+        {
+            command.Parameters.Add("@LOW_STOCK", FbDbType.Decimal).Value = criteria.LowStockAtOrBelow;
+        }
+
+        var items = new List<SaleProductListItem>();
+        var total = 0;
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            items.Add(new SaleProductListItem(
+                ProductId.From(Guid.Parse(reader.GetString(0))),
+                reader.GetString(1),
+                reader.IsDBNull(2) ? null : reader.GetString(2),
+                reader.GetString(3),
+                Money.FromRials(reader.GetInt64(4)),
+                StockBalance.From(reader.GetDecimal(5))));
+            total = Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture);
+        }
+
+        // An offset past the last page returns no rows, and with them no count;
+        // report zero rather than guess.
+        return (items, total);
+    }
+
     private static async Task<IReadOnlyList<SaleListItem>> ReadListAsync(
         FbCommand command,
         CancellationToken cancellationToken)

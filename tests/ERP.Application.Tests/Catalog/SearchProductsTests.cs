@@ -62,5 +62,39 @@ public sealed class SearchProductsTests
             LastQuery = query;
             return Task.FromResult<IReadOnlyList<ProductSearchResult>>([]);
         }
+
+        public string? LastCode { get; private set; }
+
+        public int CodeLookups { get; private set; }
+
+        public Task<ProductSearchResult?> FindByExactCodeAsync(string code, CancellationToken cancellationToken)
+        {
+            CodeLookups++;
+            LastCode = code;
+            return Task.FromResult<ProductSearchResult?>(null);
+        }
+    }
+
+    [Theory]
+    [InlineData(" ۶۲۶۰۰۰۰۰۰۹۰۰۱ ", "6260000009001")]
+    [InlineData("RICE-۱", "RICE-1")]
+    public async Task ExactCodeLookupTrimsAndConvertsPersianDigits(string typed, string expected)
+    {
+        var reader = new RecordingProductSearchReader();
+
+        await new SearchProductsHandler(reader).FindByExactCodeAsync(typed, CancellationToken.None);
+
+        Assert.Equal(expected, reader.LastCode);
+    }
+
+    [Fact]
+    public async Task ABlankCodeFindsNothingWithoutHittingStorage()
+    {
+        var reader = new RecordingProductSearchReader();
+
+        var result = await new SearchProductsHandler(reader).FindByExactCodeAsync("   ", CancellationToken.None);
+
+        Assert.Null(result);
+        Assert.Equal(0, reader.CodeLookups);
     }
 }
