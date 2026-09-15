@@ -15,9 +15,15 @@ public sealed record CompleteSaleCommand(
     decimal TaxRatePercent,
     bool AllowNegativeStock = false);
 
+/// <summary>
+/// What the cashier needs right after «ثبت»: the number to read out and print,
+/// and the footer amounts.
+/// </summary>
+public sealed record CompletedSale(SaleNumber Number, SaleTotals Totals);
+
 public interface ICompleteSaleHandler
 {
-    Task<Result<SaleTotals>> ExecuteAsync(CompleteSaleCommand command, CancellationToken cancellationToken);
+    Task<Result<CompletedSale>> ExecuteAsync(CompleteSaleCommand command, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -43,6 +49,7 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
 {
     private readonly ISaleRepository _sales;
     private readonly IStockLedgerRepository _stockLedgers;
+    private readonly ISaleNumberGenerator _numbers;
     private readonly IAuditWriter _audit;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
@@ -51,6 +58,7 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
     public CompleteSaleHandler(
         ISaleRepository sales,
         IStockLedgerRepository stockLedgers,
+        ISaleNumberGenerator numbers,
         IAuditWriter audit,
         IUnitOfWork unitOfWork,
         IUserContext userContext,
@@ -58,13 +66,14 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
     {
         _sales = sales;
         _stockLedgers = stockLedgers;
+        _numbers = numbers;
         _audit = audit;
         _unitOfWork = unitOfWork;
         _userContext = userContext;
         _clock = clock;
     }
 
-    public async Task<Result<SaleTotals>> ExecuteAsync(
+    public async Task<Result<CompletedSale>> ExecuteAsync(
         CompleteSaleCommand command,
         CancellationToken cancellationToken)
     {
@@ -73,7 +82,7 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
         var sale = await _sales.GetAsync(command.SaleId, cancellationToken).ConfigureAwait(false);
         if (sale is null)
         {
-            return Result.Failure<SaleTotals>("sales.sale.not-found", "فاکتور یافت نشد.");
+            return Result.Failure<CompletedSale>("sales.sale.not-found", "فاکتور یافت نشد.");
         }
 
         try
@@ -102,7 +111,10 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
                 await _stockLedgers.SaveAsync(ledger, cancellationToken).ConfigureAwait(false);
             }
 
-            var totals = sale.Complete(command.PaymentMethod, command.TaxRatePercent, _clock.UtcNow);
+            // Drawn last, after every check that can still reject the sale, so an
+            // ordinary validation failure does not leave a gap in the numbering.
+            var number = await _numbers.NextAsync(cancellationToken).ConfigureAwait(false);
+            var totals = sale.Complete(number, command.PaymentMethod, command.TaxRatePercent, _clock.UtcNow);
 
             await _sales.SaveAsync(sale, cancellationToken).ConfigureAwait(false);
             await _audit.WriteAsync(
@@ -113,16 +125,18 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
                     nameof(Domain.Sales.Sale),
                     sale.Id.ToString(),
                     null,
-                    totals.Total.Rials.ToString(CultureInfo.InvariantCulture),
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"number={number};total={totals.Total.Rials}"),
                     _clock.UtcNow),
                 cancellationToken).ConfigureAwait(false);
             await _unitOfWork.CommitAsync(cancellationToken).ConfigureAwait(false);
 
-            return Result.Success(totals);
+            return Result.Success(new CompletedSale(number, totals));
         }
         catch (DomainException exception)
         {
-            return Result.Failure<SaleTotals>("sales.sale.invalid", exception.Message);
+            return Result.Failure<CompletedSale>("sales.sale.invalid", exception.Message);
         }
     }
 }

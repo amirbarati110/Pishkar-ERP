@@ -216,7 +216,8 @@ public partial class QuickSaleViewModel : ObservableObject
 
             if (result.IsSuccess)
             {
-                StatusMessage = $"فاکتور با موفقیت ثبت شد — مبلغ نهایی {FormatToman(result.Value!.Total.ToTomansExact())} تومان";
+                var completed = result.Value!;
+                StatusMessage = $"فاکتور {completed.Number.ToPersianString()} با موفقیت ثبت شد — مبلغ نهایی {FormatToman(completed.Totals.Total.ToTomansExact())} تومان";
                 await StartNewSaleAsync().ConfigureAwait(true);
             }
             else

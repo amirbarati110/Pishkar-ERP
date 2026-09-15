@@ -19,6 +19,8 @@ internal sealed class ApplicationTestContext
 
     public SaleRepository Sales { get; } = new();
 
+    public SequentialSaleNumberGenerator SaleNumbers { get; } = new(firstNumber: 1258);
+
     public RecordingAuditWriter Audit { get; } = new();
 
     public RecordingUnitOfWork UnitOfWork { get; } = new();
@@ -151,6 +153,19 @@ internal sealed class SaleRepository : ISaleRepository
         }
 
         return Task.CompletedTask;
+    }
+}
+
+internal sealed class SequentialSaleNumberGenerator(long firstNumber) : ISaleNumberGenerator
+{
+    private long _next = firstNumber;
+
+    public int IssuedCount { get; private set; }
+
+    public Task<SaleNumber> NextAsync(CancellationToken cancellationToken)
+    {
+        IssuedCount++;
+        return Task.FromResult(SaleNumber.From(_next++));
     }
 }
 

@@ -45,8 +45,10 @@ public sealed class CompleteSaleTests
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(400_000, result.Value!.Subtotal.ToTomansExact());
-        Assert.Equal(436_000, result.Value.Total.ToTomansExact());
+        Assert.Equal(SaleNumber.From(1258), result.Value!.Number);
+        Assert.Equal(SaleNumber.From(1258), sale.Number);
+        Assert.Equal(400_000, result.Value.Totals.Subtotal.ToTomansExact());
+        Assert.Equal(436_000, result.Value.Totals.Total.ToTomansExact());
         Assert.Equal(SaleStatus.Completed, sale.Status);
         Assert.Equal(6, ledger.AvailableQuantity.Value);
         Assert.Single(context.Audit.Entries);
@@ -108,6 +110,8 @@ public sealed class CompleteSaleTests
         Assert.False(result.IsSuccess);
         Assert.Equal("sales.sale.invalid", result.Error?.Code);
         Assert.Equal(SaleStatus.Draft, sale.Status);
+        Assert.Null(sale.Number);
+        Assert.Equal(0, context.SaleNumbers.IssuedCount); // فاکتور ردشده شماره هدر نمی‌دهد
         Assert.Empty(context.Audit.Entries);
         Assert.Equal(0, context.UnitOfWork.CommitCount);
     }
@@ -117,6 +121,7 @@ public sealed class CompleteSaleTests
         return new CompleteSaleHandler(
             context.Sales,
             context.StockLedgers,
+            context.SaleNumbers,
             context.Audit,
             context.UnitOfWork,
             context.User,

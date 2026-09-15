@@ -40,6 +40,14 @@ public sealed class Sale : Entity<SaleId>
 
     public SaleStatus Status { get; private set; }
 
+    /// <summary>
+    /// Null while the sale is a draft. A number is drawn only when the invoice
+    /// becomes a real financial document, so abandoned and held carts never burn
+    /// one — see <see cref="SaleNumber"/> for why the sequence must stay
+    /// ascending.
+    /// </summary>
+    public SaleNumber? Number { get; private set; }
+
     public Money Discount { get; private set; }
 
     public Money ServiceCharge { get; private set; }
@@ -63,6 +71,7 @@ public sealed class Sale : Entity<SaleId>
         Guid? customerId,
         DateTimeOffset openedAtUtc,
         SaleStatus status,
+        SaleNumber? number,
         Money discount,
         Money serviceCharge,
         PaymentMethod? paymentMethod,
@@ -72,6 +81,7 @@ public sealed class Sale : Entity<SaleId>
         var sale = new Sale(id, warehouseId, customerId, openedAtUtc)
         {
             Status = status,
+            Number = number,
             Discount = discount,
             ServiceCharge = serviceCharge,
             PaymentMethod = paymentMethod,
@@ -164,18 +174,25 @@ public sealed class Sale : Entity<SaleId>
     }
 
     /// <summary>
-    /// Finalizes the sale: computes Subtotal/Discount/Tax/Total, locks the sale
-    /// against further edits, and raises <see cref="SaleCompleted"/>. Does
-    /// <b>not</b> touch inventory — the Application handler owns pulling stock via
+    /// Finalizes the sale: stamps it with its invoice number, computes
+    /// Subtotal/Discount/Tax/Total, locks the sale against further edits, and
+    /// raises <see cref="SaleCompleted"/>. Does <b>not</b> touch inventory — the
+    /// Application handler owns pulling stock via
     /// <see cref="StockLedger.ConsumeFifo"/> for each line and persisting both
     /// changes in one transaction.
     /// </summary>
+    /// <param name="number">
+    /// Drawn by the Application handler from the database sequence, for the same
+    /// reason the tax rate is passed in: allocating a shared, monotonic serial is
+    /// infrastructure, not a rule this aggregate can enforce on its own.
+    /// </param>
     /// <param name="taxRatePercent">
     /// Passed in rather than a domain constant on purpose: Iran's VAT rate is a
     /// configuration/tax-infrastructure concern (source-of-truth Phase 4,
     /// chapter 10.10), not a Sales domain rule. The caller supplies it.
     /// </param>
     public SaleTotals Complete(
+        SaleNumber number,
         Sales.PaymentMethod paymentMethod,
         decimal taxRatePercent,
         DateTimeOffset completedAtUtc)
@@ -198,6 +215,7 @@ public sealed class Sale : Entity<SaleId>
         var total = taxableAmount.Add(tax);
 
         Status = SaleStatus.Completed;
+        Number = number;
         PaymentMethod = paymentMethod;
         CompletedAtUtc = completedAtUtc;
 

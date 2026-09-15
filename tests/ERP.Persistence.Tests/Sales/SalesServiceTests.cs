@@ -49,8 +49,8 @@ public sealed class SalesServiceTests
 
         Assert.True(complete.IsSuccess);
         // 3 × 245,000 (rice) + 1 × 850,000 (oil) = 1,585,000 Tomans subtotal.
-        Assert.Equal(1_585_000, complete.Value!.Subtotal.ToTomansExact());
-        Assert.Equal(0, complete.Value.Discount.Rials);
+        Assert.Equal(1_585_000, complete.Value!.Totals.Subtotal.ToTomansExact());
+        Assert.Equal(0, complete.Value.Totals.Discount.Rials);
 
         var reloaded = await context.SaleRepository.GetAsync(saleId, CancellationToken.None);
         Assert.NotNull(reloaded);
@@ -111,9 +111,9 @@ public sealed class SalesServiceTests
             CancellationToken.None);
         Assert.True(complete.IsSuccess);
         // (۵۵۰٬۰۰۰ − ۲۰٬۰۰۰ + ۳۰٬۰۰۰) = ۵۶۰٬۰۰۰ → مالیات ۹٪ = ۵۰٬۴۰۰ → ۶۱۰٬۴۰۰
-        Assert.Equal(30_000, complete.Value!.ServiceCharge.ToTomansExact());
-        Assert.Equal(50_400, complete.Value.Tax.ToTomansExact());
-        Assert.Equal(610_400, complete.Value.Total.ToTomansExact());
+        Assert.Equal(30_000, complete.Value!.Totals.ServiceCharge.ToTomansExact());
+        Assert.Equal(50_400, complete.Value.Totals.Tax.ToTomansExact());
+        Assert.Equal(610_400, complete.Value.Totals.Total.ToTomansExact());
     }
 
     [Fact]
@@ -200,6 +200,47 @@ public sealed class SalesServiceTests
         var riceLedger = await context.StockLedgers.GetAsync(
             context.RiceId, context.Defaults.MainWarehouseId, CancellationToken.None);
         Assert.Equal(10, riceLedger!.AvailableQuantity.Value);
+    }
+
+    [Fact]
+    public async Task CompletedSalesGetAscendingNumbersThatSurviveAReloadAndDraftsGetNone()
+    {
+        var context = await SetupAsync();
+
+        var first = await StartSaleWithAsync(context, context.RiceId, 1);
+        var rejected = await StartSaleWithAsync(context, context.RiceId, 999);
+        var second = await StartSaleWithAsync(context, context.OilId, 1);
+
+        var firstComplete = await context.Sales.ExecuteAsync(
+            new CompleteSaleCommand(first, PaymentMethod.Cash, 0, 9), CancellationToken.None);
+        var rejectedComplete = await context.Sales.ExecuteAsync(
+            new CompleteSaleCommand(rejected, PaymentMethod.Cash, 0, 9), CancellationToken.None);
+        var secondComplete = await context.Sales.ExecuteAsync(
+            new CompleteSaleCommand(second, PaymentMethod.Card, 0, 9), CancellationToken.None);
+
+        Assert.True(firstComplete.IsSuccess);
+        Assert.False(rejectedComplete.IsSuccess);
+        Assert.True(secondComplete.IsSuccess);
+
+        // A sale rejected by a business rule never reaches the sequence, so the
+        // next real invoice follows straight on (no hole in the numbering).
+        Assert.Equal(firstComplete.Value!.Number.Value + 1, secondComplete.Value!.Number.Value);
+
+        var reloadedFirst = await context.SaleRepository.GetAsync(first, CancellationToken.None);
+        var reloadedRejected = await context.SaleRepository.GetAsync(rejected, CancellationToken.None);
+        Assert.Equal(firstComplete.Value.Number, reloadedFirst!.Number);
+        Assert.Null(reloadedRejected!.Number);
+    }
+
+    private static async Task<SaleId> StartSaleWithAsync(TestContext context, ProductId productId, decimal quantity)
+    {
+        var start = await context.Sales.ExecuteAsync(
+            new StartSaleCommand(context.Defaults.MainWarehouseId, CustomerId: null),
+            CancellationToken.None);
+        await context.Sales.ExecuteAsync(
+            new AddSaleLineCommand(start.Value, productId, quantity),
+            CancellationToken.None);
+        return start.Value;
     }
 
     private static async Task<TestContext> SetupAsync()

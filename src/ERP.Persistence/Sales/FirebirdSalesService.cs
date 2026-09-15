@@ -79,7 +79,7 @@ public sealed class FirebirdSalesService :
             .ConfigureAwait(false);
     }
 
-    public async Task<Result<SaleTotals>> ExecuteAsync(
+    public async Task<Result<CompletedSale>> ExecuteAsync(
         CompleteSaleCommand command,
         CancellationToken cancellationToken)
     {
@@ -89,6 +89,7 @@ public sealed class FirebirdSalesService :
         return await new CompleteSaleHandler(
                 new FirebirdSaleRepository(unitOfWork),
                 new FirebirdStockLedgerRepository(unitOfWork),
+                new FirebirdSaleNumberGenerator(unitOfWork),
                 new FirebirdAuditWriter(unitOfWork),
                 unitOfWork,
                 _userContext,

@@ -23,7 +23,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
         await using var command = CreateCommand(
             """
             SELECT WAREHOUSE_ID, CUSTOMER_ID, STATUS, DISCOUNT_RIALS,
-                   PAYMENT_METHOD, OPENED_AT_UTC, COMPLETED_AT_UTC, SERVICE_CHARGE_RIALS
+                   PAYMENT_METHOD, OPENED_AT_UTC, COMPLETED_AT_UTC, SERVICE_CHARGE_RIALS, NUMBER
             FROM SALE
             WHERE ID = @ID
             """);
@@ -32,6 +32,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
         WarehouseId warehouseId;
         Guid? customerId;
         SaleStatus status;
+        SaleNumber? number;
         long discountRials;
         long serviceChargeRials;
         PaymentMethod? paymentMethod;
@@ -55,6 +56,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
                 ? null
                 : new DateTimeOffset(DateTime.SpecifyKind(reader.GetDateTime(6), DateTimeKind.Utc));
             serviceChargeRials = reader.GetInt64(7);
+            number = reader.IsDBNull(8) ? null : SaleNumber.From(reader.GetInt64(8));
         }
 
         var lines = await ReadLinesAsync(saleId, cancellationToken).ConfigureAwait(false);
@@ -65,6 +67,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             customerId,
             openedAtUtc,
             status,
+            number,
             Money.FromRials(discountRials),
             Money.FromRials(serviceChargeRials),
             paymentMethod,
@@ -80,10 +83,10 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             """
             UPDATE OR INSERT INTO SALE (
                 ID, WAREHOUSE_ID, CUSTOMER_ID, STATUS, DISCOUNT_RIALS,
-                PAYMENT_METHOD, OPENED_AT_UTC, COMPLETED_AT_UTC, SERVICE_CHARGE_RIALS)
+                PAYMENT_METHOD, OPENED_AT_UTC, COMPLETED_AT_UTC, SERVICE_CHARGE_RIALS, NUMBER)
             VALUES (
                 @ID, @WAREHOUSE_ID, @CUSTOMER_ID, @STATUS, @DISCOUNT_RIALS,
-                @PAYMENT_METHOD, @OPENED_AT_UTC, @COMPLETED_AT_UTC, @SERVICE_CHARGE_RIALS)
+                @PAYMENT_METHOD, @OPENED_AT_UTC, @COMPLETED_AT_UTC, @SERVICE_CHARGE_RIALS, @NUMBER)
             MATCHING (ID)
             """))
         {
@@ -92,6 +95,8 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             command.Parameters.Add("@CUSTOMER_ID", FbDbType.Char).Value =
                 sale.CustomerId is { } customerId ? customerId.ToString() : DBNull.Value;
             command.Parameters.Add("@STATUS", FbDbType.SmallInt).Value = (short)sale.Status;
+            command.Parameters.Add("@NUMBER", FbDbType.BigInt).Value =
+                sale.Number is { } number ? number.Value : DBNull.Value;
             command.Parameters.Add("@DISCOUNT_RIALS", FbDbType.BigInt).Value = sale.Discount.Rials;
             command.Parameters.Add("@SERVICE_CHARGE_RIALS", FbDbType.BigInt).Value = sale.ServiceCharge.Rials;
             command.Parameters.Add("@PAYMENT_METHOD", FbDbType.SmallInt).Value =

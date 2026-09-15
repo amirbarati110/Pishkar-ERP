@@ -10,6 +10,7 @@ public sealed class SaleTests
 {
     private static readonly WarehouseId Warehouse = WarehouseId.New();
     private static readonly DateTimeOffset Now = new(2026, 9, 14, 10, 0, 0, TimeSpan.Zero);
+    private static readonly SaleNumber Number = SaleNumber.From(1258);
 
     [Fact]
     public void OpenDraftStartsEmptyWithZeroSubtotal()
@@ -88,7 +89,7 @@ public sealed class SaleTests
         var sale = Sale.OpenDraft(Warehouse, null, Now);
 
         var exception = Assert.Throws<DomainException>(
-            () => sale.Complete(PaymentMethod.Cash, taxRatePercent: 9, Now));
+            () => sale.Complete(Number, PaymentMethod.Cash, taxRatePercent: 9, Now));
 
         Assert.Equal("فاکتور خالی است؛ حداقل یک کالا اضافه کنید.", exception.Message);
     }
@@ -106,7 +107,7 @@ public sealed class SaleTests
         sale.AddOrIncreaseLine(ProductId.New(), Quantity.Create(2), Money.FromTomans(500_000));
         sale.ApplyDiscount(Money.FromTomans(200_000));
 
-        var totals = sale.Complete(PaymentMethod.Card, taxRatePercent: 9, Now);
+        var totals = sale.Complete(Number, PaymentMethod.Card, taxRatePercent: 9, Now);
 
         Assert.Equal(2_000_000, totals.Subtotal.ToTomansExact());
         Assert.Equal(200_000, totals.Discount.ToTomansExact());
@@ -122,7 +123,7 @@ public sealed class SaleTests
         var sale = Sale.OpenDraft(Warehouse, null, Now);
         sale.AddOrIncreaseLine(ProductId.New(), Quantity.Create(1), Money.FromTomans(100_000));
 
-        var totals = sale.Complete(PaymentMethod.Cash, taxRatePercent: 0, Now);
+        var totals = sale.Complete(Number, PaymentMethod.Cash, taxRatePercent: 0, Now);
 
         var domainEvent = Assert.Single(sale.DomainEvents);
         var completed = Assert.IsType<SaleCompleted>(domainEvent);
@@ -135,12 +136,12 @@ public sealed class SaleTests
     {
         var sale = Sale.OpenDraft(Warehouse, null, Now);
         sale.AddOrIncreaseLine(ProductId.New(), Quantity.Create(1), Money.FromTomans(100_000));
-        sale.Complete(PaymentMethod.Cash, taxRatePercent: 0, Now);
+        sale.Complete(Number, PaymentMethod.Cash, taxRatePercent: 0, Now);
 
         Assert.Throws<DomainException>(
             () => sale.AddOrIncreaseLine(ProductId.New(), Quantity.Create(1), Money.FromTomans(1)));
         Assert.Throws<DomainException>(() => sale.ApplyDiscount(Money.FromTomans(1)));
-        Assert.Throws<DomainException>(() => sale.Complete(PaymentMethod.Cash, 0, Now));
+        Assert.Throws<DomainException>(() => sale.Complete(Number, PaymentMethod.Cash, 0, Now));
         Assert.Throws<DomainException>(() => sale.Cancel());
     }
 
@@ -195,7 +196,7 @@ public sealed class SaleTests
         sale.ApplyDiscount(Money.FromTomans(200_000));
         sale.ApplyServiceCharge(Money.FromTomans(50_000)); // ارسال/خدمات
 
-        var totals = sale.Complete(PaymentMethod.Cash, taxRatePercent: 9, Now);
+        var totals = sale.Complete(Number, PaymentMethod.Cash, taxRatePercent: 9, Now);
 
         Assert.Equal(1_000_000, totals.Subtotal.ToTomansExact());
         Assert.Equal(200_000, totals.Discount.ToTomansExact());
@@ -212,10 +213,40 @@ public sealed class SaleTests
             var sale = Sale.OpenDraft(Warehouse, null, Now);
             sale.AddOrIncreaseLine(ProductId.New(), Quantity.Create(1), Money.FromTomans(10_000));
 
-            sale.Complete(method, taxRatePercent: 0, Now);
+            sale.Complete(Number, method, taxRatePercent: 0, Now);
 
             Assert.Equal(method, sale.PaymentMethod);
         }
+    }
+
+    [Fact]
+    public void ADraftHasNoInvoiceNumberUntilItIsCompleted()
+    {
+        var sale = Sale.OpenDraft(Warehouse, null, Now);
+        sale.AddOrIncreaseLine(ProductId.New(), Quantity.Create(1), Money.FromTomans(10_000));
+
+        Assert.Null(sale.Number); // سبد معلق/رهاشده شماره مصرف نمی‌کند
+
+        sale.Complete(Number, PaymentMethod.Cash, taxRatePercent: 0, Now);
+
+        Assert.Equal(Number, sale.Number);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void SaleNumberMustBePositive(long value)
+    {
+        var exception = Assert.Throws<DomainException>(() => SaleNumber.From(value));
+
+        Assert.Equal("شماره فاکتور باید بزرگ‌تر از صفر باشد.", exception.Message);
+    }
+
+    [Fact]
+    public void SaleNumberIsShownWithPersianDigits()
+    {
+        Assert.Equal("۱۲۵۸", SaleNumber.From(1258).ToPersianString());
+        Assert.Equal("1258", SaleNumber.From(1258).ToString());
     }
 
     [Fact]
