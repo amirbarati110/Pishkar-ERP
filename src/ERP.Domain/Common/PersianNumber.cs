@@ -2,7 +2,12 @@ using System.Globalization;
 
 namespace ERP.Domain.Common;
 
-internal static class PersianNumber
+/// <summary>
+/// The one place digits are converted between Persian and Latin forms, so a
+/// search box, a duplicate check and a printed receipt can never disagree about
+/// what "the same number" is (source-of-truth rule 3).
+/// </summary>
+public static class PersianNumber
 {
     private static readonly char[] PersianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
 
