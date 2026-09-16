@@ -52,17 +52,6 @@
             <Setter Property="BorderBrush" Value="{ThemeResource SalesLineBrush}" />
             <Setter Property="BorderThickness" Value="1" />
         </Style>
-        <Style x:Key="DeskLinkButton" TargetType="Button">
-            <Setter Property="Height" Value="48" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="HorizontalContentAlignment" Value="Right" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="FontSize" Value="15" />
-            <Setter Property="Background" Value="{ThemeResource SalesMutedFillBrush}" />
-            <Setter Property="BorderBrush" Value="{ThemeResource SalesLineBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-        </Style>
     </Page.Resources>
 
     <Grid>
@@ -116,7 +105,7 @@
                                     <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource AppSuccessBrush}" Text="دیتابیس متصل است" />
                                 </StackPanel>
                             </Border>
-                            <Button Width="118" Style="{StaticResource DeskLinkButton}" Click="OnRefreshClick"
+                            <Button Width="118" Style="{StaticResource AppLinkButtonStyle}" Click="OnRefreshClick"
                                     HorizontalContentAlignment="Center" Content="به‌روزرسانی" />
                         </StackPanel>
                     </Grid>
@@ -269,7 +258,7 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <Button Style="{StaticResource DeskLinkButton}" Click="OnHeldInvoicesClick"
+                                <Button Style="{StaticResource AppLinkButtonStyle}" Click="OnHeldInvoicesClick"
                                         HorizontalContentAlignment="Center" Content="ادامه‌ی یک فاکتور معلق" />
                             </StackPanel>
                         </Border>
@@ -284,9 +273,9 @@
                             </StackPanel>
                             <Grid ColumnSpacing="12">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Button Style="{StaticResource DeskLinkButton}" Click="OnCategoriesClick" Content="۱ · دسته‌بندی کالاها" />
-                                <Button Grid.Column="1" Style="{StaticResource DeskLinkButton}" Click="OnProductsClick" Content="۲ · کالا و قیمت‌گذاری" />
-                                <Button Grid.Column="2" Style="{StaticResource DeskLinkButton}" Click="OnInventoryClick" Content="۳ · موجودی اولیه" />
+                                <Button Style="{StaticResource AppLinkButtonStyle}" Click="OnCategoriesClick" Content="۱ · دسته‌بندی کالاها" />
+                                <Button Grid.Column="1" Style="{StaticResource AppLinkButtonStyle}" Click="OnProductsClick" Content="۲ · کالا و قیمت‌گذاری" />
+                                <Button Grid.Column="2" Style="{StaticResource AppLinkButtonStyle}" Click="OnInventoryClick" Content="۳ · موجودی اولیه" />
                             </Grid>
                         </StackPanel>
                     </Border>

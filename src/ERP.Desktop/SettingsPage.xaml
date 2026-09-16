@@ -12,7 +12,7 @@
         <StackPanel Spacing="18">
             <StackPanel Spacing="4">
                 <TextBlock Style="{StaticResource AppPageTitleStyle}" Text="تنظیمات" />
-                <TextBlock Style="{StaticResource AppMutedTextStyle}" FontSize="15" Text="اطلاعات فروشگاه، کاربران و اتصال پیامک" />
+                <TextBlock Style="{StaticResource AppMutedTextStyle}" FontSize="15" Text="اطلاعات فروشگاه، کاربران و پنل پیامک" />
             </StackPanel>
 
             <Border Style="{StaticResource AppCardStyle}">
