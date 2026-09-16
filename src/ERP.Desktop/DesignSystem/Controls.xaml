@@ -14,9 +14,15 @@
     <!--
         The old hand-rolled sidebar (AppNavButtonStyle/AppNavButtonSelectedStyle)
         was replaced by a native NavigationView in MainPage.xaml, which owns its
-        own selected/hover/pressed visuals via the ThemeResource aliases declared
-        there — so there is no nav button style here anymore (Appendix A #10).
+        own selected/hover/pressed visuals; the brand colours for those states
+        are in Colors.xaml (Appendix A #10).
+
+        The row height below is WinUI's own metric for a left-pane item. The
+        default 40 is a Windows-desktop size; the primary user here is a cashier
+        (checklist «اندازه‌ها»: a touch target of at least 44×44, 48×48 for a
+        touch POS), so the whole menu is raised to 48.
     -->
+    <x:Double x:Key="NavigationViewItemOnLeftMinHeight">48</x:Double>
 
     <Style x:Key="AppPrimaryButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="{ThemeResource AppPrimaryBrush}" />

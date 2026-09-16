@@ -40,6 +40,37 @@
             <SolidColorBrush x:Key="AppNavTextMutedBrush" Color="#98A2B3" />
 
             <!--
+                NavigationView reskin (user rule 1: the whole app speaks the
+                approved sales screen's language). These are the keys WinUI's
+                own NavigationView styles look up, redefined here as real
+                brushes in the app's theme dictionaries. They used to be
+                <ThemeResource> aliases inside MainPage.xaml's own Resources,
+                which never took effect — the pane stayed Windows-light with a
+                blue selection bar, and the white «پیشکار» lockup was unreadable
+                on it.
+            -->
+            <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#0F172A" />
+            <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#0F172A" />
+            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#F6F8FA" />
+            <SolidColorBrush x:Key="NavigationViewContentGridBorderBrush" Color="#0F172A" />
+            <SolidColorBrush x:Key="NavigationViewItemSeparatorForeground" Color="#1D2939" />
+            <SolidColorBrush x:Key="NavigationViewItemBackground" Color="Transparent" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundPointerOver" Color="#1D2939" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundPressed" Color="#1D2939" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundSelected" Color="#059669" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPointerOver" Color="#047857" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPressed" Color="#047857" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundDisabled" Color="Transparent" />
+            <SolidColorBrush x:Key="NavigationViewItemForeground" Color="#EAECF0" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundPointerOver" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundPressed" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundSelected" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPointerOver" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPressed" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundDisabled" Color="#667085" />
+            <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="#D97706" />
+
+            <!--
                 Sales workspace (approved design, session "فاز 1", 1405/06/24):
                 a dark chrome bar, soft status fills for the balance banner,
                 row edit/delete hovers and the action bar, and the row/table
@@ -87,6 +118,37 @@
             <SolidColorBrush x:Key="AppNavSelectedBrush" Color="#62C6A1" />
             <SolidColorBrush x:Key="AppNavTextBrush" Color="#F2F4F7" />
             <SolidColorBrush x:Key="AppNavTextMutedBrush" Color="#8896A6" />
+
+            <!--
+                NavigationView reskin (user rule 1: the whole app speaks the
+                approved sales screen's language). These are the keys WinUI's
+                own NavigationView styles look up, redefined here as real
+                brushes in the app's theme dictionaries. They used to be
+                <ThemeResource> aliases inside MainPage.xaml's own Resources,
+                which never took effect — the pane stayed Windows-light with a
+                blue selection bar, and the white «پیشکار» lockup was unreadable
+                on it.
+            -->
+            <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#080D18" />
+            <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#080D18" />
+            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#0E1714" />
+            <SolidColorBrush x:Key="NavigationViewContentGridBorderBrush" Color="#080D18" />
+            <SolidColorBrush x:Key="NavigationViewItemSeparatorForeground" Color="#1D2939" />
+            <SolidColorBrush x:Key="NavigationViewItemBackground" Color="Transparent" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundPointerOver" Color="#1D2939" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundPressed" Color="#1D2939" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundSelected" Color="#0B7A5C" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPointerOver" Color="#096349" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPressed" Color="#096349" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundDisabled" Color="Transparent" />
+            <SolidColorBrush x:Key="NavigationViewItemForeground" Color="#F2F4F7" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundPointerOver" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundPressed" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundSelected" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPointerOver" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPressed" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundDisabled" Color="#667085" />
+            <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="#F2A650" />
 
             <SolidColorBrush x:Key="SalesChromeBrush" Color="#080D18" />
             <SolidColorBrush x:Key="SalesChromeRaisedBrush" Color="#1D2939" />

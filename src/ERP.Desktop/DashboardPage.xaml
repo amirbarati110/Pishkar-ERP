@@ -1,90 +1,297 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    میز کار — the daily page for the cashier (source-of-truth §3.13: frequent and
+    actionable only, «حق ندارد به صفحه‌ای شلوغ با ده‌ها نمودار تبدیل شود»).
+
+    The visual language is the approved sales screen (user rule 1): the same
+    Sales* tokens, white cards on a soft canvas, 1px hairline borders, radius 12,
+    and touch-sized controls — action tiles 104 high, buttons 48 (checklist
+    «اندازه‌ها»: at least 44, 48 for a touch POS), body text 14-15, never 12.
+
+    Why the old page was cut off on the left: its ScrollViewer left horizontal
+    scrolling enabled but its scroll bar hidden, so the 1180-wide content was
+    measured at that width whatever the window was, and everything past the edge
+    simply vanished. Here horizontal scrolling is off and the content is centred,
+    so it reflows instead of being clipped.
+-->
 <Page
     x:Class="ERP.Desktop.DashboardPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Background="{ThemeResource AppBackgroundBrush}"
+    xmlns:workbench="using:ERP.Presentation.Features.Workbench"
+    Background="{ThemeResource SalesCanvasBrush}"
+    FontFamily="{StaticResource AppBodyFont}"
+    FontSize="15"
     FlowDirection="RightToLeft">
 
-    <ScrollViewer>
-        <Grid MaxWidth="1180" Padding="28,24">
-            <StackPanel Spacing="18">
-                <Grid>
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <StackPanel Spacing="3">
-                        <TextBlock Style="{StaticResource AppPageTitleStyle}" Text="میز کار" />
-                        <TextBlock Style="{StaticResource AppMutedTextStyle}" Text="خلاصه وضعیت فروشگاه و کارهای امروز" />
-                    </StackPanel>
-                    <Border Grid.Column="1" Padding="12,7" Background="{ThemeResource AppPrimarySoftBrush}" CornerRadius="7">
-                        <StackPanel Orientation="Horizontal" Spacing="7">
-                            <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="#12B76A" />
-                            <TextBlock Foreground="{ThemeResource AppPrimaryBrush}" Text="دیتابیس متصل است" />
+    <Page.Resources>
+        <Style x:Key="DeskCard" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource AppSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource SalesLineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="20" />
+        </Style>
+        <Style x:Key="DeskLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{ThemeResource SalesMutedTextBrush}" />
+        </Style>
+        <Style x:Key="DeskSectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{ThemeResource AppTextBrush}" />
+        </Style>
+        <Style x:Key="DeskTile" TargetType="Button">
+            <Setter Property="Height" Value="104" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="{ThemeResource AppSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource SalesLineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style x:Key="DeskLinkButton" TargetType="Button">
+            <Setter Property="Height" Value="48" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Right" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="Background" Value="{ThemeResource SalesMutedFillBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource SalesLineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup>
+                <VisualState x:Name="WideState">
+                    <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="1240" /></VisualState.StateTriggers>
+                </VisualState>
+                <!--
+                    Under 1240 the window is a 1366×768 or 1280×1024 till screen
+                    minus the 236 menu (checklist الف #6). The four action tiles
+                    become 2×2 and the two lists stack, so nothing is squeezed
+                    into an unreadable column.
+                -->
+                <VisualState x:Name="NarrowState">
+                    <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="0" /></VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="TileRow2.Height" Value="Auto" />
+                        <Setter Target="TileColumn3.Width" Value="0" />
+                        <Setter Target="TileColumn4.Width" Value="0" />
+                        <Setter Target="ReturnsTile.(Grid.Row)" Value="1" />
+                        <Setter Target="ReturnsTile.(Grid.Column)" Value="0" />
+                        <Setter Target="TillTile.(Grid.Row)" Value="1" />
+                        <Setter Target="TillTile.(Grid.Column)" Value="1" />
+                        <Setter Target="ListColumn2.Width" Value="0" />
+                        <Setter Target="HeldPanel.(Grid.Row)" Value="1" />
+                        <Setter Target="HeldPanel.(Grid.Column)" Value="0" />
+                        <Setter Target="HeldPanel.Margin" Value="0,14,0,0" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <Grid MaxWidth="1240" HorizontalAlignment="Center" Padding="28,24,28,32">
+                <StackPanel Spacing="18">
+
+                    <!-- ═══ header ═══ -->
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock FontSize="26" FontWeight="Bold" Foreground="{ThemeResource AppTextBrush}" Text="میز کار" />
+                            <TextBlock Style="{StaticResource DeskLabel}" FontSize="15" Text="{x:Bind ViewModel.DateText, Mode=OneWay}" />
                         </StackPanel>
-                    </Border>
-                </Grid>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <ProgressRing Width="22" Height="22" IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                                          AutomationProperties.Name="در حال خواندن اطلاعات" />
+                            <Border Padding="14,9" Background="{ThemeResource AppPrimarySoftBrush}" CornerRadius="10">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Ellipse Width="9" Height="9" VerticalAlignment="Center" Fill="{ThemeResource AppSuccessBrush}" />
+                                    <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource AppSuccessBrush}" Text="دیتابیس متصل است" />
+                                </StackPanel>
+                            </Border>
+                            <Button Width="118" Style="{StaticResource DeskLinkButton}" Click="OnRefreshClick"
+                                    HorizontalContentAlignment="Center" Content="به‌روزرسانی" />
+                        </StackPanel>
+                    </Grid>
 
-                <Grid ColumnSpacing="12">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                    <Border Style="{StaticResource AppCardStyle}">
-                        <StackPanel Spacing="5"><TextBlock Style="{StaticResource AppMutedTextStyle}" Text="صندوق‌های فعال" /><TextBlock FontSize="26" FontWeight="SemiBold" Text="۱" /><TextBlock FontSize="12" Foreground="{ThemeResource AppSuccessBrush}" Text="آماده فروش آزمایشی" /></StackPanel>
-                    </Border>
-                    <Border Grid.Column="1" Style="{StaticResource AppCardStyle}">
-                        <StackPanel Spacing="5"><TextBlock Style="{StaticResource AppMutedTextStyle}" Text="شعبه" /><TextBlock FontSize="26" FontWeight="SemiBold" Text="۱" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="فروشگاه مرکزی" /></StackPanel>
-                    </Border>
-                    <Border Grid.Column="2" Style="{StaticResource AppCardStyle}">
-                        <StackPanel Spacing="5"><TextBlock Style="{StaticResource AppMutedTextStyle}" Text="حالت اجرا" /><TextBlock FontSize="20" FontWeight="SemiBold" Text="آزمایشی" /><TextBlock FontSize="12" Foreground="{ThemeResource AppAccentBrush}" Text="اطلاعات واقعی ذخیره می‌شود" /></StackPanel>
-                    </Border>
-                </Grid>
+                    <InfoBar IsClosable="False" Severity="Warning" Title="اطلاعات میز کار خوانده نشد"
+                             IsOpen="{x:Bind ViewModel.HasLoadError, Mode=OneWay}"
+                             Message="{x:Bind ViewModel.LoadError, Mode=OneWay}" />
 
-                <Grid ColumnSpacing="14" FlowDirection="LeftToRight">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="0.9*" /><ColumnDefinition Width="1.5*" /></Grid.ColumnDefinitions>
+                    <!-- ═══ what a cashier actually does (§3.13 «نمونه برای صندوق‌دار») ═══ -->
+                    <Grid ColumnSpacing="14" RowSpacing="14">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition x:Name="TileRow2" Height="0" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition x:Name="TileColumn3" Width="*" />
+                            <ColumnDefinition x:Name="TileColumn4" Width="*" />
+                        </Grid.ColumnDefinitions>
 
-                    <Border Style="{StaticResource AppCardStyle}" FlowDirection="RightToLeft">
+                        <Button x:Name="NewSaleTile" Style="{StaticResource DeskTile}" Click="OnNewSaleClick"
+                                Background="{ThemeResource SalesPrimaryDarkBrush}" BorderThickness="0"
+                                AutomationProperties.Name="فروش جدید">
+                            <StackPanel Spacing="6">
+                                <TextBlock FontSize="20" FontWeight="Bold" Foreground="White" Text="فروش جدید" />
+                                <TextBlock FontSize="14" Opacity="0.85" Foreground="White" Text="رفتن به صفحه‌ی فروش و صندوق" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="HeldTile" Grid.Column="1" Style="{StaticResource DeskTile}" Click="OnHeldInvoicesClick"
+                                AutomationProperties.Name="فاکتورهای معلق">
+                            <StackPanel Spacing="6">
+                                <TextBlock FontSize="20" FontWeight="Bold" Foreground="{ThemeResource AppTextBrush}" Text="فاکتورهای معلق" />
+                                <TextBlock Style="{StaticResource DeskLabel}" Text="{x:Bind ViewModel.HeldSummaryText, Mode=OneWay}" />
+                            </StackPanel>
+                        </Button>
+
+                        <!--
+                            Returns (§6.25) and the till shift (§6.24) are in the
+                            source-of-truth but are not built. They stay visible and
+                            disabled with the reason written on them: the user rule is
+                            that a missing part is stated plainly, never faked.
+                        -->
+                        <Button x:Name="ReturnsTile" Grid.Column="2" Style="{StaticResource DeskTile}" IsEnabled="False"
+                                AutomationProperties.Name="مرجوعی — هنوز ساخته نشده">
+                            <StackPanel Spacing="6">
+                                <TextBlock FontSize="20" FontWeight="Bold" Text="مرجوعی" />
+                                <TextBlock Style="{StaticResource DeskLabel}" Text="هنوز ساخته نشده (§۶.۲۵)" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="TillTile" Grid.Column="3" Style="{StaticResource DeskTile}" IsEnabled="False"
+                                AutomationProperties.Name="وضعیت صندوق — هنوز ساخته نشده">
+                            <StackPanel Spacing="6">
+                                <TextBlock FontSize="20" FontWeight="Bold" Text="وضعیت صندوق" />
+                                <TextBlock Style="{StaticResource DeskLabel}" Text="شیفت صندوق هنوز ساخته نشده (§۶.۲۴)" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <!-- ═══ today, in three numbers ═══ -->
+                    <Border Style="{StaticResource DeskCard}">
                         <StackPanel Spacing="14">
-                            <TextBlock Style="{StaticResource AppSectionTitleStyle}" Text="وضعیت راه‌اندازی" />
-                            <Grid ColumnSpacing="10">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Width="28" Height="28" Background="{ThemeResource AppPrimaryBrush}" CornerRadius="14"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" Text="۱" /></Border>
-                                <StackPanel Grid.Column="1"><TextBlock FontWeight="SemiBold" Text="دسته‌بندی کالاها" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="آماده ثبت" /></StackPanel>
+                            <Grid ColumnSpacing="20">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" /><ColumnDefinition Width="1" />
+                                    <ColumnDefinition Width="*" /><ColumnDefinition Width="1" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Style="{StaticResource DeskLabel}" Text="فروش امروز" />
+                                    <StackPanel Orientation="Horizontal" Spacing="7">
+                                        <TextBlock FontSize="28" FontWeight="Bold" Foreground="{ThemeResource AppTextBrush}"
+                                                   Text="{x:Bind ViewModel.TodayTotalText, Mode=OneWay}" />
+                                        <TextBlock Style="{StaticResource DeskLabel}" Margin="0,0,0,5" VerticalAlignment="Bottom" Text="تومان" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <Border Grid.Column="1" Background="{ThemeResource SalesLineBrush}" />
+                                <StackPanel Grid.Column="2" Spacing="4">
+                                    <TextBlock Style="{StaticResource DeskLabel}" Text="فاکتور امروز" />
+                                    <TextBlock FontSize="28" FontWeight="Bold" Foreground="{ThemeResource AppTextBrush}"
+                                               Text="{x:Bind ViewModel.TodayCountText, Mode=OneWay}" />
+                                </StackPanel>
+                                <Border Grid.Column="3" Background="{ThemeResource SalesLineBrush}" />
+                                <StackPanel Grid.Column="4" Spacing="4">
+                                    <TextBlock Style="{StaticResource DeskLabel}" Text="فاکتور معلق" />
+                                    <TextBlock FontSize="28" FontWeight="Bold" Foreground="{ThemeResource SalesAmberBrush}"
+                                               Text="{x:Bind ViewModel.HeldCountText, Mode=OneWay}" />
+                                </StackPanel>
                             </Grid>
-                            <Border Height="1" Background="{ThemeResource AppBorderBrush}" />
-                            <Grid ColumnSpacing="10">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Width="28" Height="28" Background="{ThemeResource AppSurfaceMutedBrush}" CornerRadius="14"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="۲" /></Border>
-                                <StackPanel Grid.Column="1"><TextBlock FontWeight="SemiBold" Text="کالاها و بارکد" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="بعد از دسته‌بندی" /></StackPanel>
-                            </Grid>
-                            <Border Height="1" Background="{ThemeResource AppBorderBrush}" />
-                            <Grid ColumnSpacing="10">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Width="28" Height="28" Background="{ThemeResource AppSurfaceMutedBrush}" CornerRadius="14"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="۳" /></Border>
-                                <StackPanel Grid.Column="1"><TextBlock FontWeight="SemiBold" Text="موجودی اولیه" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="گام نهایی آماده‌سازی" /></StackPanel>
-                            </Grid>
+                            <TextBlock Style="{StaticResource DeskLabel}" TextWrapping="Wrap"
+                                       Visibility="{x:Bind ViewModel.HasPaymentBreakdown, Mode=OneWay}"
+                                       Text="{x:Bind ViewModel.PaymentBreakdownText, Mode=OneWay}" />
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Column="1" Style="{StaticResource AppCardStyle}" FlowDirection="RightToLeft">
+                    <!-- ═══ the two lists ═══ -->
+                    <Grid ColumnSpacing="14">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition x:Name="ListColumn2" Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Style="{StaticResource DeskCard}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Style="{StaticResource DeskSectionTitle}" Text="فاکتورهای امروز" />
+                                <TextBlock Style="{StaticResource DeskLabel}" Text="هنوز فاکتوری برای امروز ثبت نشده است."
+                                           Visibility="{x:Bind ViewModel.HasNoRecentInvoices, Mode=OneWay}" />
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.RecentInvoices}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="workbench:WorkbenchInvoiceRow">
+                                            <Grid Padding="0,10" ColumnSpacing="12" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="0,0,0,1">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                <StackPanel Spacing="3">
+                                                    <TextBlock FontSize="15" FontWeight="SemiBold" Text="{x:Bind Title}" />
+                                                    <TextBlock FontSize="14" Foreground="{ThemeResource SalesMutedTextBrush}" Text="{x:Bind CustomerAndCount}" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Spacing="3" HorizontalAlignment="Left">
+                                                    <TextBlock FontSize="15" FontWeight="SemiBold" TextAlignment="Left" Text="{x:Bind AmountText}" />
+                                                    <TextBlock FontSize="14" TextAlignment="Left" Foreground="{ThemeResource SalesMutedTextBrush}" Text="{x:Bind TimeText}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="HeldPanel" Grid.Column="1" Style="{StaticResource DeskCard}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Style="{StaticResource DeskSectionTitle}" Text="فاکتورهای معلق" />
+                                <TextBlock Style="{StaticResource DeskLabel}" Text="فاکتور نیمه‌تمامی باقی نمانده است."
+                                           Visibility="{x:Bind ViewModel.HasNoHeldInvoices, Mode=OneWay}" />
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.HeldInvoices}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="workbench:WorkbenchInvoiceRow">
+                                            <Grid Padding="0,10" ColumnSpacing="12" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="0,0,0,1">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                <StackPanel Spacing="3">
+                                                    <TextBlock FontSize="15" FontWeight="SemiBold" Text="{x:Bind Customer}" />
+                                                    <TextBlock FontSize="14" Foreground="{ThemeResource SalesMutedTextBrush}" Text="{x:Bind ItemCountText}" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Spacing="3" HorizontalAlignment="Left">
+                                                    <TextBlock FontSize="15" FontWeight="SemiBold" TextAlignment="Left" Text="{x:Bind AmountText}" />
+                                                    <TextBlock FontSize="14" TextAlignment="Left" Foreground="{ThemeResource SalesMutedTextBrush}" Text="{x:Bind TimeText}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button Style="{StaticResource DeskLinkButton}" Click="OnHeldInvoicesClick"
+                                        HorizontalContentAlignment="Center" Content="ادامه‌ی یک فاکتور معلق" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- ═══ setting the shop up ═══ -->
+                    <Border Style="{StaticResource DeskCard}">
                         <StackPanel Spacing="14">
-                            <StackPanel Spacing="3"><TextBlock Style="{StaticResource AppSectionTitleStyle}" Text="شروع سریع" /><TextBlock Style="{StaticResource AppMutedTextStyle}" Text="اطلاعات پایه را به‌ترتیب وارد کن." /></StackPanel>
-                            <Grid ColumnSpacing="10" RowSpacing="10">
-                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Padding="16" Background="{ThemeResource AppSurfaceMutedBrush}" CornerRadius="8">
-                                    <StackPanel Spacing="6"><SymbolIcon HorizontalAlignment="Right" Foreground="{ThemeResource AppAccentBrush}" Symbol="Bullets" /><TextBlock FontWeight="SemiBold" Text="ساخت دسته‌بندی" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="چیدمان گروه‌های کالا" /></StackPanel>
-                                </Border>
-                                <Border Grid.Column="1" Padding="16" Background="{ThemeResource AppSurfaceMutedBrush}" CornerRadius="8">
-                                    <StackPanel Spacing="6"><SymbolIcon HorizontalAlignment="Right" Foreground="{ThemeResource AppAccentBrush}" Symbol="Shop" /><TextBlock FontWeight="SemiBold" Text="ثبت دستی کالا" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="نام، بارکد و قیمت" /></StackPanel>
-                                </Border>
-                                <Border Grid.Row="1" Padding="16" Background="{ThemeResource AppSurfaceMutedBrush}" CornerRadius="8">
-                                    <StackPanel Spacing="6"><SymbolIcon HorizontalAlignment="Right" Foreground="{ThemeResource AppAccentBrush}" Symbol="AllApps" /><TextBlock FontWeight="SemiBold" Text="موجودی اولیه" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="تعداد و بهای خرید" /></StackPanel>
-                                </Border>
-                                <Border Grid.Row="1" Grid.Column="1" Padding="16" Background="{ThemeResource AppSurfaceMutedBrush}" CornerRadius="8" Opacity="0.7">
-                                    <StackPanel Spacing="6"><SymbolIcon HorizontalAlignment="Right" Foreground="{ThemeResource AppTextMutedBrush}" Symbol="OpenFile" /><TextBlock FontWeight="SemiBold" Text="ورود از اکسل" /><TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="در حال ساخت" /></StackPanel>
-                                </Border>
+                            <StackPanel Spacing="4">
+                                <TextBlock Style="{StaticResource DeskSectionTitle}" Text="آماده‌سازی فروشگاه" />
+                                <TextBlock Style="{StaticResource DeskLabel}" Text="اطلاعات پایه را به‌ترتیب وارد کنید." />
+                            </StackPanel>
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Button Style="{StaticResource DeskLinkButton}" Click="OnCategoriesClick" Content="۱ · دسته‌بندی کالاها" />
+                                <Button Grid.Column="1" Style="{StaticResource DeskLinkButton}" Click="OnProductsClick" Content="۲ · کالا و قیمت‌گذاری" />
+                                <Button Grid.Column="2" Style="{StaticResource DeskLinkButton}" Click="OnInventoryClick" Content="۳ · موجودی اولیه" />
                             </Grid>
                         </StackPanel>
                     </Border>
-                </Grid>
-            </StackPanel>
-        </Grid>
-    </ScrollViewer>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
 </Page>

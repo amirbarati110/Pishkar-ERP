@@ -23,6 +23,12 @@ public sealed partial class SalesPage : Page
     /// <summary>Below this width the category column moves above the product list (as in the approved mockup's breakpoint).</summary>
     private const double NarrowWidth = 1100;
 
+    /// <summary>Navigation parameter: open the workspace on a clean invoice (the default).</summary>
+    public const string StartFresh = "new";
+
+    /// <summary>Navigation parameter: open the workspace with the invoice list (F2) already up, to continue a held invoice.</summary>
+    public const string StartOnInvoiceList = "held";
+
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(20) };
     private readonly DispatcherTimer _noticeTimer = new() { Interval = TimeSpan.FromSeconds(4) };
 
@@ -52,6 +58,15 @@ public sealed partial class SalesPage : Page
     }
 
     public SalesWorkspaceViewModel ViewModel { get; }
+
+    private bool _openInvoiceListOnLoad;
+
+    protected override void OnNavigatedTo(Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        base.OnNavigatedTo(e);
+        _openInvoiceListOnLoad = e.Parameter as string == StartOnInvoiceList;
+    }
 
     // ───── x:Bind helpers (visual states) ─────
 
@@ -100,6 +115,16 @@ public sealed partial class SalesPage : Page
         ApplyLayout(ActualWidth);
         UpdateFilterButtons();
         await ViewModel.LoadAsync(CancellationToken.None);
+
+        if (_openInvoiceListOnLoad)
+        {
+            // Came from «فاکتورهای معلق» on the workbench: land on the list
+            // instead of making the cashier press F2 again.
+            _openInvoiceListOnLoad = false;
+            ViewModel.OpenInvoiceListCommand.Execute(null);
+            return;
+        }
+
         ProductSearchBox.Focus(FocusState.Programmatic);
     }
 
@@ -233,7 +258,19 @@ public sealed partial class SalesPage : Page
         e.Handled = true;
         if (shortcut == SalesShortcuts.CloseDialog)
         {
-            ViewModel.CloseTopDialogCommand.Execute(null);
+            // §3.14 «Esc برای Back/Close»: Esc closes whatever window is open,
+            // and when none is, it is Back — the same trip the «بازگشت به میز کار»
+            // button makes. A half-finished invoice is not lost by leaving: a
+            // draft with items stays held (§6.13).
+            if (IsAnyWindowOpen)
+            {
+                ViewModel.CloseTopDialogCommand.Execute(null);
+            }
+            else
+            {
+                GoBackToWorkbench();
+            }
+
             return;
         }
 
@@ -348,7 +385,9 @@ public sealed partial class SalesPage : Page
         }
     }
 
-    private void OnExitClick(object sender, RoutedEventArgs e)
+    private void OnExitClick(object sender, RoutedEventArgs e) => GoBackToWorkbench();
+
+    private void GoBackToWorkbench()
     {
         if (Frame.CanGoBack)
         {
