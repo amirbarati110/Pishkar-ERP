@@ -74,6 +74,17 @@ public sealed partial class SalesWorkspaceViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsBusy { get; set; }
 
+    /// <summary>
+    /// True only until the very first <see cref="LoadAsync"/> finishes, then
+    /// false forever — unlike <see cref="IsBusy"/>, which toggles on every
+    /// routine action (adding a line, changing a quantity) and would make a
+    /// full-screen loading state flash constantly if used for this. The
+    /// screen is empty until that first load resolves (no tabs, no products),
+    /// so §15.23's Loading State applies only to this one moment.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsInitialLoading { get; set; } = true;
+
     /// <summary>The short message the screen shows as a toast; <see cref="NoticeIsError"/> colours it.</summary>
     [ObservableProperty]
     public partial string? Notice { get; set; }
@@ -100,36 +111,47 @@ public sealed partial class SalesWorkspaceViewModel : ObservableObject
     /// </summary>
     public async Task LoadAsync(CancellationToken cancellationToken)
     {
-        await RunAsync(async () =>
+        try
         {
-            var catalog = await _backend.CatalogLookup.LoadAsync(cancellationToken);
-            Categories.Clear();
-            Categories.Add(new CategoryChip(null, "همه") { IsSelected = true });
-            foreach (var category in catalog.Categories.Where(item => item.ParentId is null))
+            await RunAsync(async () =>
             {
-                Categories.Add(new CategoryChip(category.Id, category.Name));
-            }
+                var catalog = await _backend.CatalogLookup.LoadAsync(cancellationToken);
+                Categories.Clear();
+                Categories.Add(new CategoryChip(null, "همه") { IsSelected = true });
+                foreach (var category in catalog.Categories.Where(item => item.ParentId is null))
+                {
+                    Categories.Add(new CategoryChip(category.Id, category.Name));
+                }
 
-            Tabs.Clear();
-            foreach (var held in await _backend.HeldSales.ExecuteAsync(new ListHeldSalesQuery(), cancellationToken))
-            {
-                Tabs.Add(new InvoiceTab(held.SaleId));
-            }
+                Tabs.Clear();
+                foreach (var held in await _backend.HeldSales.ExecuteAsync(new ListHeldSalesQuery(), cancellationToken))
+                {
+                    Tabs.Add(new InvoiceTab(held.SaleId));
+                }
 
-            if (Tabs.Count == 0)
-            {
-                await AddNewTabCoreAsync(cancellationToken);
-            }
+                if (Tabs.Count == 0)
+                {
+                    await AddNewTabCoreAsync(cancellationToken);
+                }
 
-            foreach (var tab in Tabs)
-            {
-                await RefreshInvoiceAsync(tab, cancellationToken);
-            }
+                foreach (var tab in Tabs)
+                {
+                    await RefreshInvoiceAsync(tab, cancellationToken);
+                }
 
-            CurrentTab = Tabs[0];
-            await LoadProductsAsync(cancellationToken);
-            await LoadTilesAsync(cancellationToken);
-        });
+                CurrentTab = Tabs[0];
+                await LoadProductsAsync(cancellationToken);
+                await LoadTilesAsync(cancellationToken);
+            });
+        }
+        finally
+        {
+            // Cleared whether the load succeeded or failed (RunAsync turns a
+            // failure into ShowNotice, never a thrown exception) — either way
+            // the attempt is over and the loading state should not hide the
+            // result, error included.
+            IsInitialLoading = false;
+        }
     }
 
     partial void OnCurrentTabChanged(InvoiceTab? oldValue, InvoiceTab? newValue)

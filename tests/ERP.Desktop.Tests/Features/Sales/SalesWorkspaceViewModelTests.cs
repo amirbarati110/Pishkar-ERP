@@ -8,6 +8,27 @@ namespace ERP.Desktop.Tests.Features.Sales;
 public sealed class SalesWorkspaceViewModelTests
 {
     [Fact]
+    public void IsInitialLoadingStartsTrueAndOnlyTheFirstLoadClearsIt()
+    {
+        var (_, viewModel) = Create();
+
+        Assert.True(viewModel.IsInitialLoading);
+    }
+
+    [Fact]
+    public async Task IsInitialLoadingClearsAfterTheFirstLoadEvenWhenLaterActionsAreBusy()
+    {
+        var (_, viewModel) = Create();
+
+        await viewModel.LoadAsync(CancellationToken.None);
+        Assert.False(viewModel.IsInitialLoading);
+
+        // A later, routine action must not bring the full-screen loading state back.
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products[0]);
+        Assert.False(viewModel.IsInitialLoading);
+    }
+
+    [Fact]
     public async Task OpeningWithNothingHeldStartsOneEmptyCashInvoice()
     {
         var (backend, viewModel) = Create();
@@ -127,6 +148,9 @@ public sealed class SalesWorkspaceViewModelTests
         Assert.False(viewModel.IsPaymentOpen);
         Assert.True(viewModel.IsCompletedSummaryOpen);
         Assert.Equal("۱۲۵۸", viewModel.CompletedNumberText);
+        Assert.Equal("مشتری نقدی", viewModel.CompletedCustomerText);
+        Assert.Equal("برنج ایرانی ×۱", viewModel.CompletedItemsText);
+        Assert.Equal("بدون تخفیف", viewModel.CompletedDiscountText);
         Assert.Equal(SaleStatus.Completed, backend.Sales[0].Status);
 
         await viewModel.StartNextAfterSummaryCommand.ExecuteAsync(null);
@@ -546,6 +570,28 @@ public sealed class SalesWorkspaceViewModelTests
         Assert.Null(backend.Sales.Single().Note);
         Assert.NotNull(viewModel.Notice);
         Assert.True(viewModel.NoticeIsError);
+    }
+
+    [Fact]
+    public async Task TheSummaryListsEveryLineTheCustomerAndTheActualDiscount()
+    {
+        var (backend, viewModel) = Create();
+        var customer = Customer.QuickCreate("محمد رضایی", "09123456789");
+        backend.Customers.Add(customer);
+        await viewModel.LoadAsync(CancellationToken.None);
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products.Single(product => product.Name == "برنج ایرانی"));
+        await viewModel.IncreaseLineCommand.ExecuteAsync(viewModel.CurrentTab!.Lines[0]); // ۲ عدد برنج
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products.Single(product => product.Name == "روغن حیوانی"));
+        await viewModel.ChooseCustomerCommand.ExecuteAsync(new Application.Customers.CustomerSearchResult(customer.Id, customer.Name, customer.Mobile));
+        viewModel.CurrentTab.DiscountInput = "۵۰,۰۰۰";
+        await viewModel.CommitChargesCommand.ExecuteAsync("discount");
+
+        viewModel.OpenPaymentCommand.Execute(CompletionFollowUp.ShowSummary);
+        await viewModel.ConfirmPaymentCommand.ExecuteAsync(null);
+
+        Assert.Equal("محمد رضایی", viewModel.CompletedCustomerText);
+        Assert.Equal("برنج ایرانی ×۲ · روغن حیوانی ×۱", viewModel.CompletedItemsText);
+        Assert.Equal("۵۰,۰۰۰ تومان", viewModel.CompletedDiscountText);
     }
 
     private static (InMemorySalesBackend Backend, SalesWorkspaceViewModel ViewModel) Create()

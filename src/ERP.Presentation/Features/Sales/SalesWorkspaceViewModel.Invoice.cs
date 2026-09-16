@@ -268,6 +268,18 @@ public sealed partial class SalesWorkspaceViewModel
     [ObservableProperty]
     public partial string CompletedMethodText { get; set; } = string.Empty;
 
+    /// <summary>§6.21 «مشتری» in the confirmation summary — «مشتری نقدی» included, same as everywhere else on screen.</summary>
+    [ObservableProperty]
+    public partial string CompletedCustomerText { get; set; } = string.Empty;
+
+    /// <summary>§6.21 «اقلام» — every line, name × quantity, so the cashier can double check what was actually sold before waving the customer off.</summary>
+    [ObservableProperty]
+    public partial string CompletedItemsText { get; set; } = string.Empty;
+
+    /// <summary>§6.21 «تخفیف» — «بدون تخفیف» rather than «۰ تومان» when there was none, so the common case reads as a plain statement, not a zero to parse.</summary>
+    [ObservableProperty]
+    public partial string CompletedDiscountText { get; set; } = string.Empty;
+
     public CompletionFollowUp PendingFollowUp { get; private set; } = CompletionFollowUp.ShowSummary;
 
     public bool IsCashSelected => SelectedPaymentMethod == PaymentMethod.Cash;
@@ -365,6 +377,13 @@ public sealed partial class SalesWorkspaceViewModel
         CompletedNumberText = completed.Number.ToPersianString();
         CompletedTotalText = SalesText.Tomans(completed.Totals.Total);
         CompletedMethodText = SalesText.PaymentMethodName(SelectedPaymentMethod);
+        // Read from the tab's own lines before it is reset below — CompletedSale
+        // itself does not carry them, only the number and the fixed totals.
+        CompletedCustomerText = tab.CustomerName;
+        CompletedItemsText = string.Join(" · ", tab.Lines.Select(line => $"{line.Name} ×{line.QuantityText}"));
+        CompletedDiscountText = completed.Totals.Discount.Rials > 0
+            ? $"{SalesText.Tomans(completed.Totals.Discount)} تومان"
+            : "بدون تخفیف";
 
         if (PendingFollowUp == CompletionFollowUp.NextInvoice)
         {

@@ -963,23 +963,47 @@
             </Border>
         </Grid>
 
-        <!-- completed summary (§6.21/§6.22) -->
+        <!--
+            completed summary (§6.21/§6.22). §6.21 asks for «مشتری، اقلام،
+            تخفیف، مبلغ، Payment Breakdown، Loyalty» — this used to show only
+            شماره/مبلغ/روش. مشتری/اقلام/تخفیف added from the tab's own lines
+            and the totals CompleteSale already returns; Payment Breakdown
+            (ترکیبی) and Loyalty stay ⏸ — neither exists yet.
+        -->
         <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsCompletedSummaryOpen, Mode=OneWay}">
-            <Border Style="{StaticResource SalesDialogCard}" Width="400">
+            <Border Style="{StaticResource SalesDialogCard}" Width="440">
                 <StackPanel Padding="24,22" Spacing="10">
                     <Border Width="54" Height="54" CornerRadius="27" Background="{ThemeResource AppPrimarySoftBrush}" HorizontalAlignment="Center">
                         <TextBlock Text="✓" FontSize="26" FontWeight="Bold" Foreground="{ThemeResource SalesPrimaryDarkBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <TextBlock Text="فروش با موفقیت ثبت شد" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" />
-                    <Grid RowSpacing="6" Margin="0,6">
-                        <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
-                        <TextBlock Text="شماره فاکتور" Style="{StaticResource SalesLabel}" />
-                        <TextBlock Text="{x:Bind ViewModel.CompletedNumberText, Mode=OneWay}" FontWeight="Bold" HorizontalAlignment="Right" />
-                        <TextBlock Grid.Row="1" Text="مبلغ (تومان)" Style="{StaticResource SalesLabel}" />
-                        <TextBlock Grid.Row="1" Text="{x:Bind ViewModel.CompletedTotalText, Mode=OneWay}" FontWeight="Bold" HorizontalAlignment="Right" />
-                        <TextBlock Grid.Row="2" Text="روش پرداخت" Style="{StaticResource SalesLabel}" />
-                        <TextBlock Grid.Row="2" Text="{x:Bind ViewModel.CompletedMethodText, Mode=OneWay}" FontWeight="Bold" HorizontalAlignment="Right" />
-                    </Grid>
+                    <StackPanel Spacing="8" Margin="0,6">
+                        <Grid>
+                            <TextBlock Text="شماره فاکتور" Style="{StaticResource SalesLabel}" />
+                            <TextBlock Text="{x:Bind ViewModel.CompletedNumberText, Mode=OneWay}" FontWeight="Bold" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid>
+                            <TextBlock Text="مشتری" Style="{StaticResource SalesLabel}" />
+                            <TextBlock Text="{x:Bind ViewModel.CompletedCustomerText, Mode=OneWay}" FontWeight="Bold" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" MaxWidth="260" />
+                        </Grid>
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="اقلام" Style="{StaticResource SalesLabel}" />
+                            <TextBlock Text="{x:Bind ViewModel.CompletedItemsText, Mode=OneWay}" FontSize="13.5" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Border Height="1" Background="{ThemeResource SalesLineBrush}" />
+                        <Grid>
+                            <TextBlock Text="تخفیف" Style="{StaticResource SalesLabel}" />
+                            <TextBlock Text="{x:Bind ViewModel.CompletedDiscountText, Mode=OneWay}" FontWeight="Bold" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid>
+                            <TextBlock Text="مبلغ (تومان)" Style="{StaticResource SalesLabel}" />
+                            <TextBlock Text="{x:Bind ViewModel.CompletedTotalText, Mode=OneWay}" FontSize="16" FontWeight="Bold" Foreground="{ThemeResource SalesPrimaryDarkBrush}" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid>
+                            <TextBlock Text="روش پرداخت" Style="{StaticResource SalesLabel}" />
+                            <TextBlock Text="{x:Bind ViewModel.CompletedMethodText, Mode=OneWay}" FontWeight="Bold" HorizontalAlignment="Right" />
+                        </Grid>
+                    </StackPanel>
                     <Button x:Name="StartNextButton" Command="{x:Bind ViewModel.StartNextAfterSummaryCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch">
                         <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="فروش جدید" Foreground="White" FontWeight="Bold" /><TextBlock Text="Enter" FontSize="11" Foreground="White" Opacity="0.8" VerticalAlignment="Center" /></StackPanel>
                     </Button>
@@ -1060,5 +1084,18 @@
 
         <!-- راهنمای این صفحه (§4.1/§3.14) — F1، همان‌طور که همه‌جای برنامه کار می‌کند -->
         <ds:HelpPanel x:Name="HelpOverlay" Grid.RowSpan="4" CloseRequested="OnHelpCloseRequested" />
+
+        <!--
+            §15.23/9 Loading State: تا امروز صفحه‌ی فروش موقع بار اول (پیش از
+            رسیدن دسته‌ها/کالاها/تب‌ها) چند لحظه کاملاً خالی و ساکن دیده می‌شد.
+            فقط برای همین یک لحظه، نه برای هر عملیات (ViewModel.IsBusy) —
+            وگرنه با هر «+ کالا» این نشانگر دوباره چشمک می‌زد.
+        -->
+        <Grid Grid.RowSpan="4" Background="{ThemeResource SalesCanvasBrush}" Visibility="{x:Bind ViewModel.IsInitialLoading, Mode=OneWay}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
+                <ProgressRing Width="40" Height="40" IsActive="{x:Bind ViewModel.IsInitialLoading, Mode=OneWay}" />
+                <TextBlock Text="در حال آماده‌سازی صفحه‌ی فروش…" FontSize="15" Foreground="{ThemeResource SalesMutedTextBrush}" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </Page>
