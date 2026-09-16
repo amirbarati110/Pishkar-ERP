@@ -484,10 +484,28 @@
                         </Button>
                     </Grid>
 
+                    <!--
+                        اصلاحیه (§10.10) — همان ردیف بنر مانده‌ی مشتری را استفاده
+                        می‌کند تا چیدمان جابه‌جا نشود؛ فقط یکی از این دو هر بار دیده
+                        می‌شود، و اصلاحیه اولویت دارد (کمتر پیش می‌آید و مهم‌تر است
+                        که صندوق‌دار همین الان ببیندش).
+                    -->
+                    <Border Grid.Row="2" Padding="10,6" CornerRadius="9" Background="{ThemeResource SalesBlueSoftBrush}"
+                            BorderBrush="{ThemeResource SalesBlueLineBrush}" BorderThickness="1"
+                            Visibility="{x:Bind ViewModel.CurrentTab.IsCorrection, Mode=OneWay}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="✎" FontWeight="Bold" Foreground="{ThemeResource SalesBlueBrush}" VerticalAlignment="Center" />
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource SalesBlueBrush}" TextWrapping="Wrap" VerticalAlignment="Center">
+                                <Run Text="اصلاحیه‌ی فاکتور" /><Run Text=" " /><Run Text="{x:Bind ViewModel.CurrentTab.CorrectionOfNumberText, Mode=OneWay}" />
+                                <Run Text=" — فقط تخفیف، هزینه، مالیات و روش پرداخت قابل تغییرند." />
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
                     <!-- customer balance banner (§6.6) -->
                     <Border Grid.Row="2" Padding="10,6" CornerRadius="9" Background="{ThemeResource SalesAmberSoftBrush}"
                             BorderBrush="{ThemeResource SalesAmberLineBrush}" BorderThickness="1"
-                            Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.CurrentTab.BalanceText), Mode=OneWay}"
+                            Visibility="{x:Bind local:SalesPage.WhenBalanceAndNotCorrection(ViewModel.CurrentTab.BalanceText, ViewModel.CurrentTab.IsCorrection), Mode=OneWay}"
                            >
                         <Grid ColumnSpacing="8">
                             <Grid.ColumnDefinitions>
@@ -1060,13 +1078,19 @@
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="sales:InvoiceListRow">
                                         <Grid ColumnSpacing="10" Padding="0,8">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="80" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /><ColumnDefinition Width="60" /><ColumnDefinition Width="90" /><ColumnDefinition Width="130" /></Grid.ColumnDefinitions>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="80" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /><ColumnDefinition Width="60" /><ColumnDefinition Width="90" /><ColumnDefinition Width="120" /><ColumnDefinition Width="76" /></Grid.ColumnDefinitions>
                                             <TextBlock Text="{x:Bind NumberText}" FontWeight="Bold" />
                                             <TextBlock Grid.Column="1" Text="{x:Bind CustomerText}" FontWeight="SemiBold" />
                                             <TextBlock Grid.Column="2" Text="{x:Bind TimeText}" HorizontalAlignment="Center" />
                                             <TextBlock Grid.Column="3" Text="{x:Bind ItemCountText}" HorizontalAlignment="Center" />
                                             <TextBlock Grid.Column="4" Text="{x:Bind MethodText}" HorizontalAlignment="Center" Foreground="{ThemeResource SalesMutedTextBrush}" />
                                             <TextBlock Grid.Column="5" Text="{x:Bind AmountText}" FontWeight="Bold" HorizontalAlignment="Right" />
+                                            <!-- §10.10 اصلاحیه — روی همین فاکتورِ ثبت‌شده و پرداخت‌شده -->
+                                            <Button Grid.Column="6" Click="OnCorrectInvoiceClick" Tag="{x:Bind}" Height="34" Padding="10,0" CornerRadius="8"
+                                                    Background="Transparent" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1"
+                                                    AutomationProperties.Name="اصلاح این فاکتور" ToolTipService.ToolTip="ثبت اصلاحیه برای این فاکتور (§10.10)">
+                                                <TextBlock Text="اصلاح" FontSize="12.5" />
+                                            </Button>
                                         </Grid>
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
@@ -1079,6 +1103,46 @@
                         <Button Grid.Column="1" Command="{x:Bind ViewModel.CloseInvoiceListCommand}" Style="{StaticResource SalesActionButton}" Content="بستن" />
                     </Grid>
                 </Grid>
+            </Border>
+        </Grid>
+
+        <!--
+            «شروع اصلاحیه» (§10.10) — فقط دلیل را می‌پرسد؛ خودِ اصلاح (تخفیف،
+            هزینه، مالیات، روش پرداخت) در همان صفحه‌ی فروش، مثل هر فاکتور دیگر،
+            انجام می‌شود؛ چیزی نوشته نمی‌شود تا این پنجره تأیید شود.
+        -->
+        <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsStartingCorrectionOpen, Mode=OneWay}">
+            <Border Style="{StaticResource SalesDialogCard}" Width="440">
+                <StackPanel>
+                    <TextBlock Text="اصلاح فاکتور" Style="{StaticResource SalesDialogTitle}" Margin="18,15" />
+                    <StackPanel Spacing="12" Padding="18,4,18,16">
+                        <Border Padding="12,10" CornerRadius="10" Background="{ThemeResource SalesMutedFillBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
+                            <Grid>
+                                <StackPanel>
+                                    <TextBlock Text="فاکتور اصلی" FontSize="12.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                    <TextBlock FontSize="15" FontWeight="SemiBold">
+                                        <Run Text="شماره" /><Run Text=" " /><Run Text="{x:Bind ViewModel.CorrectionOriginalNumberText, Mode=OneWay}" />
+                                    </TextBlock>
+                                </StackPanel>
+                                <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="15" FontWeight="Bold" Text="{x:Bind ViewModel.CorrectionOriginalAmountText, Mode=OneWay}" />
+                            </Grid>
+                        </Border>
+                        <TextBlock FontSize="13.5" Foreground="{ThemeResource SalesMutedTextBrush}" TextWrapping="Wrap"
+                                   Text="اصلاحیه یک فاکتور تازه با ارجاع به همین فاکتور است؛ خود این فاکتور دست‌نخورده می‌ماند. فقط تخفیف، هزینه، مالیات و روش پرداخت قابل تغییرند — برای تغییر تعداد یا نوع کالا این مسیر مناسب نیست." />
+                        <TextBox x:Name="CorrectionReasonBox" Header="دلیل اصلاح (الزامی)" Text="{x:Bind ViewModel.CorrectionReasonText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="مثلاً «تخفیف اشتباه ثبت شده بود»" TextWrapping="Wrap" AcceptsReturn="True" Height="72" VerticalContentAlignment="Top"
+                                 AutomationProperties.Name="دلیل اصلاح فاکتور" />
+                        <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
+                                Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.CorrectionError), Mode=OneWay}">
+                            <TextBlock Text="{x:Bind ViewModel.CorrectionError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                        </Border>
+                    </StackPanel>
+                    <Grid Padding="18,12" ColumnSpacing="8" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Button Command="{x:Bind ViewModel.CancelCorrectionPromptCommand}" Style="{StaticResource SalesActionButton}" Content="انصراف" />
+                        <Button Grid.Column="1" Command="{x:Bind ViewModel.ConfirmStartCorrectionCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch" Content="باز کردن اصلاحیه" />
+                    </Grid>
+                </StackPanel>
             </Border>
         </Grid>
 

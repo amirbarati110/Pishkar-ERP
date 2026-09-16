@@ -503,13 +503,34 @@ public sealed partial class SalesWorkspaceViewModel : ObservableObject
     private async Task AddProductCoreAsync(ProductId productId)
     {
         var tab = RequireTab();
+        RequireNotCorrection(tab);
         Check(await _backend.AddLine.ExecuteAsync(new AddSaleLineCommand(tab.SaleId, productId, 1), CancellationToken.None));
         await RefreshInvoiceAsync(tab, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// «اصلاحیه» (§10.10) is scoped in this version to money fields — discount,
+    /// service charge, tax rate, payment method — never quantity, item or
+    /// buyer: those need «مرجوعی» (stock return, §6.25) or «ابطال» (void),
+    /// neither built, and silently allowing them here would corrupt inventory
+    /// or the customer's account instead of failing honestly. Checked at every
+    /// command that would change what is on the invoice, not just hidden in
+    /// the UI, so nothing can slip through a code path the screen forgot to
+    /// disable.
+    /// </summary>
+    private static void RequireNotCorrection(InvoiceTab tab)
+    {
+        if (tab.IsCorrection)
+        {
+            throw new SalesScreenException(
+                "این فاکتور اصلاحیه است؛ فقط تخفیف، هزینه، مالیات و روش پرداخت آن قابل تغییر است.");
+        }
     }
 
     private async Task ChangeQuantityCoreAsync(CartLineRow row, decimal quantity)
     {
         var tab = RequireTab();
+        RequireNotCorrection(tab);
         if (quantity <= 0)
         {
             Check(await _backend.RemoveLine.ExecuteAsync(new RemoveSaleLineCommand(tab.SaleId, row.ProductId), CancellationToken.None));

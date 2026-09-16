@@ -98,6 +98,7 @@ public sealed partial class SalesWorkspaceViewModel
     private Task OpenEditLineAsync(CartLineRow? row) => row is null ? Task.CompletedTask : RunAsync(async () =>
     {
         var tab = RequireTab();
+        RequireNotCorrection(tab);
 
         _editingRow = row;
         _editCurrentCost = null; // cleared until the real cost for this product arrives below
@@ -353,15 +354,22 @@ public sealed partial class SalesWorkspaceViewModel
             return;
         }
 
-        var result = await _backend.Complete.ExecuteAsync(
-            new CompleteSaleCommand(
-                tab.SaleId,
-                SelectedPaymentMethod,
-                DiscountRials: 0,
-                tab.TaxRatePercent,
-                AllowNegativeStock,
-                approveCreditOverLimit),
-            CancellationToken.None);
+        // A correction never touches stock or asks about a shortage (§10.10) —
+        // its own dedicated command, not CompleteSaleCommand, so there is no
+        // AllowNegativeStock/DiscountRials to pass that would not apply to it.
+        var result = tab.IsCorrection
+            ? await _backend.CompleteCorrection.ExecuteAsync(
+                new CompleteSaleCorrectionCommand(tab.SaleId, SelectedPaymentMethod, tab.TaxRatePercent, approveCreditOverLimit),
+                CancellationToken.None)
+            : await _backend.Complete.ExecuteAsync(
+                new CompleteSaleCommand(
+                    tab.SaleId,
+                    SelectedPaymentMethod,
+                    DiscountRials: 0,
+                    tab.TaxRatePercent,
+                    AllowNegativeStock,
+                    approveCreditOverLimit),
+                CancellationToken.None);
 
         if (!result.IsSuccess || result.Value is null)
         {
@@ -493,6 +501,74 @@ public sealed partial class SalesWorkspaceViewModel
         IsInvoiceListOpen = false;
     });
 
+    // ───── «اصلاح فاکتور» (§10.10 صورتحساب اصلاحی) ─────
+
+    private InvoiceListRow? _correctingRow;
+
+    [ObservableProperty]
+    public partial bool IsStartingCorrectionOpen { get; set; }
+
+    [ObservableProperty]
+    public partial string CorrectionOriginalNumberText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string CorrectionOriginalAmountText { get; set; } = string.Empty;
+
+    /// <summary>Mandatory (Codex rule 15 — a posted document is never edited quietly); enforced again by <see cref="StartSaleCorrectionHandler"/>, not just here.</summary>
+    [ObservableProperty]
+    public partial string CorrectionReasonText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string? CorrectionError { get; set; }
+
+    /// <summary>«اصلاح» on a row of «فاکتورهای امروز» — asks for the reason first; nothing is written until it is confirmed.</summary>
+    [RelayCommand]
+    private void OpenCorrectionPrompt(InvoiceListRow? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        _correctingRow = row;
+        CorrectionOriginalNumberText = row.NumberText;
+        CorrectionOriginalAmountText = row.AmountText;
+        CorrectionReasonText = string.Empty;
+        CorrectionError = null;
+        IsStartingCorrectionOpen = true;
+    }
+
+    [RelayCommand]
+    private void CancelCorrectionPrompt() => IsStartingCorrectionOpen = false;
+
+    [RelayCommand]
+    private Task ConfirmStartCorrectionAsync() => RunAsync(async () =>
+    {
+        if (_correctingRow is null)
+        {
+            return;
+        }
+
+        var result = await _backend.StartCorrection.ExecuteAsync(
+            new StartSaleCorrectionCommand(_correctingRow.Item.SaleId, CorrectionReasonText), CancellationToken.None);
+        if (!result.IsSuccess)
+        {
+            CorrectionError = result.Error?.Message ?? "اصلاحیه شروع نشد.";
+            return;
+        }
+
+        var tab = new InvoiceTab(result.Value) { CorrectionOfNumberText = CorrectionOriginalNumberText };
+        Tabs.Add(tab);
+        await RefreshInvoiceAsync(tab, CancellationToken.None);
+        CurrentTab = tab;
+        OnPropertyChanged(nameof(TabPositionText));
+
+        IsStartingCorrectionOpen = false;
+        IsInvoiceListOpen = false;
+        _correctingRow = null;
+        ShowNotice($"اصلاحیه‌ی فاکتور {tab.CorrectionOfNumberText} باز شد — فقط تخفیف، هزینه، مالیات و روش پرداخت قابل تغییر است.");
+    });
+
     /// <summary>Esc: closes whichever window is open, innermost first.</summary>
     [RelayCommand]
     private void CloseTopDialog()
@@ -502,6 +578,7 @@ public sealed partial class SalesWorkspaceViewModel
         else if (IsReceivePaymentOpen) { IsReceivePaymentOpen = false; }
         else if (IsEditLineOpen) { IsEditLineOpen = false; }
         else if (IsPaymentOpen) { IsPaymentOpen = false; }
+        else if (IsStartingCorrectionOpen) { IsStartingCorrectionOpen = false; }
         else if (IsInvoiceListOpen) { IsInvoiceListOpen = false; }
     }
 }

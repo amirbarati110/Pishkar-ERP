@@ -103,6 +103,10 @@ public sealed partial class SalesPage : Page
 
     public static Visibility WhenText(string? text) => string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
 
+    /// <summary>The two banners share one row (§10.10); the correction one wins when both would otherwise apply.</summary>
+    public static Visibility WhenBalanceAndNotCorrection(string? balanceText, bool isCorrection) =>
+        !isCorrection && !string.IsNullOrEmpty(balanceText) ? Visibility.Visible : Visibility.Collapsed;
+
     public static Visibility WhenFalse(bool value) => value ? Visibility.Collapsed : Visibility.Visible;
 
     private static Brush Token(string key) => (Brush)Microsoft.UI.Xaml.Application.Current.Resources[key];
@@ -207,7 +211,7 @@ public sealed partial class SalesPage : Page
     private bool IsAnyWindowOpen =>
         ViewModel.IsPaymentOpen || ViewModel.IsEditLineOpen || ViewModel.IsNewCustomerOpen
         || ViewModel.IsInvoiceListOpen || ViewModel.IsCancelConfirmOpen || ViewModel.IsCompletedSummaryOpen
-        || ViewModel.IsReceivePaymentOpen || HelpOverlay.Workflow is not null;
+        || ViewModel.IsReceivePaymentOpen || ViewModel.IsStartingCorrectionOpen || HelpOverlay.Workflow is not null;
 
     // ───── راهنمای این صفحه (§4.1/§3.14) ─────
 
@@ -581,4 +585,7 @@ public sealed partial class SalesPage : Page
 
     private void OnHeldInvoiceClick(object sender, ItemClickEventArgs e)
         { if (e.ClickedItem is InvoiceListRow row) { ViewModel.ResumeHeldInvoiceCommand.Execute(row); } }
+
+    private void OnCorrectInvoiceClick(object sender, RoutedEventArgs e) =>
+        RunWithItem<InvoiceListRow>(sender, ViewModel.OpenCorrectionPromptCommand);
 }

@@ -33,7 +33,9 @@ public sealed class FirebirdSalesService :
     ICancelSaleHandler,
     IReadSaleProductsHandler,
     IGetLineEditInfoHandler,
-    ISetSaleNoteHandler
+    ISetSaleNoteHandler,
+    IStartSaleCorrectionHandler,
+    ICompleteSaleCorrectionHandler
 {
     private readonly FirebirdConnectionFactory _connectionFactory;
     private readonly IUserContext _userContext;
@@ -98,6 +100,38 @@ public sealed class FirebirdSalesService :
         return await new CompleteSaleHandler(
                 new FirebirdSaleRepository(unitOfWork),
                 new FirebirdStockLedgerRepository(unitOfWork),
+                new FirebirdSaleNumberGenerator(unitOfWork),
+                new FirebirdCustomerRepository(unitOfWork),
+                new FirebirdCustomerLedgerReader(unitOfWork),
+                new FirebirdAuditWriter(unitOfWork),
+                unitOfWork,
+                _userContext,
+                _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<SaleId>> ExecuteAsync(
+        StartSaleCorrectionCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new StartSaleCorrectionHandler(new FirebirdSaleRepository(unitOfWork), unitOfWork, _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<CompletedSale>> ExecuteAsync(
+        CompleteSaleCorrectionCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new CompleteSaleCorrectionHandler(
+                new FirebirdSaleRepository(unitOfWork),
                 new FirebirdSaleNumberGenerator(unitOfWork),
                 new FirebirdCustomerRepository(unitOfWork),
                 new FirebirdCustomerLedgerReader(unitOfWork),

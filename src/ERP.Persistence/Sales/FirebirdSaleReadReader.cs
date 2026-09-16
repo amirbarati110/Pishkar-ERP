@@ -19,6 +19,18 @@ public sealed class FirebirdSaleReadReader : ISaleReadReader
         (SELECT COUNT(*) FROM SALE_LINE L WHERE L.SALE_ID = S.ID) AS ITEM_COUNT
         """;
 
+    /// <summary>
+    /// «صورتحساب اصلاحی» stands in for the sale it corrects (§10.10 / Codex
+    /// rule 15): once a correction exists, the original must stop counting
+    /// toward totals, day lists and the customer's balance — everywhere a
+    /// completed sale is aggregated — or the correction's own figures would be
+    /// added on top of the very ones it replaced. The original's row is not
+    /// touched; it is simply excluded here, the same way on every query that
+    /// aggregates completed sales.
+    /// </summary>
+    private const string ExcludeCorrectedAwayClause =
+        "AND NOT EXISTS (SELECT 1 FROM SALE X WHERE X.CORRECTS_SALE_ID = S.ID)";
+
     private readonly FirebirdUnitOfWork _unitOfWork;
 
     public FirebirdSaleReadReader(FirebirdUnitOfWork unitOfWork)
@@ -92,6 +104,7 @@ public sealed class FirebirdSaleReadReader : ISaleReadReader
             LEFT JOIN CUSTOMER C ON C.ID = S.CUSTOMER_ID
             WHERE S.STATUS = @COMPLETED
               AND S.COMPLETED_AT_UTC >= @FROM_UTC AND S.COMPLETED_AT_UTC < @TO_UTC
+              {ExcludeCorrectedAwayClause}
             ORDER BY S.NUMBER DESC
             """);
         command.Parameters.Add("@COMPLETED", FbDbType.SmallInt).Value = (short)SaleStatus.Completed;

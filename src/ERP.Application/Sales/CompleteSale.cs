@@ -187,68 +187,20 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
     }
 
     /// <summary>
-    /// Source-of-truth §6.7. Returns a failure to hand back to the screen, or
-    /// null when the sale may go ahead.
-    ///
-    /// Only نسیه is checked against the credit limit. A cheque clears the
-    /// customer's account when received (see <see cref="CustomerAccount"/>);
-    /// the risk it carries — bouncing — is judged by the cheque history that
-    /// Treasury will track (§6.7 «Returned Cheque»), not by the open balance.
+    /// Source-of-truth §6.7, via the policy <see cref="CompleteSaleCorrectionHandler"/>
+    /// shares — see <see cref="SaleCreditPolicy"/>. Returns a failure to hand
+    /// back to the screen, or null when the sale may go ahead.
     /// </summary>
     private async Task<Result<CompletedSale>?> CheckCreditAsync(
         Sale sale,
         CompleteSaleCommand command,
         CancellationToken cancellationToken)
     {
-        if (command.PaymentMethod is not (PaymentMethod.Credit or PaymentMethod.Cheque))
-        {
-            return null;
-        }
+        var rejection = await SaleCreditPolicy.EvaluateAsync(
+                sale, command.PaymentMethod, command.TaxRatePercent, command.ApproveCreditOverLimit,
+                _customers, _customerLedger, cancellationToken)
+            .ConfigureAwait(false);
 
-        if (sale.CustomerId is not { } customerId)
-        {
-            return Result.Failure<CompletedSale>(
-                "sales.sale.customer-required",
-                "برای فروش نسیه یا چکی، اول مشتری را انتخاب کنید.");
-        }
-
-        var customer = await _customers.GetByIdAsync(customerId, cancellationToken).ConfigureAwait(false);
-        if (customer is null)
-        {
-            return Result.Failure<CompletedSale>("customers.customer.not-found", "مشتری این فاکتور یافت نشد.");
-        }
-
-        if (command.PaymentMethod != PaymentMethod.Credit)
-        {
-            return null;
-        }
-
-        var account = await CustomerAccounts.LoadAsync(customer, _customerLedger, cancellationToken).ConfigureAwait(false);
-        var amount = sale.PreviewTotals(command.TaxRatePercent).Total;
-
-        switch (customer.EvaluateCredit(account.Debt, amount))
-        {
-            case CreditDecision.Allowed:
-                return null;
-
-            case CreditDecision.RequiresApproval when command.ApproveCreditOverLimit:
-                return null;
-
-            case CreditDecision.RequiresApproval:
-                return Result.Failure<CompletedSale>(
-                    "sales.credit.requires-approval",
-                    $"با این فاکتور، بدهی «{customer.Name}» به {FormatToman(account.Debt.Add(amount))} تومان می‌رسد " +
-                    $"و از سقف اعتبار ({FormatToman(customer.CreditLimit)} تومان) بیشتر می‌شود؛ تأیید مدیر لازم است.");
-
-            default:
-                return Result.Failure<CompletedSale>(
-                    "sales.credit.blocked",
-                    customer.Status == CustomerStatus.Active
-                        ? $"بدهی «{customer.Name}» با این فاکتور خیلی بیشتر از سقف اعتبار می‌شود؛ فروش نسیه ممکن نیست."
-                        : $"«{customer.Name}» بایگانی شده است؛ فروش نسیه به او ممکن نیست.");
-        }
+        return rejection is null ? null : Result.Failure<CompletedSale>(rejection.Code, rejection.Message);
     }
-
-    // Whole Tomans for the message only; the check itself compared exact Rials.
-    private static string FormatToman(Money amount) => PersianNumber.FormatGrouped(amount.Rials / 10);
 }

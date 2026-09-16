@@ -83,6 +83,8 @@ internal sealed class InMemorySalesBackend :
             new SetSaleCustomerHandler(this, this, this),
             new SetSaleNoteHandler(this, this),
             new CountingComplete(this, new CompleteSaleHandler(this, this, this, this, this, this, this, this, this)),
+            new StartSaleCorrectionHandler(this, this, this),
+            new CompleteSaleCorrectionHandler(this, this, this, this, this, this, this, this),
             new CancelSaleHandler(this, this, this, this, this),
             new GetSaleDetailsHandler(this, this, this),
             new ListHeldSalesHandler(this),
@@ -112,6 +114,9 @@ internal sealed class InMemorySalesBackend :
 
         return Task.CompletedTask;
     }
+
+    Task<bool> ISaleRepository.HasCorrectionAsync(SaleId saleId, CancellationToken cancellationToken) =>
+        Task.FromResult(Sales.Any(sale => sale.CorrectsSaleId == saleId));
 
     Task<SaleNumber> ISaleNumberGenerator.NextAsync(CancellationToken cancellationToken) =>
         Task.FromResult(SaleNumber.From(_nextNumber++));

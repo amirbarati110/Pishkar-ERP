@@ -53,6 +53,8 @@ public sealed record AppServices(
             SetCustomer: salesService,
             SetNote: salesService,
             Complete: salesService,
+            StartCorrection: salesService,
+            CompleteCorrection: salesService,
             Cancel: salesService,
             Details: salesService,
             HeldSales: salesService,

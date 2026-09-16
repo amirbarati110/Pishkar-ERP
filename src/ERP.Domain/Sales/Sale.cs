@@ -47,6 +47,15 @@ public sealed class Sale : Entity<SaleId>
     /// </summary>
     public string? Note { get; private set; }
 
+    /// <summary>
+    /// Null for an ordinary sale. Set for a «صورتحساب اصلاحی» (source-of-truth
+    /// §10.10 / Codex rule 15 — a posted document is never edited or deleted):
+    /// this is a brand-new invoice that stands in for the sale it points at,
+    /// once completed. The pointed-at sale's own row is never touched by this —
+    /// see <see cref="OpenCorrection"/>.
+    /// </summary>
+    public SaleId? CorrectsSaleId { get; private init; }
+
     public DateTimeOffset OpenedAtUtc { get; }
 
     public SaleStatus Status { get; private set; }
@@ -87,6 +96,39 @@ public sealed class Sale : Entity<SaleId>
         return new Sale(SaleId.New(), warehouseId, customerId, openedAtUtc);
     }
 
+    /// <summary>
+    /// «صورتحساب اصلاحی» — starts a draft that stands in for
+    /// <paramref name="original"/>, carrying the same warehouse, customer,
+    /// lines, discount and service charge, so the person correcting it only
+    /// has to change what was actually wrong (discount, service charge,
+    /// payment method — quantity/item/buyer changes are out of scope: those
+    /// need «مرجوعی» (§6.25, stock return) or «ابطال» respectively, neither
+    /// built yet, and mixing them into this draft would silently pretend they
+    /// were handled). <paramref name="original"/> itself is not modified —
+    /// only the Application handler decides whether it is allowed to be
+    /// corrected at all (must be Completed, not already corrected).
+    /// </summary>
+    public static Sale OpenCorrection(Sale original, DateTimeOffset openedAtUtc)
+    {
+        ArgumentNullException.ThrowIfNull(original);
+
+        var sale = new Sale(SaleId.New(), original.WarehouseId, original.CustomerId, openedAtUtc)
+        {
+            CorrectsSaleId = original.Id,
+        };
+
+        foreach (var line in original.Lines)
+        {
+            sale.AddOrIncreaseLine(line.ProductId, line.Quantity, line.CatalogPrice);
+            sale.ChangeLine(line.ProductId, line.Quantity, line.UnitPrice, line.Discount);
+        }
+
+        sale.ApplyDiscount(original.Discount);
+        sale.ApplyServiceCharge(original.ServiceCharge);
+
+        return sale;
+    }
+
     internal static Sale Rehydrate(
         SaleId id,
         WarehouseId warehouseId,
@@ -100,6 +142,7 @@ public sealed class Sale : Entity<SaleId>
         DateTimeOffset? completedAtUtc,
         Money? tax,
         string? note,
+        SaleId? correctsSaleId,
         IEnumerable<(ProductId ProductId, decimal Quantity, long UnitPriceRials, long DiscountRials, long CatalogPriceRials)> lines)
     {
         var sale = new Sale(id, warehouseId, customerId, openedAtUtc)
@@ -112,6 +155,7 @@ public sealed class Sale : Entity<SaleId>
             CompletedAtUtc = completedAtUtc,
             Tax = tax,
             Note = note,
+            CorrectsSaleId = correctsSaleId,
         };
 
         foreach (var line in lines)

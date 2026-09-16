@@ -23,11 +23,15 @@ public sealed class FirebirdCustomerLedgerReader : ICustomerLedgerReader
         await using (var command = CreateCommand(
             """
             SELECT NUMBER, COMPLETED_AT_UTC, TOTAL_RIALS
-            FROM SALE
+            FROM SALE S
             WHERE CUSTOMER_ID = @CUSTOMER_ID
               AND STATUS = @COMPLETED
               AND PAYMENT_METHOD = @CREDIT
               AND TOTAL_RIALS IS NOT NULL
+              -- «صورتحساب اصلاحی» (§10.10) stands in for the sale it corrects —
+              -- once corrected, the original stops counting toward the debt, or
+              -- the correction's own total would be added on top of it.
+              AND NOT EXISTS (SELECT 1 FROM SALE X WHERE X.CORRECTS_SALE_ID = S.ID)
             """))
         {
             command.Parameters.Add("@CUSTOMER_ID", FbDbType.Char).Value = customerId.ToString();

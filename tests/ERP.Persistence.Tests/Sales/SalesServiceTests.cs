@@ -575,6 +575,16 @@ public sealed class SalesServiceTests
         {
             throw new NotSupportedException("Test reader is read-only.");
         }
+
+        public async Task<bool> HasCorrectionAsync(SaleId saleId, CancellationToken cancellationToken)
+        {
+            await using var unitOfWork = await FirebirdUnitOfWork
+                .CreateAsync(_factory, cancellationToken)
+                .ConfigureAwait(false);
+            return await new FirebirdSaleRepository(unitOfWork)
+                .HasCorrectionAsync(saleId, cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
 
     /// <summary>

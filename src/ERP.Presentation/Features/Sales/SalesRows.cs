@@ -186,6 +186,27 @@ public sealed partial class InvoiceTab : ObservableObject
     [ObservableProperty]
     public partial CustomerId? CustomerId { get; set; }
 
+    /// <summary>
+    /// True once the server confirms this draft is a «صورتحساب اصلاحی»
+    /// (§10.10) — set from <see cref="SaleDetails.CorrectsSaleId"/> every
+    /// <see cref="Apply"/>, so it is still correct after a reload even though
+    /// <see cref="CorrectionOfNumberText"/> (a client-side convenience, not
+    /// re-derived from the server) is not.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsCorrection { get; set; }
+
+    /// <summary>
+    /// «۱۲۵۸» — set once, when the correction is opened from its row on
+    /// «فاکتورهای امروز» (<see cref="SalesWorkspaceViewModel"/>'s
+    /// OpenCorrectionAsync). Best-effort only: reopening a held correction in
+    /// a later session leaves this blank — <see cref="IsCorrection"/> alone
+    /// still protects the invoice; only the friendly «کدام فاکتور» reminder
+    /// is unavailable without another round trip this version does not make.
+    /// </summary>
+    [ObservableProperty]
+    public partial string CorrectionOfNumberText { get; set; } = string.Empty;
+
     [ObservableProperty]
     public partial string CustomerName { get; set; } = "مشتری نقدی";
 
@@ -246,6 +267,8 @@ public sealed partial class InvoiceTab : ObservableObject
         SaleId = saleId;
         TaxRatePercent = DefaultTaxRatePercent;
         TaxPercentInput = SalesText.Percent(DefaultTaxRatePercent);
+        IsCorrection = false;
+        CorrectionOfNumberText = string.Empty;
         CustomerId = null;
         CustomerName = "مشتری نقدی";
         CustomerMobileText = string.Empty;
@@ -272,6 +295,7 @@ public sealed partial class InvoiceTab : ObservableObject
 
         CustomerId = details.CustomerId;
         CustomerName = details.CustomerName ?? "مشتری نقدی";
+        IsCorrection = details.CorrectsSaleId is not null;
         if (details.CustomerId is null)
         {
             CustomerMobileText = string.Empty;
@@ -321,9 +345,11 @@ public sealed partial class InvoiceTab : ObservableObject
 
     private void UpdateTitle()
     {
-        Title = Lines.Count == 0
-            ? CustomerName
-            : $"{CustomerName} · {PersianNumber.FormatGrouped(Lines.Count)}";
+        Title = IsCorrection
+            ? $"اصلاحیه‌ی {(CorrectionOfNumberText.Length > 0 ? CorrectionOfNumberText : "؟")}"
+            : Lines.Count == 0
+                ? CustomerName
+                : $"{CustomerName} · {PersianNumber.FormatGrouped(Lines.Count)}";
         OnPropertyChanged(nameof(ItemCount));
     }
 }

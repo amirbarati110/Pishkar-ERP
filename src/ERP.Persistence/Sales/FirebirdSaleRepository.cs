@@ -25,7 +25,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             """
             SELECT WAREHOUSE_ID, CUSTOMER_ID, STATUS, DISCOUNT_RIALS,
                    PAYMENT_METHOD, OPENED_AT_UTC, COMPLETED_AT_UTC, SERVICE_CHARGE_RIALS, NUMBER,
-                   TAX_RIALS, NOTE
+                   TAX_RIALS, NOTE, CORRECTS_SALE_ID
             FROM SALE
             WHERE ID = @ID
             """);
@@ -42,6 +42,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
         DateTimeOffset openedAtUtc;
         DateTimeOffset? completedAtUtc;
         string? note;
+        SaleId? correctsSaleId;
 
         await using (var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -63,6 +64,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             number = reader.IsDBNull(8) ? null : SaleNumber.From(reader.GetInt64(8));
             tax = reader.IsDBNull(9) ? null : Money.FromRials(reader.GetInt64(9));
             note = reader.IsDBNull(10) ? null : reader.GetString(10);
+            correctsSaleId = reader.IsDBNull(11) ? null : SaleId.From(Guid.Parse(reader.GetString(11)));
         }
 
         var lines = await ReadLinesAsync(saleId, cancellationToken).ConfigureAwait(false);
@@ -80,6 +82,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             completedAtUtc,
             tax,
             note,
+            correctsSaleId,
             lines);
     }
 
@@ -92,11 +95,11 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             UPDATE OR INSERT INTO SALE (
                 ID, WAREHOUSE_ID, CUSTOMER_ID, STATUS, DISCOUNT_RIALS,
                 PAYMENT_METHOD, OPENED_AT_UTC, COMPLETED_AT_UTC, SERVICE_CHARGE_RIALS, NUMBER,
-                TAX_RIALS, TOTAL_RIALS, NOTE)
+                TAX_RIALS, TOTAL_RIALS, NOTE, CORRECTS_SALE_ID)
             VALUES (
                 @ID, @WAREHOUSE_ID, @CUSTOMER_ID, @STATUS, @DISCOUNT_RIALS,
                 @PAYMENT_METHOD, @OPENED_AT_UTC, @COMPLETED_AT_UTC, @SERVICE_CHARGE_RIALS, @NUMBER,
-                @TAX_RIALS, @TOTAL_RIALS, @NOTE)
+                @TAX_RIALS, @TOTAL_RIALS, @NOTE, @CORRECTS_SALE_ID)
             MATCHING (ID)
             """))
         {
@@ -119,6 +122,8 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             command.Parameters.Add("@TOTAL_RIALS", FbDbType.BigInt).Value =
                 sale.Totals is { } totals ? totals.Total.Rials : DBNull.Value;
             command.Parameters.Add("@NOTE", FbDbType.VarChar).Value = (object?)sale.Note ?? DBNull.Value;
+            command.Parameters.Add("@CORRECTS_SALE_ID", FbDbType.Char).Value =
+                sale.CorrectsSaleId is { } correctsSaleId ? correctsSaleId.ToString() : DBNull.Value;
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 
@@ -151,6 +156,16 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             lineCommand.Parameters.Add("@CATALOG_PRICE_RIALS", FbDbType.BigInt).Value = line.CatalogPrice.Rials;
             await lineCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    public async Task<bool> HasCorrectionAsync(SaleId saleId, CancellationToken cancellationToken)
+    {
+        await using var command = CreateCommand(
+            "SELECT FIRST 1 1 FROM SALE WHERE CORRECTS_SALE_ID = @ID");
+        command.Parameters.Add("@ID", FbDbType.Char).Value = saleId.ToString();
+
+        var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        return result is not null;
     }
 
     private async Task<List<(ProductId ProductId, decimal Quantity, long UnitPriceRials, long DiscountRials, long CatalogPriceRials)>> ReadLinesAsync(

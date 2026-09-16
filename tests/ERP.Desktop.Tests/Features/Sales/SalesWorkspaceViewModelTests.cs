@@ -594,6 +594,123 @@ public sealed class SalesWorkspaceViewModelTests
         Assert.Equal("۵۰,۰۰۰ تومان", viewModel.CompletedDiscountText);
     }
 
+    [Fact]
+    public async Task CorrectingAnInvoiceOpensANewTabTaggedToTheOriginalWithTheSameGoods()
+    {
+        var (backend, viewModel) = Create();
+        await viewModel.LoadAsync(CancellationToken.None);
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products.Single(product => product.Name == "روغن حیوانی"));
+        viewModel.OpenPaymentCommand.Execute(CompletionFollowUp.ShowSummary);
+        viewModel.SelectPaymentMethodCommand.Execute(PaymentMethod.Cash);
+        await viewModel.ConfirmPaymentCommand.ExecuteAsync(null);
+        await viewModel.StartNextAfterSummaryCommand.ExecuteAsync(null);
+
+        await viewModel.OpenInvoiceListCommand.ExecuteAsync(null);
+        var row = viewModel.TodayInvoices.Single();
+        viewModel.OpenCorrectionPromptCommand.Execute(row);
+        Assert.True(viewModel.IsStartingCorrectionOpen);
+        Assert.Equal("۱۲۵۸", viewModel.CorrectionOriginalNumberText);
+
+        viewModel.CorrectionReasonText = "تخفیف فراموش شده بود";
+        await viewModel.ConfirmStartCorrectionCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.IsStartingCorrectionOpen);
+        Assert.False(viewModel.IsInvoiceListOpen);
+        Assert.Equal(2, viewModel.Tabs.Count);
+        var correctionTab = viewModel.CurrentTab!;
+        Assert.True(correctionTab.IsCorrection);
+        Assert.Equal("۱۲۵۸", correctionTab.CorrectionOfNumberText);
+        Assert.Equal("اصلاحیه‌ی ۱۲۵۸", correctionTab.Title);
+        Assert.Single(correctionTab.Lines);
+        Assert.Equal("روغن حیوانی", correctionTab.Lines[0].Name);
+    }
+
+    [Fact]
+    public async Task ACorrectionCanChangeDiscountAndPaymentMethodButCompletesWithItsOwnLaterNumber()
+    {
+        var (backend, viewModel) = Create();
+        await viewModel.LoadAsync(CancellationToken.None);
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products.Single(product => product.Name == "روغن حیوانی"));
+        viewModel.OpenPaymentCommand.Execute(CompletionFollowUp.ShowSummary);
+        viewModel.SelectPaymentMethodCommand.Execute(PaymentMethod.Cash);
+        await viewModel.ConfirmPaymentCommand.ExecuteAsync(null);
+        await viewModel.StartNextAfterSummaryCommand.ExecuteAsync(null);
+        var originalSaleId = backend.Sales.Single(sale => sale.Status == SaleStatus.Completed).Id;
+
+        await viewModel.OpenInvoiceListCommand.ExecuteAsync(null);
+        viewModel.OpenCorrectionPromptCommand.Execute(viewModel.TodayInvoices.Single());
+        viewModel.CorrectionReasonText = "روش پرداخت عوض شد";
+        await viewModel.ConfirmStartCorrectionCommand.ExecuteAsync(null);
+
+        viewModel.CurrentTab!.DiscountInput = "۵۰,۰۰۰";
+        await viewModel.CommitChargesCommand.ExecuteAsync("discount");
+        viewModel.OpenPaymentCommand.Execute(CompletionFollowUp.ShowSummary);
+        viewModel.SelectPaymentMethodCommand.Execute(PaymentMethod.Card);
+        await viewModel.ConfirmPaymentCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsCompletedSummaryOpen);
+        Assert.Equal("۱۲۵۹", viewModel.CompletedNumberText); // its own later number, not the original's
+        Assert.Equal("۵۰,۰۰۰ تومان", viewModel.CompletedDiscountText);
+
+        var original = backend.Sales.Single(sale => sale.Id == originalSaleId);
+        Assert.Equal(SaleNumber.From(1258), original.Number);
+        Assert.Equal(PaymentMethod.Cash, original.PaymentMethod); // never rewritten
+        var correction = backend.Sales.Single(sale => sale.CorrectsSaleId == originalSaleId);
+        Assert.Equal(PaymentMethod.Card, correction.PaymentMethod);
+    }
+
+    [Fact]
+    public async Task ACorrectionRefusesToAddOrChangeLinesWithAClearNotice()
+    {
+        var (backend, viewModel) = Create();
+        await viewModel.LoadAsync(CancellationToken.None);
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products[0]);
+        viewModel.OpenPaymentCommand.Execute(CompletionFollowUp.ShowSummary);
+        viewModel.SelectPaymentMethodCommand.Execute(PaymentMethod.Cash);
+        await viewModel.ConfirmPaymentCommand.ExecuteAsync(null);
+        await viewModel.StartNextAfterSummaryCommand.ExecuteAsync(null);
+
+        await viewModel.OpenInvoiceListCommand.ExecuteAsync(null);
+        viewModel.OpenCorrectionPromptCommand.Execute(viewModel.TodayInvoices.Single());
+        viewModel.CorrectionReasonText = "دلیل";
+        await viewModel.ConfirmStartCorrectionCommand.ExecuteAsync(null);
+        var correctionLineCountBefore = viewModel.CurrentTab!.Lines.Count;
+
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products[1]);
+
+        Assert.Equal(correctionLineCountBefore, viewModel.CurrentTab.Lines.Count); // refused, not silently applied
+        Assert.Contains("اصلاحیه", viewModel.Notice, StringComparison.Ordinal);
+        Assert.True(viewModel.NoticeIsError);
+    }
+
+    [Fact]
+    public async Task StartingASecondCorrectionOnAnAlreadyCorrectedInvoiceIsRefused()
+    {
+        var (backend, viewModel) = Create();
+        await viewModel.LoadAsync(CancellationToken.None);
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products[0]);
+        viewModel.OpenPaymentCommand.Execute(CompletionFollowUp.ShowSummary);
+        viewModel.SelectPaymentMethodCommand.Execute(PaymentMethod.Cash);
+        await viewModel.ConfirmPaymentCommand.ExecuteAsync(null);
+        await viewModel.StartNextAfterSummaryCommand.ExecuteAsync(null);
+
+        await viewModel.OpenInvoiceListCommand.ExecuteAsync(null);
+        var row = viewModel.TodayInvoices.Single();
+        viewModel.OpenCorrectionPromptCommand.Execute(row);
+        viewModel.CorrectionReasonText = "اول";
+        await viewModel.ConfirmStartCorrectionCommand.ExecuteAsync(null);
+        viewModel.OpenPaymentCommand.Execute(CompletionFollowUp.ShowSummary);
+        viewModel.SelectPaymentMethodCommand.Execute(PaymentMethod.Cash);
+        await viewModel.ConfirmPaymentCommand.ExecuteAsync(null);
+
+        viewModel.OpenCorrectionPromptCommand.Execute(row);
+        viewModel.CorrectionReasonText = "دوباره";
+        await viewModel.ConfirmStartCorrectionCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsStartingCorrectionOpen); // did not close — the attempt failed
+        Assert.Contains("قبلاً", viewModel.CorrectionError, StringComparison.Ordinal);
+    }
+
     private static (InMemorySalesBackend Backend, SalesWorkspaceViewModel ViewModel) Create()
     {
         var backend = new InMemorySalesBackend();

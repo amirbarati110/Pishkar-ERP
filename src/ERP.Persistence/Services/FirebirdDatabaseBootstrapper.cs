@@ -34,6 +34,7 @@ public sealed class FirebirdDatabaseBootstrapper
                     new V005CreateCustomers(),
                     new V006CustomerAccount(),
                     new V007SaleNote(),
+                    new V008SaleCorrection(),
                 ])
             .MigrateAsync(cancellationToken)
             .ConfigureAwait(false);

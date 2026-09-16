@@ -161,6 +161,9 @@ internal sealed class SaleRepository : ISaleRepository
 
         return Task.CompletedTask;
     }
+
+    public Task<bool> HasCorrectionAsync(SaleId saleId, CancellationToken cancellationToken) =>
+        Task.FromResult(Items.Any(item => item.CorrectsSaleId == saleId));
 }
 
 internal sealed class CustomerRepository : ICustomerRepository

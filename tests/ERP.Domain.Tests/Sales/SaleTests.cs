@@ -333,4 +333,50 @@ public sealed class SaleTests
 
         Assert.Equal(SaleStatus.Cancelled, sale.Status);
     }
+
+    [Fact]
+    public void OpenCorrectionCopiesLinesCustomerAndChargesAsAFreshDraftPointingAtTheOriginal()
+    {
+        var customerId = CustomerId.New();
+        var original = Sale.OpenDraft(Warehouse, customerId, Now);
+        var productId = ProductId.New();
+        original.AddOrIncreaseLine(productId, Quantity.Create(3), Money.FromTomans(100_000));
+        original.ChangeLine(productId, Quantity.Create(3), Money.FromTomans(90_000), Money.FromTomans(10_000));
+        original.ApplyDiscount(Money.FromTomans(20_000));
+        original.ApplyServiceCharge(Money.FromTomans(5_000));
+        original.Complete(Number, PaymentMethod.Cash, taxRatePercent: 10, Now);
+
+        var correction = Sale.OpenCorrection(original, Now.AddMinutes(5));
+
+        Assert.Equal(original.Id, correction.CorrectsSaleId);
+        Assert.Equal(SaleStatus.Draft, correction.Status);
+        Assert.Equal(customerId, correction.CustomerId);
+        Assert.Equal(Warehouse, correction.WarehouseId);
+        Assert.Null(correction.Number);
+        var line = Assert.Single(correction.Lines);
+        Assert.Equal(productId, line.ProductId);
+        Assert.Equal(3, line.Quantity.Value);
+        Assert.Equal(90_000, line.UnitPrice.ToTomansExact());
+        Assert.Equal(10_000, line.Discount.ToTomansExact());
+        Assert.Equal(20_000, correction.Discount.ToTomansExact());
+        Assert.Equal(5_000, correction.ServiceCharge.ToTomansExact());
+    }
+
+    [Fact]
+    public void ACorrectionIsANormalDraftThatCanStillBeEditedBeforeItIsCompleted()
+    {
+        var original = Sale.OpenDraft(Warehouse, null, Now);
+        original.AddOrIncreaseLine(ProductId.New(), Quantity.Create(1), Money.FromTomans(100_000));
+        original.Complete(Number, PaymentMethod.Cash, taxRatePercent: 0, Now);
+
+        var correction = Sale.OpenCorrection(original, Now);
+        correction.ApplyDiscount(Money.FromTomans(15_000));
+        var totals = correction.Complete(SaleNumber.From(1259), PaymentMethod.Card, taxRatePercent: 0, Now);
+
+        Assert.Equal(85_000, totals.Total.ToTomansExact());
+        Assert.Equal(SaleStatus.Completed, correction.Status);
+        // The original itself is never touched by building or completing a correction.
+        Assert.Equal(SaleStatus.Completed, original.Status);
+        Assert.Equal(100_000, original.Totals!.Total.ToTomansExact());
+    }
 }

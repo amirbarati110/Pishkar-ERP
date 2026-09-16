@@ -15,6 +15,8 @@ public sealed record SalesBackend(
     ISetSaleCustomerHandler SetCustomer,
     ISetSaleNoteHandler SetNote,
     ICompleteSaleHandler Complete,
+    IStartSaleCorrectionHandler StartCorrection,
+    ICompleteSaleCorrectionHandler CompleteCorrection,
     ICancelSaleHandler Cancel,
     IGetSaleDetailsHandler Details,
     IListHeldSalesHandler HeldSales,
