@@ -438,6 +438,75 @@ public sealed class SalesWorkspaceViewModelTests
         Assert.Equal("۸۵۰,۰۰۰", viewModel.EditLastPriceToCustomerText);
     }
 
+    [Fact]
+    public async Task ReceivePaymentDoesNothingForTheCashCustomer()
+    {
+        var (backend, viewModel) = Create();
+        await viewModel.LoadAsync(CancellationToken.None);
+
+        await viewModel.OpenReceivePaymentCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.IsReceivePaymentOpen);
+        Assert.Empty(backend.Payments);
+    }
+
+    [Fact]
+    public async Task ReceivingAPaymentReducesTheCustomersDebtAndShowsANotice()
+    {
+        var (backend, viewModel) = Create();
+        var customer = Customer.QuickCreate("محمد رضایی", "09123456789");
+        backend.Customers.Add(customer);
+        await viewModel.LoadAsync(CancellationToken.None);
+
+        // A نسیه invoice to owe against.
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products.Single(product => product.Name == "روغن حیوانی"));
+        await viewModel.ChooseCustomerCommand.ExecuteAsync(new Application.Customers.CustomerSearchResult(customer.Id, customer.Name, customer.Mobile));
+        viewModel.OpenPaymentCommand.Execute(CompletionFollowUp.NextInvoice);
+        viewModel.SelectPaymentMethodCommand.Execute(PaymentMethod.Credit);
+        await viewModel.ConfirmPaymentCommand.ExecuteAsync(null);
+
+        // The next invoice, same customer, to see the banner and its button.
+        await viewModel.ChooseCustomerCommand.ExecuteAsync(new Application.Customers.CustomerSearchResult(customer.Id, customer.Name, customer.Mobile));
+        Assert.Contains("۹۳۵,۰۰۰", viewModel.CurrentTab!.BalanceText, StringComparison.Ordinal);
+
+        await viewModel.OpenReceivePaymentCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsReceivePaymentOpen);
+        Assert.Equal("محمد رضایی", viewModel.ReceivePaymentCustomerName);
+        Assert.Contains("۹۳۵,۰۰۰", viewModel.ReceivePaymentAccountText, StringComparison.Ordinal);
+        Assert.Equal("۹۳۵,۰۰۰", viewModel.ReceivePaymentAmountText); // defaults to the full debt
+
+        viewModel.ReceivePaymentAmountText = "۵۰۰,۰۰۰";
+        viewModel.SelectReceivePaymentMethodCommand.Execute(CustomerPaymentMethod.Cash);
+        await viewModel.ConfirmReceivePaymentCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.IsReceivePaymentOpen);
+        var payment = Assert.Single(backend.Payments);
+        Assert.Equal(500_000, payment.Amount.ToTomansExact());
+        Assert.Equal(CustomerPaymentMethod.Cash, payment.Method);
+        Assert.Contains("دریافت", viewModel.Notice, StringComparison.Ordinal);
+        Assert.Contains("۴۳۵,۰۰۰", viewModel.CurrentTab.BalanceText, StringComparison.Ordinal); // ۹۳۵,۰۰۰ − ۵۰۰,۰۰۰
+    }
+
+    [Fact]
+    public async Task AZeroPaymentIsRejectedWithoutClosingTheWindow()
+    {
+        var (backend, viewModel) = Create();
+        var customer = Customer.QuickCreate("محمد رضایی", "09123456789");
+        backend.Customers.Add(customer);
+        await viewModel.LoadAsync(CancellationToken.None);
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products[0]);
+        await viewModel.ChooseCustomerCommand.ExecuteAsync(new Application.Customers.CustomerSearchResult(customer.Id, customer.Name, customer.Mobile));
+
+        await viewModel.OpenReceivePaymentCommand.ExecuteAsync(null);
+        viewModel.ReceivePaymentAmountText = "۰";
+        await viewModel.ConfirmReceivePaymentCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsReceivePaymentOpen);
+        Assert.NotNull(viewModel.ReceivePaymentError);
+        Assert.Empty(backend.Payments);
+    }
+
     private static (InMemorySalesBackend Backend, SalesWorkspaceViewModel ViewModel) Create()
     {
         var backend = new InMemorySalesBackend();

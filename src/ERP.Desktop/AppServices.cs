@@ -64,6 +64,7 @@ public sealed record AppServices(
             SearchCustomers: customerService,
             QuickCreateCustomer: customerService,
             CustomerAccount: customerService,
+            ReceivePayment: customerService,
             Clock: clock);
 
         return new AppServices(

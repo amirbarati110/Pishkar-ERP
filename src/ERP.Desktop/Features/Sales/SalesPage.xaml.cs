@@ -2,6 +2,7 @@ using System.ComponentModel;
 using ERP.Application.Customers;
 using ERP.Application.Sales;
 using ERP.Domain.Common;
+using ERP.Domain.Customers;
 using ERP.Domain.Sales;
 using ERP.Presentation.Features.Sales;
 using Microsoft.UI.Text;
@@ -169,6 +170,17 @@ public sealed partial class SalesPage : Page
             case nameof(SalesWorkspaceViewModel.SelectedPaymentMethod):
                 UpdatePaymentButtons();
                 break;
+            case nameof(SalesWorkspaceViewModel.ReceivePaymentMethod):
+                UpdateReceivePaymentButtons();
+                break;
+            case nameof(SalesWorkspaceViewModel.IsReceivePaymentOpen) when ViewModel.IsReceivePaymentOpen:
+                UpdateReceivePaymentButtons();
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    ReceivePaymentAmountBox.Focus(FocusState.Programmatic);
+                    ReceivePaymentAmountBox.SelectAll();
+                });
+                break;
             case nameof(SalesWorkspaceViewModel.IsPaymentOpen) when ViewModel.IsPaymentOpen:
                 UpdatePaymentButtons();
                 DispatcherQueue.TryEnqueue(() =>
@@ -194,7 +206,8 @@ public sealed partial class SalesPage : Page
 
     private bool IsAnyWindowOpen =>
         ViewModel.IsPaymentOpen || ViewModel.IsEditLineOpen || ViewModel.IsNewCustomerOpen
-        || ViewModel.IsInvoiceListOpen || ViewModel.IsCancelConfirmOpen || ViewModel.IsCompletedSummaryOpen;
+        || ViewModel.IsInvoiceListOpen || ViewModel.IsCancelConfirmOpen || ViewModel.IsCompletedSummaryOpen
+        || ViewModel.IsReceivePaymentOpen;
 
     private void UpdateFilterButtons()
     {
@@ -222,6 +235,21 @@ public sealed partial class SalesPage : Page
         })
         {
             var selected = ViewModel.SelectedPaymentMethod == method;
+            button.Background = Token(selected ? "AppPrimarySoftBrush" : "AppSurfaceBrush");
+            button.BorderBrush = Token(selected ? "AppPrimaryBrush" : "SalesLineBrush");
+            button.Foreground = Token(selected ? "SalesPrimaryDarkBrush" : "SalesMutedTextBrush");
+        }
+    }
+
+    private void UpdateReceivePaymentButtons()
+    {
+        foreach (var (button, method) in new[]
+        {
+            (ReceiveCashButton, CustomerPaymentMethod.Cash),
+            (ReceiveCardButton, CustomerPaymentMethod.Card),
+        })
+        {
+            var selected = ViewModel.ReceivePaymentMethod == method;
             button.Background = Token(selected ? "AppPrimarySoftBrush" : "AppSurfaceBrush");
             button.BorderBrush = Token(selected ? "AppPrimaryBrush" : "SalesLineBrush");
             button.Foreground = Token(selected ? "SalesPrimaryDarkBrush" : "SalesMutedTextBrush");
@@ -478,6 +506,14 @@ public sealed partial class SalesPage : Page
         if (sender is FrameworkElement { Tag: string tag } && Enum.TryParse<PaymentMethod>(tag, out var method))
         {
             ViewModel.SelectPaymentMethodCommand.Execute(method);
+        }
+    }
+
+    private void OnReceivePaymentMethodClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string tag } && Enum.TryParse<CustomerPaymentMethod>(tag, out var method))
+        {
+            ViewModel.SelectReceivePaymentMethodCommand.Execute(method);
         }
     }
 

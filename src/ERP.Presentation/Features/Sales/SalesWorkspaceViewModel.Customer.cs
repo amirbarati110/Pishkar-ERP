@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using ERP.Application.Customers;
 using ERP.Application.Sales;
 using ERP.Domain.Common;
+using ERP.Domain.Customers;
 
 namespace ERP.Presentation.Features.Sales;
 
@@ -92,6 +93,106 @@ public sealed partial class SalesWorkspaceViewModel
         CustomerSearchText = string.Empty;
         await RefreshInvoiceAsync(tab, CancellationToken.None);
         ShowNotice("مشتری ثبت و روی فاکتور انتخاب شد.");
+    });
+
+    // ───── دریافت از مشتری (§7.1) ─────
+
+    [ObservableProperty]
+    public partial bool IsReceivePaymentOpen { get; set; }
+
+    [ObservableProperty]
+    public partial string ReceivePaymentCustomerName { get; set; } = string.Empty;
+
+    /// <summary>«بدهی فعلی: … تومان» / «بستانکار: … تومان» / «بدون بدهی» — read fresh each time the window opens, not carried over from the balance banner.</summary>
+    [ObservableProperty]
+    public partial string ReceivePaymentAccountText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string ReceivePaymentAmountText { get; set; } = "۰";
+
+    [ObservableProperty]
+    public partial CustomerPaymentMethod ReceivePaymentMethod { get; set; } = CustomerPaymentMethod.Cash;
+
+    [ObservableProperty]
+    public partial string ReceivePaymentNote { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string? ReceivePaymentError { get; set; }
+
+    public IReadOnlyList<CustomerPaymentMethod> ReceivePaymentMethods { get; } =
+        [CustomerPaymentMethod.Cash, CustomerPaymentMethod.Card];
+
+    /// <summary>
+    /// Opens the window with the customer's balance read fresh from the
+    /// server — the invoice's own banner can be a step behind (it was last
+    /// refreshed when the invoice itself last changed), and a cashier about
+    /// to record money must see the true amount owed right now.
+    /// </summary>
+    [RelayCommand]
+    private Task OpenReceivePaymentAsync() => RunAsync(async () =>
+    {
+        var tab = RequireTab();
+        if (tab.CustomerId is not { } customerId)
+        {
+            return; // guarded by IsEnabled in the XAML too — «مشتری نقدی» has no account to receive against
+        }
+
+        var account = await _backend.CustomerAccount.ExecuteAsync(
+            new GetCustomerAccountQuery(customerId), CancellationToken.None);
+        if (!account.IsSuccess || account.Value is null)
+        {
+            throw new SalesScreenException(account.Error?.Message ?? "اطلاعات مشتری خوانده نشد.");
+        }
+
+        ReceivePaymentCustomerName = account.Value.Name;
+        ReceivePaymentAccountText = account.Value.Debt.Rials > 0
+            ? $"بدهی فعلی: {SalesText.Tomans(account.Value.Debt)} تومان"
+            : account.Value.Advance.Rials > 0
+                ? $"بستانکار: {SalesText.Tomans(account.Value.Advance)} تومان"
+                : "بدون بدهی";
+        // A sensible starting point, not a lock — the cashier types what was actually handed over.
+        ReceivePaymentAmountText = account.Value.Debt.Rials > 0 ? SalesText.Tomans(account.Value.Debt) : "۰";
+        ReceivePaymentMethod = CustomerPaymentMethod.Cash;
+        ReceivePaymentNote = string.Empty;
+        ReceivePaymentError = null;
+        IsReceivePaymentOpen = true;
+    });
+
+    [RelayCommand]
+    private void SelectReceivePaymentMethod(CustomerPaymentMethod method) => ReceivePaymentMethod = method;
+
+    [RelayCommand]
+    private void CancelReceivePayment() => IsReceivePaymentOpen = false;
+
+    [RelayCommand]
+    private Task ConfirmReceivePaymentAsync() => RunAsync(async () =>
+    {
+        var tab = RequireTab();
+        if (tab.CustomerId is not { } customerId)
+        {
+            return;
+        }
+
+        var amountRials = SalesText.ParseTomansToRials(ReceivePaymentAmountText);
+        if (amountRials is not > 0)
+        {
+            ReceivePaymentError = "مبلغ باید بیشتر از صفر باشد.";
+            return;
+        }
+
+        var note = string.IsNullOrWhiteSpace(ReceivePaymentNote) ? null : ReceivePaymentNote.Trim();
+        var result = await _backend.ReceivePayment.ExecuteAsync(
+            new RecordCustomerPaymentCommand(customerId, amountRials.Value, ReceivePaymentMethod, note),
+            CancellationToken.None);
+        if (!result.IsSuccess)
+        {
+            ReceivePaymentError = result.Error?.Message ?? "دریافت ثبت نشد.";
+            return;
+        }
+
+        IsReceivePaymentOpen = false;
+        await RefreshInvoiceAsync(tab, CancellationToken.None);
+        ShowNotice($"دریافت {SalesText.Tomans(amountRials.Value)} تومان از {ReceivePaymentCustomerName} ثبت شد.");
     });
 
     private async Task SearchCustomersAfterPauseAsync(string term, CancellationToken cancellationToken)

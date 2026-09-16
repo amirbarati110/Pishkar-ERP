@@ -486,12 +486,24 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="!" FontWeight="Bold" Foreground="{ThemeResource SalesAmberBrush}" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.CurrentTab.BalanceText, Mode=OneWay}" FontSize="13" FontWeight="SemiBold"
                                        Foreground="{ThemeResource SalesAmberBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.CurrentTab.CustomerMobileText, Mode=OneWay}" FontSize="12.5"
                                        Foreground="{ThemeResource SalesAmberBrush}" VerticalAlignment="Center" />
+                            <!--
+                                §7.1 «دریافت از مشتری» — right where the cashier is already
+                                looking at what this customer owes. Only reachable from here
+                                (and only visible when there is a balance to show), not a
+                                separate always-on button in the already-tight customer row.
+                            -->
+                            <Button Grid.Column="3" Command="{x:Bind ViewModel.OpenReceivePaymentCommand}" Height="30" Padding="10,0" CornerRadius="8"
+                                    Background="Transparent" BorderBrush="{ThemeResource SalesAmberBrush}" BorderThickness="1"
+                                    AutomationProperties.Name="دریافت از مشتری" ToolTipService.ToolTip="دریافت وجه بابت مانده‌ی حساب این مشتری">
+                                <TextBlock Text="دریافت" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource SalesAmberBrush}" />
+                            </Button>
                         </Grid>
                     </Border>
 
@@ -892,6 +904,46 @@
                         <Button Grid.Column="1" Command="{x:Bind ViewModel.ApproveCreditAndCompleteCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch"
                                 Background="{ThemeResource SalesAmberBrush}" Visibility="{x:Bind ViewModel.NeedsCreditApproval, Mode=OneWay}"
                                 Content="تأیید مدیر و ثبت نسیه" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- دریافت از مشتری (§7.1) — settling an existing نسیه balance, unrelated to completing this invoice -->
+        <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsReceivePaymentOpen, Mode=OneWay}">
+            <Border Style="{StaticResource SalesDialogCard}" Width="440">
+                <StackPanel>
+                    <TextBlock Text="دریافت از مشتری" Style="{StaticResource SalesDialogTitle}" Margin="18,15" />
+                    <StackPanel Spacing="12" Padding="18,4,18,16">
+                        <Border Padding="12,10" CornerRadius="10" Background="{ThemeResource SalesMutedFillBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="{x:Bind ViewModel.ReceivePaymentCustomerName, Mode=OneWay}" FontSize="15" FontWeight="SemiBold" />
+                                <TextBlock Text="{x:Bind ViewModel.ReceivePaymentAccountText, Mode=OneWay}" FontSize="13.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <TextBox x:Name="ReceivePaymentAmountBox" Header="مبلغ دریافتی (تومان)" Text="{x:Bind ViewModel.ReceivePaymentAmountText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 InputScope="Number" FontSize="16" FontWeight="SemiBold" />
+
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <Button x:Name="ReceiveCashButton" Click="OnReceivePaymentMethodClick" Tag="Cash" HorizontalAlignment="Stretch" Height="46" CornerRadius="11" BorderThickness="1.5"
+                                    AutomationProperties.Name="نقدی" Content="نقدی" FontWeight="SemiBold" />
+                            <Button x:Name="ReceiveCardButton" Grid.Column="1" Click="OnReceivePaymentMethodClick" Tag="Card" HorizontalAlignment="Stretch" Height="46" CornerRadius="11" BorderThickness="1.5"
+                                    AutomationProperties.Name="کارتخوان" Content="کارتخوان" FontWeight="SemiBold" />
+                        </Grid>
+
+                        <TextBox Header="توضیح (اختیاری)" Text="{x:Bind ViewModel.ReceivePaymentNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
+                                Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.ReceivePaymentError), Mode=OneWay}">
+                            <TextBlock Text="{x:Bind ViewModel.ReceivePaymentError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                        </Border>
+                    </StackPanel>
+                    <Grid Padding="18,12" ColumnSpacing="8" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Button Command="{x:Bind ViewModel.CancelReceivePaymentCommand}" Style="{StaticResource SalesActionButton}" Content="انصراف" />
+                        <Button Grid.Column="1" Command="{x:Bind ViewModel.ConfirmReceivePaymentCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch" Content="ثبت دریافت" />
                     </Grid>
                 </StackPanel>
             </Border>

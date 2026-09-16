@@ -26,4 +26,5 @@ public sealed record SalesBackend(
     ISearchCustomersHandler SearchCustomers,
     IQuickCreateCustomerHandler QuickCreateCustomer,
     IGetCustomerAccountHandler CustomerAccount,
+    IRecordCustomerPaymentHandler ReceivePayment,
     IClock Clock);

@@ -480,6 +480,7 @@ public sealed partial class SalesWorkspaceViewModel
     {
         if (IsCancelConfirmOpen) { IsCancelConfirmOpen = false; }
         else if (IsNewCustomerOpen) { IsNewCustomerOpen = false; }
+        else if (IsReceivePaymentOpen) { IsReceivePaymentOpen = false; }
         else if (IsEditLineOpen) { IsEditLineOpen = false; }
         else if (IsPaymentOpen) { IsPaymentOpen = false; }
         else if (IsInvoiceListOpen) { IsInvoiceListOpen = false; }

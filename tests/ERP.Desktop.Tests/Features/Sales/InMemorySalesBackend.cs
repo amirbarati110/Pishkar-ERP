@@ -21,7 +21,7 @@ namespace ERP.Desktop.Tests.Features.Sales;
 internal sealed class InMemorySalesBackend :
     ISaleRepository, IProductRepository, IStockLedgerRepository, ISaleNumberGenerator,
     ICustomerRepository, ICustomerLedgerReader, ICustomerSearchReader, IAuditWriter, IUnitOfWork,
-    ISaleReadReader, IProductSearchReader, ICatalogLookupReader, IUserContext, IClock
+    ISaleReadReader, IProductSearchReader, ICatalogLookupReader, ICustomerPaymentRepository, IUserContext, IClock
 {
     private long _nextNumber = 1258;
 
@@ -47,6 +47,8 @@ internal sealed class InMemorySalesBackend :
     public List<Customer> Customers { get; } = [];
 
     public List<AuditEntry> Audit { get; } = [];
+
+    public List<CustomerPayment> Payments { get; } = [];
 
     public int CompleteCalls { get; set; }
 
@@ -92,6 +94,7 @@ internal sealed class InMemorySalesBackend :
             new SearchCustomersHandler(this),
             new QuickCreateCustomerHandler(this, this, this, this, this),
             new GetCustomerAccountHandler(this, this),
+            new RecordCustomerPaymentHandler(this, this, this, this, this, this),
             this);
     }
 
@@ -160,7 +163,17 @@ internal sealed class InMemorySalesBackend :
             .Where(sale => sale.CustomerId == customerId && sale.Status == SaleStatus.Completed && sale.PaymentMethod == PaymentMethod.Credit)
             .Select(sale => new CreditInvoice(sale.Number!.Value.Value, sale.CompletedAtUtc!.Value, sale.Totals!.Total))
             .ToList();
-        return Task.FromResult(new CustomerLedgerEntries(invoices, []));
+        var payments = Payments
+            .Where(payment => payment.CustomerId == customerId)
+            .Select(payment => payment.Amount)
+            .ToList();
+        return Task.FromResult(new CustomerLedgerEntries(invoices, payments));
+    }
+
+    Task ICustomerPaymentRepository.AddAsync(CustomerPayment payment, CancellationToken cancellationToken)
+    {
+        Payments.Add(payment);
+        return Task.CompletedTask;
     }
 
     Task<IReadOnlyList<CustomerSearchResult>> ICustomerSearchReader.SearchAsync(
