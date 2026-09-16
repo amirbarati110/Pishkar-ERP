@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The Pishkar brand lockup, from the user's Figma file «00 — Cover & Brand»
+    (node 15:2 «Brand / App Icon Tile», 15:3 «Brand / Pishkar Symbol»; paths
+    copied verbatim from its SVG export). Brand rules on that page:
+      · «پیشکار» always larger than ERP
+      · green for trust and the main action; amber only for emphasis
+      · never stretch, rotate or add decorative effects
+    The symbol is geometry, not text, so it is kept LeftToRight: an RTL parent
+    must not mirror the «پ» bowl and the check mark.
+-->
+<UserControl
+    x:Class="ERP.Desktop.DesignSystem.PishkarLogo"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel Orientation="Horizontal" Spacing="10" FlowDirection="RightToLeft">
+        <Border x:Name="Tile" Width="36" Height="36" CornerRadius="9" Background="{StaticResource PishkarNavyBrush}" FlowDirection="LeftToRight">
+            <Viewbox Margin="4">
+                <Canvas Width="200" Height="200">
+                    <Path Data="M164 40H82C46 40 28 57 28 88C28 119 48 136 82 136H156C169 136 176 128 176 115V82"
+                          Stroke="White" StrokeThickness="16" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                    <Path Data="M116 88L133 105L168 66"
+                          Stroke="{StaticResource PishkarAmberBrush}" StrokeThickness="13" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                    <Ellipse Canvas.Left="64" Canvas.Top="157" Width="16" Height="16" Fill="White" />
+                    <Ellipse Canvas.Left="92" Canvas.Top="157" Width="16" Height="16" Fill="White" />
+                    <Ellipse Canvas.Left="120" Canvas.Top="157" Width="16" Height="16" Fill="White" />
+                </Canvas>
+            </Viewbox>
+        </Border>
+        <StackPanel x:Name="Wordmark" VerticalAlignment="Center" Spacing="0">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock x:Name="NameText" Text="پیشکار" FontSize="19" FontWeight="Bold" />
+                <TextBlock x:Name="CategoryText" Text="ERP" FontSize="11" FontWeight="Bold" Foreground="{StaticResource PishkarAmberBrush}" VerticalAlignment="Center" FlowDirection="LeftToRight" />
+            </StackPanel>
+            <TextBlock x:Name="TaglineText" Text="گرداننده یکپارچه کسب‌وکار شما" FontSize="11" Opacity="0.75" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

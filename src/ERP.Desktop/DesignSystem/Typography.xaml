@@ -14,7 +14,17 @@
         "Segoe UI"/"Tahoma" stay as fallbacks only for the rare case the embedded
         font fails to load.
     -->
-    <FontFamily x:Key="AppBodyFont">/Assets/Fonts/Vazirmatn-Regular.ttf#Vazirmatn, Segoe UI Variable, Segoe UI, Tahoma</FontFamily>
+    <FontFamily x:Key="AppBodyFont">ms-appx:///Assets/Fonts/Vazirmatn-Regular.ttf#Vazirmatn, Segoe UI Variable, Segoe UI, Tahoma</FontFamily>
+
+    <!--
+        WinUI controls (Button, TextBox, AutoSuggestBox, ListView, InfoBar, Pivot,
+        NavigationView…) do not inherit FontFamily from their page: their default
+        styles read this theme resource. Without overriding it, only plain
+        TextBlocks were in Vazirmatn and every control fell back to Segoe UI —
+        reported by the user as «فونت رعایت نشده». Defined after
+        XamlControlsResources in App.xaml, so this value wins.
+    -->
+    <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/Vazirmatn-Regular.ttf#Vazirmatn, Segoe UI Variable, Segoe UI, Tahoma</FontFamily>
 
     <Style x:Key="AppPageTitleStyle" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource AppBodyFont}" />

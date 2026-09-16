@@ -9,6 +9,14 @@
         Primary/brand green #059669, Accent/amber #D97706, Navy #0F172A.
         Do not hand-pick new hex values here; add a token instead and reuse it.
     -->
+    <!--
+        Fixed brand colours from Figma «رنگ‌های برند» — the logo looks the same
+        in light and dark themes, so these are not theme-dependent.
+    -->
+    <SolidColorBrush x:Key="PishkarGreenBrush" Color="#059669" />
+    <SolidColorBrush x:Key="PishkarAmberBrush" Color="#D97706" />
+    <SolidColorBrush x:Key="PishkarNavyBrush" Color="#0F172A" />
+
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
             <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F6F8FA" />
