@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    «راهنمای این صفحه» (§4.1: هیچ صفحه بدون راهنما؛ §3.14: F1 برای راهنما).
+    One shared overlay instead of a copy per page — every page that hosts it
+    just sets Workflow and reacts to CloseRequested.
+-->
+<UserControl
+    x:Class="ERP.Desktop.DesignSystem.HelpPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:help="using:ERP.Presentation.Help"
+    xmlns:local="using:ERP.Desktop.DesignSystem"
+    FontFamily="{StaticResource AppBodyFont}"
+    FlowDirection="RightToLeft">
+
+    <Grid x:Name="Overlay" Background="{ThemeResource SalesOverlayBrush}" Tapped="OnOverlayTapped"
+          Visibility="{x:Bind local:HelpPanel.WhenPresent(Workflow), Mode=OneWay}">
+        <Border HorizontalAlignment="Center" VerticalAlignment="Center" Width="440" MaxHeight="560"
+                Background="{ThemeResource AppSurfaceBrush}" CornerRadius="16" Tapped="OnCardTapped">
+            <StackPanel>
+                <Grid Padding="18,15" ColumnSpacing="10">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Spacing="2">
+                        <TextBlock FontSize="12.5" Foreground="{ThemeResource SalesMutedTextBrush}" Text="راهنمای این صفحه" />
+                        <TextBlock x:Name="TitleText" FontSize="18" FontWeight="Bold" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Click="OnCloseClick" Width="34" Height="34" Padding="0" CornerRadius="9"
+                            Background="Transparent" BorderThickness="0" AutomationProperties.Name="بستن راهنما">
+                        <TextBlock Text="✕" FontSize="14" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                    </Button>
+                </Grid>
+                <Border Height="1" Background="{ThemeResource SalesLineBrush}" />
+                <ScrollViewer MaxHeight="420">
+                    <ItemsControl x:Name="StepsList" Padding="18,14">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Spacing="14" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="help:WorkflowStep">
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Border Width="26" Height="26" CornerRadius="13" Background="{ThemeResource AppPrimarySoftBrush}" VerticalAlignment="Top">
+                                        <Ellipse Width="7" Height="7" Fill="{ThemeResource AppPrimaryBrush}" />
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind InstructionFa}" FontSize="14.5" TextWrapping="Wrap" LineHeight="22" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                <Border Padding="18,12" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
+                    <TextBlock FontSize="12.5" Foreground="{ThemeResource SalesMutedTextBrush}" Text="برای بستن، F1 یا Esc را بزنید یا بیرون از این کارت کلیک کنید." TextWrapping="Wrap" />
+                </Border>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

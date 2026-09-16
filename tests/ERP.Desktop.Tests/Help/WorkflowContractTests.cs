@@ -7,6 +7,8 @@ public sealed class WorkflowContractTests
     [InlineData("product-create.yaml", "product-editor")]
     [InlineData("opening-stock.yaml", "opening-stock")]
     [InlineData("sales-workspace.yaml", "sales-workspace")]
+    [InlineData("home.yaml", "home")]
+    [InlineData("settings.yaml", "settings")]
     public void EveryPageHasCompletePersianWorkflow(string fileName, string expectedPage)
     {
         var repositoryRoot = FindRepositoryRoot();

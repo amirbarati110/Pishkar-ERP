@@ -4,6 +4,7 @@ using ERP.Desktop.Features.Products;
 using ERP.Desktop.Features.Sales;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 
 namespace ERP.Desktop;
@@ -95,5 +96,39 @@ public sealed partial class MainPage : Page
         {
             ContentFrame.Navigate(pageType);
         }
+
+        HelpOverlay.Workflow = null; // a new page means the old page's help no longer applies
+    }
+
+    // ───── راهنمای این صفحه (§4.1/§3.14) ─────
+
+    private void OnHelpKeyInvoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        ToggleHelp();
+    }
+
+    private void OnHelpButtonClick(object sender, RoutedEventArgs e) => ToggleHelp();
+
+    private void OnHelpCloseRequested(object sender, EventArgs e) => HelpOverlay.Workflow = null;
+
+    private void ToggleHelp()
+    {
+        if (HelpOverlay.Workflow is not null)
+        {
+            HelpOverlay.Workflow = null;
+            return;
+        }
+
+        var page = ContentFrame.CurrentSourcePageType switch
+        {
+            var type when type == typeof(CategoriesPage) => "categories",
+            var type when type == typeof(ProductEditorPage) => "product-editor",
+            var type when type == typeof(OpeningStockPage) => "opening-stock",
+            var type when type == typeof(SettingsPage) => "settings",
+            _ => "home",
+        };
+
+        HelpOverlay.Workflow = App.Workflows.Load(page);
     }
 }

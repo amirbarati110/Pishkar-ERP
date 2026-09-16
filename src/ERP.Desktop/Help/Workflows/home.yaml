@@ -1,0 +1,15 @@
+page: home
+title_fa: میز کار
+steps:
+  - control: new-sale-tile
+    instruction_fa: برای شروع یک فروش تازه، «فروش جدید» را بزنید؛ صفحه‌ی فروش و صندوق باز می‌شود.
+    action: invoke
+  - control: held-tile
+    instruction_fa: برای ادامه‌ی فاکتوری که قبلاً باز شده و کامل نشده، «فاکتورهای معلق» را بزنید.
+    action: invoke
+  - control: today-summary
+    instruction_fa: فروش، تعداد فاکتور و تعداد فاکتور معلق امروز همین‌جا، بدون باز کردن صفحه‌ی دیگری دیده می‌شود.
+    action: focus
+  - control: setup-links
+    instruction_fa: اگر فروشگاه تازه راه افتاده، دسته‌بندی، کالا و موجودی اولیه را به‌ترتیب از «آماده‌سازی فروشگاه» وارد کنید.
+    action: invoke

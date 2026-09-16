@@ -1,3 +1,4 @@
+using ERP.Presentation.Help;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
@@ -16,6 +17,9 @@ namespace ERP.Desktop;
 public partial class App : Microsoft.UI.Xaml.Application
 {
     public static AppServices Services { get; private set; } = null!;
+
+    /// <summary>One cache of «راهنمای این صفحه» content (§4.1), shared by every page instead of each re-reading its own yaml file.</summary>
+    public static WorkflowLoader Workflows { get; } = new();
 
     /// <summary>
     /// The main application window. Use <c>App.Window</c> from any class that needs

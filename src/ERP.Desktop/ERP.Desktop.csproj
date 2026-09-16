@@ -29,6 +29,18 @@
   </ItemGroup>
 
   <!--
+    «راهنمای این صفحه» content (§4.1). Plain files next to the exe, not XAML
+    resources — WorkflowLoader reads them with File.ReadAllText from
+    AppContext.BaseDirectory, which a Content item ships to in both a
+    packaged MSIX layout and an unpackaged local run.
+  -->
+  <ItemGroup>
+    <Content Include="Help\Workflows\*.yaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!--
     Vazirmatn (SIL Open Font License 1.1 — see Assets/Fonts/LICENSE-Vazirmatn-OFL.txt),
     embedded to satisfy source-of-truth §3.6 "فونت فارسی خوانا و Embeddable"
     (Appendix A #7). Four static weights cover every FontWeight used by the

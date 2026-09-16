@@ -113,6 +113,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <!-- The brand lockup from the user's Figma, not a drawn-by-hand icon. -->
@@ -140,6 +141,13 @@
                 </StackPanel>
             </Border>
 
+            <!-- راهنمای این صفحه (§4.1/§3.14) — F1 -->
+            <Button Grid.Column="5" Click="OnHelpButtonClick" Width="40" Height="40" Padding="0" CornerRadius="10" VerticalAlignment="Center"
+                    Background="{ThemeResource SalesChromeRaisedBrush}" BorderBrush="{ThemeResource SalesChromeRaisedBrush}" BorderThickness="1"
+                    AutomationProperties.Name="راهنمای این صفحه" ToolTipService.ToolTip="راهنمای این صفحه (F1)">
+                <TextBlock Text="؟" FontSize="16" FontWeight="Bold" Foreground="{ThemeResource SalesChromeTextBrush}" />
+            </Button>
+
             <!--
                 «خروج» read as «quit the program» (user feedback: «دکمه برگشت به
                 داشبورد نداریم»). It always went back to the workbench, so it now
@@ -147,7 +155,7 @@
                 48-high action size the rest of the screen uses. Esc does the
                 same (§3.14).
             -->
-            <Button Grid.Column="5" Click="OnExitClick" Height="40" Padding="16,0" CornerRadius="10" VerticalAlignment="Center"
+            <Button Grid.Column="6" Click="OnExitClick" Height="40" Padding="16,0" CornerRadius="10" VerticalAlignment="Center"
                     Background="{ThemeResource SalesChromeRaisedBrush}" BorderBrush="{ThemeResource SalesChromeRaisedBrush}" BorderThickness="1"
                     AutomationProperties.Name="بازگشت به میز کار"
                     ToolTipService.ToolTip="بازگشت به میز کار (Esc)">
@@ -1043,5 +1051,8 @@
                 </Grid>
             </Border>
         </Grid>
+
+        <!-- راهنمای این صفحه (§4.1/§3.14) — F1، همان‌طور که همه‌جای برنامه کار می‌کند -->
+        <ds:HelpPanel x:Name="HelpOverlay" Grid.RowSpan="4" CloseRequested="OnHelpCloseRequested" />
     </Grid>
 </Page>

@@ -207,7 +207,23 @@ public sealed partial class SalesPage : Page
     private bool IsAnyWindowOpen =>
         ViewModel.IsPaymentOpen || ViewModel.IsEditLineOpen || ViewModel.IsNewCustomerOpen
         || ViewModel.IsInvoiceListOpen || ViewModel.IsCancelConfirmOpen || ViewModel.IsCompletedSummaryOpen
-        || ViewModel.IsReceivePaymentOpen;
+        || ViewModel.IsReceivePaymentOpen || HelpOverlay.Workflow is not null;
+
+    // ───── راهنمای این صفحه (§4.1/§3.14) ─────
+
+    private void OnHelpCloseRequested(object sender, EventArgs e) => HelpOverlay.Workflow = null;
+
+    private void OnHelpButtonClick(object sender, RoutedEventArgs e)
+    {
+        if (HelpOverlay.Workflow is not null)
+        {
+            HelpOverlay.Workflow = null;
+        }
+        else if (!IsAnyWindowOpen)
+        {
+            HelpOverlay.Workflow = App.Workflows.Load("sales-workspace");
+        }
+    }
 
     private void UpdateFilterButtons()
     {
@@ -260,6 +276,27 @@ public sealed partial class SalesPage : Page
 
     private void OnPagePreviewKeyDown(object sender, KeyRoutedEventArgs e)
     {
+        if (e.Key == VirtualKey.F1)
+        {
+            // §3.14/§4.1: F1 is «راهنمای این صفحه» everywhere, not one of the
+            // SalesShortcuts table's own bindings — it works no matter what
+            // else on the screen currently has focus. Closing it always works;
+            // opening it waits for another open window the same way the rest
+            // of the screen's shortcuts do (IsAnyWindowOpen already counts
+            // Help itself, so this reduces to "is anything *else* open" here).
+            if (HelpOverlay.Workflow is not null)
+            {
+                HelpOverlay.Workflow = null;
+            }
+            else if (!IsAnyWindowOpen)
+            {
+                HelpOverlay.Workflow = App.Workflows.Load("sales-workspace");
+            }
+
+            e.Handled = true;
+            return;
+        }
+
         var control = IsDown(VirtualKey.Control);
         var alt = IsDown(VirtualKey.Menu);
 
@@ -289,8 +326,14 @@ public sealed partial class SalesPage : Page
             // §3.14 «Esc برای Back/Close»: Esc closes whatever window is open,
             // and when none is, it is Back — the same trip the «بازگشت به میز کار»
             // button makes. A half-finished invoice is not lost by leaving: a
-            // draft with items stays held (§6.13).
-            if (IsAnyWindowOpen)
+            // draft with items stays held (§6.13). Help is page-local state, not
+            // one of the ViewModel's own dialog flags, so it is checked first —
+            // otherwise CloseTopDialogCommand would see nothing open and do nothing.
+            if (HelpOverlay.Workflow is not null)
+            {
+                HelpOverlay.Workflow = null;
+            }
+            else if (IsAnyWindowOpen)
             {
                 ViewModel.CloseTopDialogCommand.Execute(null);
             }

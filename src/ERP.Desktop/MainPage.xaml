@@ -5,8 +5,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ds="using:ERP.Desktop.DesignSystem"
     FontFamily="{StaticResource AppBodyFont}"
-    Background="{ThemeResource AppBackgroundBrush}">
+    Background="{ThemeResource AppBackgroundBrush}"
+    KeyboardAcceleratorPlacementMode="Hidden">
 
+    <Page.KeyboardAccelerators>
+        <!-- §3.14/§4.1: F1 is «راهنمای این صفحه» everywhere, not scattered per page. -->
+        <KeyboardAccelerator Key="F1" Invoked="OnHelpKeyInvoked" />
+    </Page.KeyboardAccelerators>
+
+    <Grid>
     <!--
         Native NavigationView instead of a hand-rolled StackPanel-of-Buttons pane
         (source-of-truth Appendix A #10). This is free wins over the old sidebar:
@@ -80,9 +87,22 @@
         </NavigationView.FooterMenuItems>
 
         <NavigationView.PaneFooter>
-            <TextBlock Margin="24,8" FontFamily="{StaticResource AppBodyFont}" FontSize="11" Foreground="{ThemeResource AppNavTextMutedBrush}" Text="نسخه آزمایشی عملیاتی" />
+            <StackPanel Margin="16,8" Spacing="8">
+                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" Height="40" Padding="8,0" CornerRadius="9"
+                        Background="Transparent" BorderThickness="0" Click="OnHelpButtonClick"
+                        AutomationProperties.Name="راهنمای این صفحه" ToolTipService.ToolTip="راهنمای این صفحه (F1)">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <FontIcon FontSize="15" Foreground="{ThemeResource AppNavTextMutedBrush}" Glyph="&#xE897;" />
+                        <TextBlock FontSize="13.5" Foreground="{ThemeResource AppNavTextMutedBrush}" Text="راهنمای این صفحه" />
+                    </StackPanel>
+                </Button>
+                <TextBlock Margin="8,0" FontFamily="{StaticResource AppBodyFont}" FontSize="11" Foreground="{ThemeResource AppNavTextMutedBrush}" Text="نسخه آزمایشی عملیاتی" />
+            </StackPanel>
         </NavigationView.PaneFooter>
 
         <Frame x:Name="ContentFrame" />
     </NavigationView>
+
+    <ds:HelpPanel x:Name="HelpOverlay" CloseRequested="OnHelpCloseRequested" />
+    </Grid>
 </Page>
