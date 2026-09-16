@@ -1,52 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- دسته‌بندی کالاها — step 1 of the setup wizard, restyled onto the approved sales screen's mood (1405/06/25). -->
 <Page
     x:Class="ERP.Desktop.Features.Categories.CategoriesPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Background="{ThemeResource AppBackgroundBrush}"
+    xmlns:ds="using:ERP.Desktop.DesignSystem"
+    Background="{ThemeResource SalesCanvasBrush}"
+    FontFamily="{StaticResource AppBodyFont}"
     FlowDirection="RightToLeft">
 
-    <ScrollViewer>
-        <Grid MaxWidth="1000" Padding="28,24">
-            <StackPanel Spacing="16">
-                <Grid>
+    <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+        <Grid MaxWidth="1080" HorizontalAlignment="Center" Padding="28,24,28,32">
+            <StackPanel Spacing="18">
+                <Grid ColumnSpacing="14">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <StackPanel Spacing="3"><TextBlock Style="{StaticResource AppPageTitleStyle}" Text="دسته‌بندی کالاها" /><TextBlock Style="{StaticResource AppMutedTextStyle}" Text="گروه‌بندی مرتب، جست‌وجوی سریع‌تر" /></StackPanel>
-                    <Border Grid.Column="1" Padding="11,6" Background="{ThemeResource AppPrimarySoftBrush}" CornerRadius="7"><TextBlock Foreground="{ThemeResource AppPrimaryBrush}" Text="مرحله ۱ از ۳" /></Border>
+                    <StackPanel Spacing="4">
+                        <TextBlock Style="{StaticResource AppPageTitleStyle}" Text="دسته‌بندی کالاها" />
+                        <TextBlock Style="{StaticResource AppMutedTextStyle}" FontSize="15" Text="گروه‌بندی مرتب، جست‌وجوی سریع‌تر" />
+                    </StackPanel>
+                    <Border Grid.Column="1" Style="{StaticResource AppSoftChipStyle}" VerticalAlignment="Top">
+                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource AppPrimaryBrush}" Text="مرحله ۱ از ۳" />
+                    </Border>
                 </Grid>
 
-                <Border Padding="14" Background="{ThemeResource AppSurfaceBrush}" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1" CornerRadius="9">
-                    <Grid ColumnSpacing="8">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="7"><Border Width="24" Height="24" Background="{ThemeResource AppPrimaryBrush}" CornerRadius="12"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" Text="۱" /></Border><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="دسته‌بندی" /></StackPanel>
-                        <TextBlock Grid.Column="1" VerticalAlignment="Center" Foreground="{ThemeResource AppTextMutedBrush}" Text="←" />
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="7" Opacity="0.55"><Border Width="24" Height="24" Background="{ThemeResource AppSurfaceMutedBrush}" CornerRadius="12"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="۲" /></Border><TextBlock VerticalAlignment="Center" Text="اطلاعات کالا" /></StackPanel>
-                        <TextBlock Grid.Column="3" VerticalAlignment="Center" Foreground="{ThemeResource AppTextMutedBrush}" Text="←" />
-                        <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="7" Opacity="0.55"><Border Width="24" Height="24" Background="{ThemeResource AppSurfaceMutedBrush}" CornerRadius="12"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="۳" /></Border><TextBlock VerticalAlignment="Center" Text="موجودی" /></StackPanel>
-                    </Grid>
-                </Border>
+                <ds:SetupStepper CurrentStep="1" />
 
-                <Grid ColumnSpacing="14">
+                <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="1.15*" /><ColumnDefinition Width="0.85*" /></Grid.ColumnDefinitions>
                     <Border Style="{StaticResource AppCardStyle}">
-                        <StackPanel Spacing="12">
+                        <StackPanel Spacing="14">
                             <TextBlock Style="{StaticResource AppSectionTitleStyle}" Text="ساختار فعلی" />
-                            <TextBlock Style="{StaticResource AppMutedTextStyle}" Text="برای شروع، دسته «عمومی» به‌صورت خودکار ساخته شده است." TextWrapping="Wrap" />
-                            <Border Height="1" Background="{ThemeResource AppBorderBrush}" />
-                            <TreeView x:Name="CategoryTree" MinHeight="240" />
+                            <TextBlock Style="{StaticResource AppMutedTextStyle}" FontSize="15" Text="برای شروع، دسته «عمومی» به‌صورت خودکار ساخته شده است." TextWrapping="Wrap" />
+                            <Border Height="1" Background="{ThemeResource SalesLineBrush}" />
+                            <TreeView x:Name="CategoryTree" MinHeight="260" />
                         </StackPanel>
                     </Border>
 
                     <Border Grid.Column="1" Style="{StaticResource AppCardStyle}">
-                        <StackPanel Spacing="12">
+                        <StackPanel Spacing="14">
                             <TextBlock Style="{StaticResource AppSectionTitleStyle}" Text="دسته‌بندی جدید" />
-                            <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="نام دسته‌بندی *" />
-                            <TextBox AutomationProperties.Name="نام دسته‌بندی" PlaceholderText="مثلاً نوشیدنی" Style="{StaticResource AppTextBoxStyle}" Text="{x:Bind ViewModel.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock Style="{StaticResource AppErrorTextStyle}" Text="{x:Bind ViewModel.NameError, Mode=OneWay}" />
-                            <TextBlock FontSize="12" Foreground="{ThemeResource AppTextMutedBrush}" Text="بعداً می‌توانی زیر‌دسته بسازی یا جای دسته‌ها را تغییر بدهی." TextWrapping="Wrap" />
-                            <Button HorizontalAlignment="Left" Command="{x:Bind ViewModel.SaveCommand}" Content="ساخت دسته‌بندی" Style="{StaticResource AppPrimaryButtonStyle}"><Button.KeyboardAccelerators><KeyboardAccelerator Key="S" Modifiers="Control" /></Button.KeyboardAccelerators></Button>
-                            <ProgressRing Width="24" Height="24" HorizontalAlignment="Left" IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" />
-                            <TextBlock Foreground="{ThemeResource AppSuccessBrush}" Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" TextWrapping="Wrap" />
+                            <StackPanel Spacing="6">
+                                <TextBlock Style="{StaticResource AppFieldLabelStyle}" FontSize="15" Text="نام دسته‌بندی *" />
+                                <TextBox AutomationProperties.Name="نام دسته‌بندی" PlaceholderText="مثلاً نوشیدنی" Style="{StaticResource AppTextBoxStyle}" Text="{x:Bind ViewModel.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource AppErrorTextStyle}" Text="{x:Bind ViewModel.NameError, Mode=OneWay}" />
+                            </StackPanel>
+                            <TextBlock FontSize="13.5" Foreground="{ThemeResource SalesMutedTextBrush}" Text="بعداً می‌توانی زیر‌دسته بسازی یا جای دسته‌ها را تغییر بدهی." TextWrapping="Wrap" />
+                            <Button HorizontalAlignment="Left" Command="{x:Bind ViewModel.SaveCommand}" Content="ساخت دسته‌بندی" Style="{StaticResource AppPrimaryButtonStyle}">
+                                <Button.KeyboardAccelerators><KeyboardAccelerator Key="S" Modifiers="Control" /></Button.KeyboardAccelerators>
+                            </Button>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <ProgressRing Width="22" Height="22" IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" />
+                                <TextBlock VerticalAlignment="Center" FontSize="14.5" Foreground="{ThemeResource AppSuccessBrush}" Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" TextWrapping="Wrap" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </Grid>

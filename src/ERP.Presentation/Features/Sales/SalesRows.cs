@@ -161,7 +161,15 @@ public sealed class InvoiceListRow
 /// </summary>
 public sealed partial class InvoiceTab : ObservableObject
 {
-    public const decimal DefaultTaxRatePercent = 9m;
+    /// <summary>
+    /// Iran's general VAT rate as of 1404 is 10% (up from 9%) — سپیدار
+    /// (https://www.sepidarsystem.com/blog/vat-rate/) and فرارو
+    /// (https://fararu.com/fa/news/981799/). Still just a starting point the
+    /// cashier can edit per invoice, not a rule enforced here: exempt or
+    /// reduced-rate goods (١٪ for staples, 25–40% for tobacco) need a rate per
+    /// product, tracked as checklist ج — not built yet.
+    /// </summary>
+    public const decimal DefaultTaxRatePercent = 10m;
 
     public InvoiceTab(SaleId saleId)
     {

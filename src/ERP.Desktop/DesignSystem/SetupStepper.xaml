@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The «مرحله ۱ از ۳» bar shared by the three first-run setup pages
+    (دسته‌بندی → کالا → موجودی اولیه). Pulled out of each page so the three
+    copies of the same three circles cannot drift out of sync, and restyled
+    onto the approved sales screen's mood (user request 1405/06/25): a
+    hairline card (SalesLineBrush, radius 12) instead of the old grey
+    AppBorderBrush box, and 32px step circles instead of 24 — the checklist's
+    «بزرگ کردن همه‌ی صفحه» rule applies here too, not only to the sales screen.
+-->
+<UserControl
+    x:Class="ERP.Desktop.DesignSystem.SetupStepper"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    FlowDirection="RightToLeft">
+
+    <Border Padding="18,15" Background="{ThemeResource AppSurfaceBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1" CornerRadius="12">
+        <Grid ColumnSpacing="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel x:Name="Step1" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="9">
+                <Border x:Name="Step1Badge" Width="32" Height="32" CornerRadius="16">
+                    <TextBlock x:Name="Step1Mark" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" />
+                </Border>
+                <TextBlock x:Name="Step1Label" VerticalAlignment="Center" FontSize="15" Text="دسته‌بندی" />
+            </StackPanel>
+
+            <Border Grid.Column="1" Width="28" Height="1" VerticalAlignment="Center" Background="{ThemeResource SalesLineBrush}" />
+
+            <StackPanel x:Name="Step2" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="9">
+                <Border x:Name="Step2Badge" Width="32" Height="32" CornerRadius="16">
+                    <TextBlock x:Name="Step2Mark" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" />
+                </Border>
+                <TextBlock x:Name="Step2Label" VerticalAlignment="Center" FontSize="15" Text="اطلاعات کالا" />
+            </StackPanel>
+
+            <Border Grid.Column="3" Width="28" Height="1" VerticalAlignment="Center" Background="{ThemeResource SalesLineBrush}" />
+
+            <StackPanel x:Name="Step3" Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="9">
+                <Border x:Name="Step3Badge" Width="32" Height="32" CornerRadius="16">
+                    <TextBlock x:Name="Step3Mark" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" />
+                </Border>
+                <TextBlock x:Name="Step3Label" VerticalAlignment="Center" FontSize="15" Text="موجودی" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

@@ -3,12 +3,43 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!--
+        The whole app's card/button/field look, unified onto the approved sales
+        screen's mood (user request 1405/06/25: «صفحه فروش رو پایه بذار برای
+        طراحی باقی صفحه‌ها»): white cards on a soft canvas with a hairline
+        border (SalesLineBrush, not the darker AppBorderBrush), radius 12, and
+        touch-sized fields — not the tighter radius-10/gray-border look these
+        setup pages had before.
+    -->
     <Style x:Key="AppCardStyle" TargetType="Border">
         <Setter Property="Background" Value="{ThemeResource AppSurfaceBrush}" />
-        <Setter Property="BorderBrush" Value="{ThemeResource AppBorderBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource SalesLineBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="22" />
+    </Style>
+
+    <!-- A soft chip used for step badges, status pills and small counters. -->
+    <Style x:Key="AppSoftChipStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource SalesMutedFillBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource SalesLineBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="10" />
-        <Setter Property="Padding" Value="20" />
+        <Setter Property="Padding" Value="12,7" />
+    </Style>
+
+    <!-- A quiet full-width row button — «۱ · دسته‌بندی کالاها» on the workbench, page-to-page links elsewhere. -->
+    <Style x:Key="AppLinkButtonStyle" TargetType="Button">
+        <Setter Property="Height" Value="48" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Right" />
+        <Setter Property="Padding" Value="14,0" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="FontFamily" Value="{StaticResource AppBodyFont}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="Background" Value="{ThemeResource SalesMutedFillBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource SalesLineBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
     </Style>
 
     <!--
@@ -32,13 +63,22 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="MinHeight" Value="48" />
         <Setter Property="Padding" Value="24,10" />
-        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="CornerRadius" Value="11" />
     </Style>
 
     <Style x:Key="AppTextBoxStyle" TargetType="TextBox">
         <Setter Property="FontFamily" Value="{StaticResource AppBodyFont}" />
         <Setter Property="FontSize" Value="15" />
         <Setter Property="MinHeight" Value="48" />
-        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="CornerRadius" Value="10" />
+    </Style>
+
+    <Style x:Key="AppComboBoxStyle" TargetType="ComboBox">
+        <Setter Property="FontFamily" Value="{StaticResource AppBodyFont}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="MinHeight" Value="48" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Right" />
     </Style>
 </ResourceDictionary>

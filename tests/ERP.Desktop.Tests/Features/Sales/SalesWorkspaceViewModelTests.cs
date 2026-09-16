@@ -51,8 +51,8 @@ public sealed class SalesWorkspaceViewModelTests
         Assert.Equal("کد OIL-۱", row.CodeText);
         Assert.Equal("۸۵۰,۰۰۰", row.LineTotalText);
         Assert.Equal("۸۵۰,۰۰۰", tab.SubtotalText);
-        Assert.Equal("۷۶,۵۰۰", tab.TaxText);     // ۹٪
-        Assert.Equal("۹۲۶,۵۰۰", tab.TotalText);
+        Assert.Equal("۸۵,۰۰۰", tab.TaxText);     // ۱۰٪
+        Assert.Equal("۹۳۵,۰۰۰", tab.TotalText);
         Assert.Equal("مشتری نقدی · ۱", tab.Title);
     }
 
@@ -110,7 +110,7 @@ public sealed class SalesWorkspaceViewModelTests
 
         Assert.Equal(85_000, backend.Sales.Single().Discount.ToTomansExact());
         Assert.Equal("۸۵,۰۰۰", viewModel.CurrentTab.DiscountInput);
-        Assert.Equal("۸۳۳,۸۵۰", viewModel.CurrentTab.TotalText); // (۸۵۰٬۰۰۰ − ۸۵٬۰۰۰) × ۱.۰۹
+        Assert.Equal("۸۴۱,۵۰۰", viewModel.CurrentTab.TotalText); // (۸۵۰٬۰۰۰ − ۸۵٬۰۰۰) × ۱.۱۰
     }
 
     [Fact]
@@ -176,7 +176,7 @@ public sealed class SalesWorkspaceViewModelTests
         viewModel.OpenPaymentCommand.Execute(CompletionFollowUp.ShowSummary);
         viewModel.CashReceivedText = "۱,۰۰۰,۰۰۰";
 
-        Assert.Equal("۷۳,۵۰۰", viewModel.CashChangeText); // ۱٬۰۰۰٬۰۰۰ − ۹۲۶٬۵۰۰
+        Assert.Equal("۶۵,۰۰۰", viewModel.CashChangeText); // ۱٬۰۰۰٬۰۰۰ − ۹۳۵٬۰۰۰
     }
 
     [Fact]
@@ -235,7 +235,7 @@ public sealed class SalesWorkspaceViewModelTests
 
         await viewModel.ChooseCustomerCommand.ExecuteAsync(new Application.Customers.CustomerSearchResult(customer.Id, customer.Name, customer.Mobile));
 
-        Assert.Equal("مانده قبلی: ۹۲۶,۵۰۰ تومان بدهکار · ۱ فاکتور باز", viewModel.CurrentTab!.BalanceText);
+        Assert.Equal("مانده قبلی: ۹۳۵,۰۰۰ تومان بدهکار · ۱ فاکتور باز", viewModel.CurrentTab!.BalanceText);
         Assert.Equal("۰۹۱۲۳۴۵۶۷۸۹", viewModel.CurrentTab.CustomerMobileText);
     }
 
@@ -316,8 +316,8 @@ public sealed class SalesWorkspaceViewModelTests
 
         Assert.Equal(["۱۲۵۹", "۱۲۵۸"], viewModel.TodayInvoices.Select(row => row.NumberText));
         Assert.Contains("۲ فاکتور", viewModel.TodaySummaryText, StringComparison.Ordinal);
-        Assert.Contains("نقدی ۹۲۶,۵۰۰", viewModel.TodaySummaryText, StringComparison.Ordinal);
-        Assert.Contains("کارتخوان ۹۲۶,۵۰۰", viewModel.TodaySummaryText, StringComparison.Ordinal);
+        Assert.Contains("نقدی ۹۳۵,۰۰۰", viewModel.TodaySummaryText, StringComparison.Ordinal);
+        Assert.Contains("کارتخوان ۹۳۵,۰۰۰", viewModel.TodaySummaryText, StringComparison.Ordinal);
     }
 
     [Fact]
