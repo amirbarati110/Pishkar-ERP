@@ -86,6 +86,7 @@ internal sealed class InMemorySalesBackend :
             new ListSalesOfDayHandler(this),
             new BrowseProductsForSaleHandler(this, this),
             new ReadSaleProductsHandler(this),
+            new GetLineEditInfoHandler(this),
             new SearchProductsHandler(this),
             this,
             new SearchCustomersHandler(this),
@@ -215,6 +216,31 @@ internal sealed class InMemorySalesBackend :
             .ToList();
         return Task.FromResult<(IReadOnlyList<SaleProductListItem>, int)>(
             (all.Skip(criteria.Offset).Take(criteria.Limit).ToList(), all.Count));
+    }
+
+    Task<LineEditInfo> ISaleReadReader.ReadLineEditInfoAsync(
+        WarehouseId warehouseId, ProductId productId, CustomerId? customerId, CancellationToken cancellationToken)
+    {
+        var layers = Ledgers.SingleOrDefault(ledger => ledger.ProductId == productId)?.Layers ?? [];
+        var lastPurchase = layers.OrderByDescending(layer => layer.ReceivedOn).FirstOrDefault();
+        var currentCost = layers
+            .Where(layer => layer.RemainingQuantity.Value > 0)
+            .OrderBy(layer => layer.ReceivedOn)
+            .FirstOrDefault();
+
+        Money? lastSalePrice = customerId is null
+            ? null
+            : Sales
+                .Where(sale => sale.Status == SaleStatus.Completed && sale.CustomerId == customerId)
+                .OrderByDescending(sale => sale.CompletedAtUtc)
+                .SelectMany(sale => sale.Lines.Where(line => line.ProductId == productId).Select(line => line.UnitPrice))
+                .Cast<Money?>()
+                .FirstOrDefault();
+
+        return Task.FromResult(new LineEditInfo(
+            lastPurchase?.UnitCost,
+            currentCost?.UnitCost,
+            lastSalePrice));
     }
 
     Task<IReadOnlyList<ProductSearchResult>> IProductSearchReader.SearchAsync(SearchProductsQuery query, CancellationToken cancellationToken) =>

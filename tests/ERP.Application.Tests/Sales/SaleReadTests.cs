@@ -144,6 +144,15 @@ public sealed class SaleReadTests
             LastCriteria = criteria;
             return Task.FromResult<(IReadOnlyList<SaleProductListItem>, int)>(([], 31));
         }
+
+        public Task<LineEditInfo> ReadLineEditInfoAsync(
+            WarehouseId warehouseId,
+            ProductId productId,
+            CustomerId? customerId,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new LineEditInfo(null, null, null));
+        }
     }
 
     [Fact]

@@ -246,6 +246,53 @@ public sealed class FirebirdSaleReadReader : ISaleReadReader
         return items;
     }
 
+    /// <summary>
+    /// Three independent lookups in one round trip — the oldest and newest
+    /// INVENTORY_LAYER rows for the product (FIFO cost and last purchase; see
+    /// <see cref="StockLedger"/>'s own FIFO order, oldest RECEIVED_ON first)
+    /// and the customer's own last SALE_LINE for it. FIRST 1 with each
+    /// ordering, all as scalar subqueries against RDB$DATABASE's one row, so a
+    /// missing layer or missing sale history comes back NULL instead of
+    /// dropping the whole row.
+    /// </summary>
+    public async Task<LineEditInfo> ReadLineEditInfoAsync(
+        WarehouseId warehouseId,
+        ProductId productId,
+        CustomerId? customerId,
+        CancellationToken cancellationToken)
+    {
+        await using var command = CreateCommand(
+            """
+            SELECT
+                (SELECT FIRST 1 UNIT_COST_RIALS FROM INVENTORY_LAYER
+                 WHERE PRODUCT_ID = @PRODUCT_ID AND WAREHOUSE_ID = @WAREHOUSE_ID
+                 ORDER BY RECEIVED_ON DESC) AS LAST_PURCHASE_COST_RIALS,
+                (SELECT FIRST 1 UNIT_COST_RIALS FROM INVENTORY_LAYER
+                 WHERE PRODUCT_ID = @PRODUCT_ID AND WAREHOUSE_ID = @WAREHOUSE_ID AND REMAINING_QTY > 0
+                 ORDER BY RECEIVED_ON ASC) AS CURRENT_COST_RIALS,
+                (SELECT FIRST 1 SL.UNIT_PRICE_RIALS FROM SALE_LINE SL
+                 JOIN SALE S ON S.ID = SL.SALE_ID
+                 WHERE SL.PRODUCT_ID = @PRODUCT_ID AND S.CUSTOMER_ID = @CUSTOMER_ID AND S.STATUS = @COMPLETED
+                 ORDER BY S.COMPLETED_AT_UTC DESC) AS LAST_SALE_PRICE_RIALS
+            FROM RDB$DATABASE
+            """);
+        command.Parameters.Add("@PRODUCT_ID", FbDbType.Char).Value = productId.ToString();
+        command.Parameters.Add("@WAREHOUSE_ID", FbDbType.Char).Value = warehouseId.ToString();
+        command.Parameters.Add("@CUSTOMER_ID", FbDbType.Char).Value = (object?)customerId?.ToString() ?? DBNull.Value;
+        command.Parameters.Add("@COMPLETED", FbDbType.SmallInt).Value = (short)SaleStatus.Completed;
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+
+        return new LineEditInfo(
+            reader.IsDBNull(0) ? null : Money.FromRials(reader.GetInt64(0)),
+            reader.IsDBNull(1) ? null : Money.FromRials(reader.GetInt64(1)),
+            // A cash sale has no CUSTOMER_ID to match — @CUSTOMER_ID is NULL,
+            // and "S.CUSTOMER_ID = NULL" never matches in SQL, so this comes
+            // back NULL on its own without a separate branch here.
+            reader.IsDBNull(2) ? null : Money.FromRials(reader.GetInt64(2)));
+    }
+
     private static DateTimeOffset AsUtc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 
     private FbCommand CreateCommand(string commandText)

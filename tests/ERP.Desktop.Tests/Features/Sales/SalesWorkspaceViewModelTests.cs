@@ -375,6 +375,69 @@ public sealed class SalesWorkspaceViewModelTests
         Assert.Single(backend.Sales, sale => sale.Status == SaleStatus.Completed);
     }
 
+    [Fact]
+    public async Task OpeningTheEditWindowShowsCostStockAndMarginForThisRow()
+    {
+        var (_, viewModel) = Create();
+        await viewModel.LoadAsync(CancellationToken.None);
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products.Single(product => product.Name == "روغن حیوانی"));
+
+        await viewModel.OpenEditLineCommand.ExecuteAsync(viewModel.CurrentTab!.Lines[0]);
+
+        // AddProduct's test double prices cost at half the sale price: ۸۵۰,۰۰۰ ÷ ۲ = ۴۲۵,۰۰۰.
+        Assert.Equal("۴۲۵,۰۰۰", viewModel.EditCurrentCostText);
+        Assert.Equal("۴۲۵,۰۰۰", viewModel.EditLastPurchaseText);
+        Assert.Equal("۱۰", viewModel.EditStockText); // a draft line does not yet touch stock
+        Assert.Equal("مشتری نقدی", viewModel.EditLastPriceToCustomerText);
+        Assert.Equal("۵۰", viewModel.EditMarginText); // (۸۵۰,۰۰۰ − ۴۲۵,۰۰۰) ÷ ۸۵۰,۰۰۰
+        Assert.Equal("۱۰۰", viewModel.EditMarkupText); // (۸۵۰,۰۰۰ − ۴۲۵,۰۰۰) ÷ ۴۲۵,۰۰۰
+        Assert.False(viewModel.HasEditBelowCostWarning);
+    }
+
+    [Fact]
+    public async Task TypingAPriceBelowCostWarnsLiveAndClearsWhenFixed()
+    {
+        var (_, viewModel) = Create();
+        await viewModel.LoadAsync(CancellationToken.None);
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products.Single(product => product.Name == "روغن حیوانی"));
+        await viewModel.OpenEditLineCommand.ExecuteAsync(viewModel.CurrentTab!.Lines[0]);
+
+        viewModel.EditUnitPriceText = "۴۰۰,۰۰۰"; // under the ۴۲۵,۰۰۰ cost
+
+        Assert.True(viewModel.HasEditBelowCostWarning);
+        Assert.Contains("زیر بهای تمام‌شده", viewModel.EditBelowCostWarning, StringComparison.Ordinal);
+        Assert.Equal("-۶.۲۵", viewModel.EditMarginText); // (۴۰۰,۰۰۰ − ۴۲۵,۰۰۰) ÷ ۴۰۰,۰۰۰
+        Assert.Equal("-۵.۸۸", viewModel.EditMarkupText); // (۴۰۰,۰۰۰ − ۴۲۵,۰۰۰) ÷ ۴۲۵,۰۰۰، رند به دو رقم اعشار
+
+        viewModel.EditUnitPriceText = "۵۰۰,۰۰۰"; // back above cost
+
+        Assert.False(viewModel.HasEditBelowCostWarning);
+        Assert.Null(viewModel.EditBelowCostWarning);
+    }
+
+    [Fact]
+    public async Task LastSalePriceOnlyShowsForTheSameCustomer()
+    {
+        var (backend, viewModel) = Create();
+        var customer = Customer.QuickCreate("محمد رضایی", "09123456789");
+        backend.Customers.Add(customer);
+        await viewModel.LoadAsync(CancellationToken.None);
+
+        // First invoice: sold to محمد رضایی at the catalogue price.
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products.Single(product => product.Name == "روغن حیوانی"));
+        await viewModel.ChooseCustomerCommand.ExecuteAsync(new Application.Customers.CustomerSearchResult(customer.Id, customer.Name, customer.Mobile));
+        viewModel.OpenPaymentCommand.Execute(CompletionFollowUp.NextInvoice);
+        viewModel.SelectPaymentMethodCommand.Execute(PaymentMethod.Cash);
+        await viewModel.ConfirmPaymentCommand.ExecuteAsync(null);
+
+        // Second invoice, same customer: the pencil window should recall what they last paid.
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products.Single(product => product.Name == "روغن حیوانی"));
+        await viewModel.ChooseCustomerCommand.ExecuteAsync(new Application.Customers.CustomerSearchResult(customer.Id, customer.Name, customer.Mobile));
+        await viewModel.OpenEditLineCommand.ExecuteAsync(viewModel.CurrentTab!.Lines[0]);
+
+        Assert.Equal("۸۵۰,۰۰۰", viewModel.EditLastPriceToCustomerText);
+    }
+
     private static (InMemorySalesBackend Backend, SalesWorkspaceViewModel ViewModel) Create()
     {
         var backend = new InMemorySalesBackend();

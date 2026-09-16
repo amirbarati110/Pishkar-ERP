@@ -18,6 +18,29 @@ public sealed record SaleProductInfo(
     string UnitSymbol,
     StockBalance Available);
 
+/// <summary>
+/// What the pencil window shows next to the price field (§6.10) — everything
+/// real that can be known from stock and past sales, nothing invented.
+/// </summary>
+/// <param name="LastPurchaseCost">
+/// The most recently received layer's unit cost, null if this product was
+/// never received into this warehouse.
+/// </param>
+/// <param name="CurrentCost">
+/// The unit cost of the layer FIFO will actually draw from next — the oldest
+/// layer that still has stock — so the margin shown matches what completing
+/// the sale will really cost. Null when there is no stock to draw from.
+/// </param>
+/// <param name="LastSalePriceToCustomer">
+/// The unit price this exact customer last paid for this product on a
+/// completed invoice, or null if there is no such sale (including when the
+/// invoice has no customer — «مشتری نقدی» has no history to compare against).
+/// </param>
+public sealed record LineEditInfo(
+    Money? LastPurchaseCost,
+    Money? CurrentCost,
+    Money? LastSalePriceToCustomer);
+
 /// <summary>One invoice in a list — «فاکتورهای امروز» or «فاکتورهای معلق».</summary>
 /// <param name="Amount">
 /// For a completed invoice, the payable total fixed at completion (null for
@@ -58,5 +81,12 @@ public interface ISaleReadReader
     /// <summary>One page of the product list, with the total number of matching products.</summary>
     Task<(IReadOnlyList<SaleProductListItem> Items, int TotalCount)> BrowseProductsAsync(
         ProductListCriteria criteria,
+        CancellationToken cancellationToken);
+
+    /// <summary>The three numbers the pencil window shows next to its price field — see <see cref="LineEditInfo"/>.</summary>
+    Task<LineEditInfo> ReadLineEditInfoAsync(
+        WarehouseId warehouseId,
+        ProductId productId,
+        CustomerId? customerId,
         CancellationToken cancellationToken);
 }

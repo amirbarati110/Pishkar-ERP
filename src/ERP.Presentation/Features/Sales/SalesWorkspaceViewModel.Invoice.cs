@@ -56,15 +56,51 @@ public sealed partial class SalesWorkspaceViewModel
     [ObservableProperty]
     public partial string? EditError { get; set; }
 
+    // ───── the numbers next to the price field (§6.10) ─────
+
+    [ObservableProperty]
+    public partial string EditStockText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string EditLastPurchaseText { get; set; } = "—";
+
+    [ObservableProperty]
+    public partial string EditCurrentCostText { get; set; } = "—";
+
+    [ObservableProperty]
+    public partial string EditLastPriceToCustomerText { get; set; } = "—";
+
+    /// <summary>«حاشیه سود» (§5.14 Gross Margin) — (قیمت − بها) ÷ قیمت.</summary>
+    [ObservableProperty]
+    public partial string EditMarginText { get; set; } = "—";
+
+    /// <summary>«درصد افزایش نسبت به بهای تمام‌شده» (§5.14 Markup) — (قیمت − بها) ÷ بها.</summary>
+    [ObservableProperty]
+    public partial string EditMarkupText { get; set; } = "—";
+
+    /// <summary>§5.17 Below-cost Detection: non-empty once the typed price is under <see cref="_editCurrentCost"/>.</summary>
+    [ObservableProperty]
+    public partial string? EditBelowCostWarning { get; set; }
+
+    public bool HasEditBelowCostWarning => EditBelowCostWarning is not null;
+
+    partial void OnEditBelowCostWarningChanged(string? value) => OnPropertyChanged(nameof(HasEditBelowCostWarning));
+
+    /// <summary>
+    /// FIFO's next-to-consume unit cost for the product being edited — what
+    /// actually gets charged against this sale — kept aside so margin/markup
+    /// and the below-cost warning can recompute as the cashier types a new
+    /// price, without another round trip per keystroke.
+    /// </summary>
+    private Money? _editCurrentCost;
+
     [RelayCommand]
-    private void OpenEditLine(CartLineRow? row)
+    private Task OpenEditLineAsync(CartLineRow? row) => row is null ? Task.CompletedTask : RunAsync(async () =>
     {
-        if (row is null)
-        {
-            return;
-        }
+        var tab = RequireTab();
 
         _editingRow = row;
+        _editCurrentCost = null; // cleared until the real cost for this product arrives below
         EditProductName = row.Name;
         _syncingEditDiscount = true;
         EditQuantityText = SalesText.Quantity(row.Line.Quantity);
@@ -75,7 +111,52 @@ public sealed partial class SalesWorkspaceViewModel
         _syncingEditDiscount = false;
         EditUpdateCatalogPrice = false;
         EditError = null;
+        EditStockText = SalesText.Quantity(row.Line.Available.Value);
+        EditLastPurchaseText = EditCurrentCostText = EditLastPriceToCustomerText = EditMarginText = EditMarkupText = "—";
+        EditBelowCostWarning = null;
         IsEditLineOpen = true;
+
+        var info = await _backend.LineEditInfo.ExecuteAsync(
+            new GetLineEditInfoQuery(_warehouseId, row.ProductId, tab.CustomerId),
+            CancellationToken.None);
+
+        // The cashier may have already closed the window, or opened a
+        // different row, before this reply arrives — do not overwrite it.
+        if (_editingRow != row)
+        {
+            return;
+        }
+
+        _editCurrentCost = info.CurrentCost;
+        EditLastPurchaseText = info.LastPurchaseCost is { } lastPurchase ? SalesText.Tomans(lastPurchase) : "—";
+        EditCurrentCostText = info.CurrentCost is { } currentCost ? SalesText.Tomans(currentCost) : "—";
+        EditLastPriceToCustomerText = tab.CustomerId is null
+            ? "مشتری نقدی"
+            : info.LastSalePriceToCustomer is { } lastPrice ? SalesText.Tomans(lastPrice) : "بدون سابقه";
+        UpdateMarginPreview();
+    });
+
+    partial void OnEditUnitPriceTextChanged(string value) => UpdateMarginPreview();
+
+    /// <summary>Recomputes «حاشیه سود» / «درصد افزایش نسبت به بهای تمام‌شده» / the below-cost warning from the price box the cashier is typing into.</summary>
+    private void UpdateMarginPreview()
+    {
+        if (_editCurrentCost is not { } cost || SalesText.ParseTomansToRials(EditUnitPriceText) is not { } priceRials)
+        {
+            EditMarginText = EditMarkupText = "—";
+            EditBelowCostWarning = null;
+            return;
+        }
+
+        var costRials = cost.Rials;
+        EditMarginText = priceRials > 0 ? SalesText.Percent((priceRials - costRials) * 100m / priceRials) : "—";
+        EditMarkupText = costRials > 0 ? SalesText.Percent((priceRials - costRials) * 100m / costRials) : "—";
+
+        // §5.17 Below-cost Detection — Warning policy (Manager Approval/Block
+        // need the permission system of checklist ب#11, not built yet).
+        EditBelowCostWarning = priceRials < costRials
+            ? $"این قیمت زیر بهای تمام‌شده است (بهای تمام‌شده: {SalesText.Tomans(cost)} تومان)."
+            : null;
     }
 
     partial void OnEditDiscountPercentTextChanged(string value)

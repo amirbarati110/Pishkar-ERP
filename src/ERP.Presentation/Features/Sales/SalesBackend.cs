@@ -20,6 +20,7 @@ public sealed record SalesBackend(
     IListSalesOfDayHandler SalesOfDay,
     IBrowseProductsForSaleHandler BrowseProducts,
     IReadSaleProductsHandler ReadProducts,
+    IGetLineEditInfoHandler LineEditInfo,
     ISearchProductsHandler SearchProducts,
     ICatalogLookupReader CatalogLookup,
     ISearchCustomersHandler SearchCustomers,

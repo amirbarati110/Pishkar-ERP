@@ -726,16 +726,60 @@
 
         <!-- edit row -->
         <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsEditLineOpen, Mode=OneWay}">
-            <Border Style="{StaticResource SalesDialogCard}" Width="460">
+            <Border Style="{StaticResource SalesDialogCard}" Width="500">
                 <StackPanel>
                     <TextBlock Text="ویرایش سطر فاکتور" Style="{StaticResource SalesDialogTitle}" Margin="18,15" />
                     <StackPanel Spacing="12" Padding="18,4,18,16">
                         <TextBlock Text="{x:Bind ViewModel.EditProductName, Mode=OneWay}" FontSize="15" FontWeight="SemiBold" />
+
+                        <!-- §6.10: خرید آخر، بهای تمام‌شده، آخرین قیمت فروش به همین مشتری، موجودی — نمایشی، نه قابل ویرایش -->
+                        <Border Padding="12,10" CornerRadius="10" Background="{ThemeResource SalesMutedFillBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
+                            <Grid ColumnSpacing="8" RowSpacing="8">
+                                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                                <StackPanel Spacing="1">
+                                    <TextBlock Text="خرید آخر" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                    <TextBlock Text="{x:Bind ViewModel.EditLastPurchaseText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="1">
+                                    <TextBlock Text="بهای تمام‌شده" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                    <TextBlock Text="{x:Bind ViewModel.EditCurrentCostText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Spacing="1">
+                                    <TextBlock Text="آخرین قیمت فروش به این مشتری" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{x:Bind ViewModel.EditLastPriceToCustomerText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="1">
+                                    <TextBlock Text="موجودی" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                    <TextBlock Text="{x:Bind ViewModel.EditStockText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
                         <Grid ColumnSpacing="10">
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                             <TextBox Header="مقدار" Text="{x:Bind ViewModel.EditQuantityText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" InputScope="Number" />
                             <TextBox Grid.Column="1" Header="قیمت واحد این فاکتور (تومان)" Text="{x:Bind ViewModel.EditUnitPriceText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" InputScope="Number" />
                         </Grid>
+
+                        <!-- §5.14: دو عنوان جدا برای دو محاسبه‌ی جدا، همان‌طور که سند خواسته -->
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <StackPanel Spacing="1">
+                                <TextBlock Text="حاشیه سود" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                <TextBlock Text="{x:Bind ViewModel.EditMarginText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Spacing="1">
+                                <TextBlock Text="درصد افزایش نسبت به بهای تمام‌شده" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" TextWrapping="Wrap" />
+                                <TextBlock Text="{x:Bind ViewModel.EditMarkupText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
+                                Visibility="{x:Bind ViewModel.HasEditBelowCostWarning, Mode=OneWay}">
+                            <TextBlock Text="{x:Bind ViewModel.EditBelowCostWarning, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        </Border>
+
                         <Grid ColumnSpacing="10">
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                             <TextBox Header="تخفیف سطر (تومان)" Text="{x:Bind ViewModel.EditDiscountText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" InputScope="Number" />

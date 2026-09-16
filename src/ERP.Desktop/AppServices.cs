@@ -58,6 +58,7 @@ public sealed record AppServices(
             SalesOfDay: salesService,
             BrowseProducts: salesService,
             ReadProducts: salesService,
+            LineEditInfo: salesService,
             SearchProducts: productSearch,
             CatalogLookup: catalogLookup,
             SearchCustomers: customerService,
