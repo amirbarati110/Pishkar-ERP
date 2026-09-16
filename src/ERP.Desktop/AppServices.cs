@@ -51,6 +51,7 @@ public sealed record AppServices(
             RemoveLine: salesService,
             SetCharges: salesService,
             SetCustomer: salesService,
+            SetNote: salesService,
             Complete: salesService,
             Cancel: salesService,
             Details: salesService,

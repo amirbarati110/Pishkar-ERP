@@ -32,7 +32,8 @@ public sealed class FirebirdSalesService :
     IBrowseProductsForSaleHandler,
     ICancelSaleHandler,
     IReadSaleProductsHandler,
-    IGetLineEditInfoHandler
+    IGetLineEditInfoHandler,
+    ISetSaleNoteHandler
 {
     private readonly FirebirdConnectionFactory _connectionFactory;
     private readonly IUserContext _userContext;
@@ -146,6 +147,18 @@ public sealed class FirebirdSalesService :
                 new FirebirdSaleRepository(unitOfWork),
                 new FirebirdCustomerRepository(unitOfWork),
                 unitOfWork)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(
+        SetSaleNoteCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new SetSaleNoteHandler(new FirebirdSaleRepository(unitOfWork), unitOfWork)
             .ExecuteAsync(command, cancellationToken)
             .ConfigureAwait(false);
     }

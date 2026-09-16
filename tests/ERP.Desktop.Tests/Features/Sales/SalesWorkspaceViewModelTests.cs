@@ -507,6 +507,47 @@ public sealed class SalesWorkspaceViewModelTests
         Assert.Empty(backend.Payments);
     }
 
+    [Fact]
+    public async Task TypingAnInvoiceNoteAndLosingFocusSavesItOnTheSale()
+    {
+        var (backend, viewModel) = Create();
+        await viewModel.LoadAsync(CancellationToken.None);
+
+        viewModel.CurrentTab!.NoteInput = "  تحویل عصر  ";
+        await viewModel.CommitNoteCommand.ExecuteAsync(null);
+
+        Assert.Equal("تحویل عصر", backend.Sales.Single().Note);
+    }
+
+    [Fact]
+    public async Task AHeldInvoiceReopensWithItsNoteStillThere()
+    {
+        var (backend, viewModel) = Create();
+        await viewModel.LoadAsync(CancellationToken.None);
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products[0]);
+        viewModel.CurrentTab!.NoteInput = "مشتری زنگ بزند";
+        await viewModel.CommitNoteCommand.ExecuteAsync(null);
+
+        var reopened = new SalesWorkspaceViewModel(backend.Build(), backend.Warehouse);
+        await reopened.LoadAsync(CancellationToken.None);
+
+        Assert.Equal("مشتری زنگ بزند", reopened.CurrentTab!.NoteInput);
+    }
+
+    [Fact]
+    public async Task ANoteTooLongIsRejectedWithANoticeAndNotSaved()
+    {
+        var (backend, viewModel) = Create();
+        await viewModel.LoadAsync(CancellationToken.None);
+
+        viewModel.CurrentTab!.NoteInput = new string('ا', 501);
+        await viewModel.CommitNoteCommand.ExecuteAsync(null);
+
+        Assert.Null(backend.Sales.Single().Note);
+        Assert.NotNull(viewModel.Notice);
+        Assert.True(viewModel.NoticeIsError);
+    }
+
     private static (InMemorySalesBackend Backend, SalesWorkspaceViewModel ViewModel) Create()
     {
         var backend = new InMemorySalesBackend();

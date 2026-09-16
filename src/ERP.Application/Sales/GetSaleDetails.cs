@@ -45,7 +45,8 @@ public sealed record SaleDetails(
     Money ServiceCharge,
     PaymentMethod? PaymentMethod,
     SaleTotals? Totals,
-    SaleTotals? Preview);
+    SaleTotals? Preview,
+    string? Note);
 
 public interface IGetSaleDetailsHandler
 {
@@ -141,6 +142,7 @@ public sealed class GetSaleDetailsHandler : IGetSaleDetailsHandler
             sale.ServiceCharge,
             sale.PaymentMethod,
             sale.Totals,
-            preview));
+            preview,
+            sale.Note));
     }
 }

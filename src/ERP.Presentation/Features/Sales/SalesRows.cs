@@ -199,6 +199,10 @@ public sealed partial class InvoiceTab : ObservableObject
     [ObservableProperty]
     public partial string SubtotalText { get; set; } = "۰";
 
+    /// <summary>«توضیحات فاکتور» — free text, saved on the invoice itself (approved design).</summary>
+    [ObservableProperty]
+    public partial string NoteInput { get; set; } = string.Empty;
+
     [ObservableProperty]
     public partial string DiscountInput { get; set; } = "۰";
 
@@ -250,6 +254,7 @@ public sealed partial class InvoiceTab : ObservableObject
         Subtotal = Money.Zero;
         Payable = Money.Zero;
         SubtotalText = TaxText = TotalText = "۰";
+        NoteInput = string.Empty;
         DiscountInput = DiscountPercentInput = ServiceChargeInput = "۰";
         IsEmpty = true;
         UpdateTitle();
@@ -275,6 +280,7 @@ public sealed partial class InvoiceTab : ObservableObject
 
         Subtotal = details.Subtotal;
         SubtotalText = SalesText.Tomans(details.Subtotal);
+        NoteInput = details.Note ?? string.Empty;
         DiscountInput = SalesText.Tomans(details.Discount);
         DiscountPercentInput = details.Subtotal.Rials == 0
             ? "۰"

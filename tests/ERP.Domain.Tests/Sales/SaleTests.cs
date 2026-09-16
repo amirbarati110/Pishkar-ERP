@@ -144,6 +144,34 @@ public sealed class SaleTests
         Assert.Throws<DomainException>(() => sale.ApplyDiscount(Money.FromTomans(1)));
         Assert.Throws<DomainException>(() => sale.Complete(Number, PaymentMethod.Cash, 0, Now));
         Assert.Throws<DomainException>(() => sale.Cancel());
+        Assert.Throws<DomainException>(() => sale.SetNote("توضیح جدید"));
+    }
+
+    [Fact]
+    public void SetNoteTrimsAndClearsOnBlank()
+    {
+        var sale = Sale.OpenDraft(Warehouse, null, Now);
+
+        sale.SetNote("  تحویل عصر  ");
+        Assert.Equal("تحویل عصر", sale.Note);
+
+        sale.SetNote("   ");
+        Assert.Null(sale.Note);
+
+        sale.SetNote(null);
+        Assert.Null(sale.Note);
+    }
+
+    [Fact]
+    public void SetNoteRejectsTextOverFiveHundredCharacters()
+    {
+        var sale = Sale.OpenDraft(Warehouse, null, Now);
+
+        Assert.Throws<DomainException>(() => sale.SetNote(new string('ا', 501)));
+        Assert.Null(sale.Note);
+
+        sale.SetNote(new string('ا', 500));
+        Assert.Equal(500, sale.Note!.Length);
     }
 
     [Fact]

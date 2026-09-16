@@ -120,6 +120,34 @@ public sealed class SalesServiceTests
     }
 
     [Fact]
+    public async Task TheInvoiceNoteSurvivesARoundTripAndCanBeClearedOrRejectedIfTooLong()
+    {
+        var context = await SetupAsync();
+
+        var start = await context.Sales.ExecuteAsync(
+            new StartSaleCommand(context.Defaults.MainWarehouseId), CancellationToken.None);
+        var saleId = start.Value;
+
+        var set = await context.Sales.ExecuteAsync(
+            new SetSaleNoteCommand(saleId, "  تحویل عصر، درب پشتی  "), CancellationToken.None);
+        Assert.True(set.IsSuccess);
+
+        var reloaded = await context.SaleRepository.GetAsync(saleId, CancellationToken.None);
+        Assert.Equal("تحویل عصر، درب پشتی", reloaded!.Note);
+
+        var tooLong = await context.Sales.ExecuteAsync(
+            new SetSaleNoteCommand(saleId, new string('ا', 501)), CancellationToken.None);
+        Assert.False(tooLong.IsSuccess);
+        var stillOld = await context.SaleRepository.GetAsync(saleId, CancellationToken.None);
+        Assert.Equal("تحویل عصر، درب پشتی", stillOld!.Note); // rejected write did not overwrite the old note
+
+        var cleared = await context.Sales.ExecuteAsync(new SetSaleNoteCommand(saleId, null), CancellationToken.None);
+        Assert.True(cleared.IsSuccess);
+        var final = await context.SaleRepository.GetAsync(saleId, CancellationToken.None);
+        Assert.Null(final!.Note);
+    }
+
+    [Fact]
     public async Task UpdatingTheCatalogPriceFromTheLineEditorChangesTheProductToo()
     {
         var context = await SetupAsync();

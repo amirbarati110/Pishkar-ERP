@@ -524,6 +524,8 @@ public sealed partial class SalesPage : Page
         }
     }
 
+    private void OnNoteLostFocus(object sender, RoutedEventArgs e) => ViewModel.CommitNoteCommand.Execute(null);
+
     private void OnTaxLostFocus(object sender, RoutedEventArgs e) => ViewModel.CommitTaxRateCommand.Execute(null);
 
     private void CommitFooter(TextBox box)

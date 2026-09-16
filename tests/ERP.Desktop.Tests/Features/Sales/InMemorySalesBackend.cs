@@ -81,6 +81,7 @@ internal sealed class InMemorySalesBackend :
             new RemoveSaleLineHandler(this, this),
             new SetSaleChargesHandler(this, this),
             new SetSaleCustomerHandler(this, this, this),
+            new SetSaleNoteHandler(this, this),
             new CountingComplete(this, new CompleteSaleHandler(this, this, this, this, this, this, this, this, this)),
             new CancelSaleHandler(this, this, this, this, this),
             new GetSaleDetailsHandler(this, this, this),

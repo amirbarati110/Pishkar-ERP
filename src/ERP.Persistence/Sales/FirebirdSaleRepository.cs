@@ -25,7 +25,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             """
             SELECT WAREHOUSE_ID, CUSTOMER_ID, STATUS, DISCOUNT_RIALS,
                    PAYMENT_METHOD, OPENED_AT_UTC, COMPLETED_AT_UTC, SERVICE_CHARGE_RIALS, NUMBER,
-                   TAX_RIALS
+                   TAX_RIALS, NOTE
             FROM SALE
             WHERE ID = @ID
             """);
@@ -41,6 +41,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
         PaymentMethod? paymentMethod;
         DateTimeOffset openedAtUtc;
         DateTimeOffset? completedAtUtc;
+        string? note;
 
         await using (var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -61,6 +62,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             serviceChargeRials = reader.GetInt64(7);
             number = reader.IsDBNull(8) ? null : SaleNumber.From(reader.GetInt64(8));
             tax = reader.IsDBNull(9) ? null : Money.FromRials(reader.GetInt64(9));
+            note = reader.IsDBNull(10) ? null : reader.GetString(10);
         }
 
         var lines = await ReadLinesAsync(saleId, cancellationToken).ConfigureAwait(false);
@@ -77,6 +79,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             paymentMethod,
             completedAtUtc,
             tax,
+            note,
             lines);
     }
 
@@ -89,11 +92,11 @@ public sealed class FirebirdSaleRepository : ISaleRepository
             UPDATE OR INSERT INTO SALE (
                 ID, WAREHOUSE_ID, CUSTOMER_ID, STATUS, DISCOUNT_RIALS,
                 PAYMENT_METHOD, OPENED_AT_UTC, COMPLETED_AT_UTC, SERVICE_CHARGE_RIALS, NUMBER,
-                TAX_RIALS, TOTAL_RIALS)
+                TAX_RIALS, TOTAL_RIALS, NOTE)
             VALUES (
                 @ID, @WAREHOUSE_ID, @CUSTOMER_ID, @STATUS, @DISCOUNT_RIALS,
                 @PAYMENT_METHOD, @OPENED_AT_UTC, @COMPLETED_AT_UTC, @SERVICE_CHARGE_RIALS, @NUMBER,
-                @TAX_RIALS, @TOTAL_RIALS)
+                @TAX_RIALS, @TOTAL_RIALS, @NOTE)
             MATCHING (ID)
             """))
         {
@@ -115,6 +118,7 @@ public sealed class FirebirdSaleRepository : ISaleRepository
                 sale.Totals is { } taxTotals ? taxTotals.Tax.Rials : DBNull.Value;
             command.Parameters.Add("@TOTAL_RIALS", FbDbType.BigInt).Value =
                 sale.Totals is { } totals ? totals.Total.Rials : DBNull.Value;
+            command.Parameters.Add("@NOTE", FbDbType.VarChar).Value = (object?)sale.Note ?? DBNull.Value;
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 

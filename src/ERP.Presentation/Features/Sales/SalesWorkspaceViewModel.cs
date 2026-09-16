@@ -438,6 +438,25 @@ public sealed partial class SalesWorkspaceViewModel : ObservableObject
     });
 
     /// <summary>
+    /// «توضیحات فاکتور» (approved design) — committed on LostFocus like the
+    /// discount/service boxes, not on every keystroke. A note is small enough
+    /// that losing a retry to a transient failure is not worth troubling the
+    /// cashier over; it just does not save that once and stays on screen to
+    /// retry on the next commit.
+    /// </summary>
+    [RelayCommand]
+    private Task CommitNoteAsync() => RunAsync(async () =>
+    {
+        var tab = RequireTab();
+        var result = await _backend.SetNote.ExecuteAsync(
+            new SetSaleNoteCommand(tab.SaleId, tab.NoteInput), CancellationToken.None);
+        if (!result.IsSuccess)
+        {
+            ShowNotice(result.Error?.Message ?? "توضیحات ثبت نشد.", isError: true);
+        }
+    });
+
+    /// <summary>
     /// The tax rate on screen (§10.10). It belongs to this invoice until it is
     /// completed, so it is not saved on the draft: a held invoice reopens at
     /// the default rate.

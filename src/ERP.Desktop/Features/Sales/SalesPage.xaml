@@ -604,13 +604,33 @@
                         </Grid>
                     </Border>
 
-                    <!-- footer: totals (§6.10 discount amount/percent, service charge, §10.10 tax) -->
+                    <!--
+                        footer: notes + totals (§6.10 discount amount/percent, service
+                        charge, §10.10 tax). User feedback after seeing the screen:
+                        «انبار و مشتری نقدی پایین چیه؟ مبالغ بیاد سمت چپ + توضیحات» —
+                        the old right box («انبار: انبار اصلی») was not even real data
+                        (a hard-coded label, no warehouse selection exists yet) and the
+                        left one duplicated the customer name already shown above the
+                        cart. Both removed; totals moved to the left column, a real
+                        «توضیحات فاکتور» box (saved on the invoice — Sale.Note) takes
+                        the right one instead, matching the approved design's «مبالغ +
+                        توضیحات فاکتور کنار هم».
+                    -->
                     <Grid Grid.Row="5" ColumnSpacing="9">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="300" />
+                            <ColumnDefinition Width="260" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Border Padding="12,6" CornerRadius="10" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
+                        <Border Padding="10" CornerRadius="10" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="توضیحات فاکتور" Style="{StaticResource SalesLabel}" />
+                                <TextBox x:Name="InvoiceNoteBox" Text="{x:Bind ViewModel.CurrentTab.NoteInput, Mode=TwoWay}"
+                                         PlaceholderText="مثلاً «تحویل عصر»، دلیل تخفیف، …" TextWrapping="Wrap" AcceptsReturn="True"
+                                         Height="132" VerticalContentAlignment="Top" FontSize="13.5"
+                                         LostFocus="OnNoteLostFocus" AutomationProperties.Name="توضیحات فاکتور" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Padding="12,6" CornerRadius="10" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
                             <StackPanel Spacing="4">
                                 <Grid>
                                     <StackPanel Orientation="Horizontal" Spacing="7">
@@ -665,20 +685,6 @@
                                 </Grid>
                             </StackPanel>
                         </Border>
-                        <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Bottom">
-                            <Border Padding="10,8" CornerRadius="9" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
-                                <StackPanel Spacing="2">
-                                    <TextBlock Text="انبار" Style="{StaticResource SalesLabel}" />
-                                    <TextBlock Text="انبار اصلی" FontWeight="SemiBold" />
-                                </StackPanel>
-                            </Border>
-                            <Border Padding="10,8" CornerRadius="9" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
-                                <StackPanel Spacing="2">
-                                    <TextBlock Text="مشتری" Style="{StaticResource SalesLabel}" />
-                                    <TextBlock Text="{x:Bind ViewModel.CurrentTab.CustomerName, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
                     </Grid>
                 </Grid>
             </Border>

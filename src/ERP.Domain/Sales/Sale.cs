@@ -16,6 +16,8 @@ namespace ERP.Domain.Sales;
 /// </summary>
 public sealed class Sale : Entity<SaleId>
 {
+    private const int MaximumNoteLength = 500;
+
     private readonly List<SaleLine> _lines = [];
 
     private Sale(
@@ -37,6 +39,13 @@ public sealed class Sale : Entity<SaleId>
 
     /// <summary>Null is the walk-in cash sale («مشتری نقدی», §6.3).</summary>
     public CustomerId? CustomerId { get; private set; }
+
+    /// <summary>
+    /// «توضیحات فاکتور» (approved sales-screen design) — delivery instructions,
+    /// why a discount was given, anything the cashier wants the next person to
+    /// read on this invoice. Free text, not a business rule input.
+    /// </summary>
+    public string? Note { get; private set; }
 
     public DateTimeOffset OpenedAtUtc { get; }
 
@@ -90,6 +99,7 @@ public sealed class Sale : Entity<SaleId>
         PaymentMethod? paymentMethod,
         DateTimeOffset? completedAtUtc,
         Money? tax,
+        string? note,
         IEnumerable<(ProductId ProductId, decimal Quantity, long UnitPriceRials, long DiscountRials, long CatalogPriceRials)> lines)
     {
         var sale = new Sale(id, warehouseId, customerId, openedAtUtc)
@@ -101,6 +111,7 @@ public sealed class Sale : Entity<SaleId>
             PaymentMethod = paymentMethod,
             CompletedAtUtc = completedAtUtc,
             Tax = tax,
+            Note = note,
         };
 
         foreach (var line in lines)
@@ -176,6 +187,25 @@ public sealed class Sale : Entity<SaleId>
     {
         EnsureDraft();
         CustomerId = customerId;
+    }
+
+    /// <summary>
+    /// Editable only while the sale is a draft — like every other field here,
+    /// a posted invoice is not edited (Codex rule 15). Blank clears it; over
+    /// length is rejected rather than silently truncated, so nothing typed is
+    /// ever lost without the cashier knowing.
+    /// </summary>
+    public void SetNote(string? note)
+    {
+        EnsureDraft();
+
+        var trimmed = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+        if (trimmed is { Length: > MaximumNoteLength })
+        {
+            throw new DomainException("توضیحات فاکتور نمی‌تواند بیشتر از ۵۰۰ نویسه باشد.");
+        }
+
+        Note = trimmed;
     }
 
     public void ApplyDiscount(Money discount)

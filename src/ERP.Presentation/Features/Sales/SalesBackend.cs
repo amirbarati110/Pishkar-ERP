@@ -13,6 +13,7 @@ public sealed record SalesBackend(
     IRemoveSaleLineHandler RemoveLine,
     ISetSaleChargesHandler SetCharges,
     ISetSaleCustomerHandler SetCustomer,
+    ISetSaleNoteHandler SetNote,
     ICompleteSaleHandler Complete,
     ICancelSaleHandler Cancel,
     IGetSaleDetailsHandler Details,
