@@ -44,7 +44,7 @@ public sealed class BackupServiceTests
             var verified = await service.ExecuteAsync(new VerifyBackupCommand(created.Value), CancellationToken.None);
 
             Assert.True(verified.IsSuccess);
-            Assert.True(verified.Value!.IsVerified);
+            Assert.True(verified.Value!.IsVerified, verified.Value.Note);
             Assert.Contains("بازیابی موفق بود", verified.Value.Note, StringComparison.Ordinal);
 
             await using var checkUnitOfWork = await FirebirdUnitOfWork.CreateAsync(factory, CancellationToken.None);

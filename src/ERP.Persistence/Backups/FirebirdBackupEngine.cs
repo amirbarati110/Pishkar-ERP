@@ -56,6 +56,14 @@ public sealed class FirebirdBackupEngine : IBackupEngine
             await restore.ExecuteAsync(cancellationToken).ConfigureAwait(false);
             await ReleaseFileAsync(backupFilePath, cancellationToken).ConfigureAwait(false);
 
+            // The restored .fdb itself needs the same wait: FbRestore.ExecuteAsync
+            // returning does not guarantee the engine has finished making the
+            // freshly-created file connectable yet (found by re-running this
+            // test a handful of times: intermittent "database ... shutdown" and
+            // "I/O error during ReadFile" — a genuine race, not test flakiness —
+            // because only backupFilePath, never restoredDatabasePath, was
+            // waited on before the very first connection attempt below).
+            await ReleaseFileAsync(restoredDatabasePath, cancellationToken).ConfigureAwait(false);
             var result = await CheckRestoredDatabaseAsync(restoredDatabasePath, cancellationToken).ConfigureAwait(false);
             var released = await ReleaseFileAsync(restoredDatabasePath, cancellationToken).ConfigureAwait(false);
             return released
@@ -80,8 +88,35 @@ public sealed class FirebirdBackupEngine : IBackupEngine
         }
     }
 
-    /// <summary>«بازخوانی و بررسی ساختاری» (§16): open the just-restored database and confirm its own migration history — the same table every other health check reads — came back intact.</summary>
+    /// <summary>
+    /// «بازخوانی و بررسی ساختاری» (§16): open the just-restored database and
+    /// confirm its own migration history — the same table every other health
+    /// check reads — came back intact.
+    ///
+    /// Retries a genuinely-open connection a few times: the OS-level wait in
+    /// <see cref="ReleaseFileAsync"/> only proves the file handle is free, not
+    /// that the Firebird engine has finished making the page structure of a
+    /// freshly-restored file connectable — a real connection attempt is the
+    /// only true test of that, and it can still transiently fail right after
+    /// restore with errors as different as "database ... shutdown" and
+    /// "I/O error during ReadFile" (both seen in practice, not hypothetical).
+    /// </summary>
     private async Task<StructuralCheckResult> CheckRestoredDatabaseAsync(string restoredDatabasePath, CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await TryCheckRestoredDatabaseAsync(restoredDatabasePath, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception exception) when (attempt < 10 && exception is not OperationCanceledException)
+            {
+                await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private async Task<StructuralCheckResult> TryCheckRestoredDatabaseAsync(string restoredDatabasePath, CancellationToken cancellationToken)
     {
         await using var connection = new FbConnection(BuildConnectionString(restoredDatabasePath));
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
