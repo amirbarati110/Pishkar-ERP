@@ -19,7 +19,7 @@
                         <TextBlock Style="{StaticResource AppMutedTextStyle}" FontSize="15" Text="اطلاعات ضروری برای شروع فروش" />
                     </StackPanel>
                     <Border Grid.Column="1" Style="{StaticResource AppSoftChipStyle}" VerticalAlignment="Top">
-                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource AppPrimaryBrush}" Text="مرحله ۲ از ۳" />
+                        <TextBlock FontSize="14" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Foreground="{ThemeResource AppPrimaryBrush}" Text="مرحله ۲ از ۳" />
                     </Border>
                 </Grid>
 

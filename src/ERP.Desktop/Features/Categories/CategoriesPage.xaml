@@ -19,7 +19,7 @@
                         <TextBlock Style="{StaticResource AppMutedTextStyle}" FontSize="15" Text="گروه‌بندی مرتب، جست‌وجوی سریع‌تر" />
                     </StackPanel>
                     <Border Grid.Column="1" Style="{StaticResource AppSoftChipStyle}" VerticalAlignment="Top">
-                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource AppPrimaryBrush}" Text="مرحله ۱ از ۳" />
+                        <TextBlock FontSize="14" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Foreground="{ThemeResource AppPrimaryBrush}" Text="مرحله ۱ از ۳" />
                     </Border>
                 </Grid>
 

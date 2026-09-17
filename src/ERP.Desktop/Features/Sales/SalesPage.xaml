@@ -43,6 +43,7 @@
             <Setter Property="CornerRadius" Value="11" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontFamily" Value="{StaticResource AppSemiBoldFont}" />
             <Setter Property="Background" Value="{ThemeResource AppSurfaceBrush}" />
             <Setter Property="BorderBrush" Value="{ThemeResource SalesLineBrush}" />
             <Setter Property="BorderThickness" Value="1" />
@@ -71,6 +72,7 @@
             <Setter Property="Padding" Value="8,4" />
             <Setter Property="FontSize" Value="13.5" />
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontFamily" Value="{StaticResource AppSemiBoldFont}" />
             <Setter Property="TextAlignment" Value="Left" />
             <Setter Property="CornerRadius" Value="7" />
         </Style>
@@ -135,7 +137,7 @@
                             </Canvas>
                         </Viewbox>
                     </Border>
-                    <TextBlock Text="کاربر آزمایشی" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"
+                    <TextBlock Text="کاربر آزمایشی" FontSize="12.5" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" VerticalAlignment="Center"
                                Foreground="{ThemeResource SalesChromeTextBrush}"
                                ToolTipService.ToolTip="ورود کاربران هنوز ساخته نشده است (پیوست الف.۵)" />
                 </StackPanel>
@@ -165,7 +167,7 @@
                             <Path Style="{StaticResource SalesIcon}" Stroke="{ThemeResource SalesChromeTextBrush}" Data="M3 11l9-8 9 8 M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
                         </Canvas>
                     </Viewbox>
-                    <TextBlock Text="بازگشت به میز کار" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource SalesChromeTextBrush}" />
+                    <TextBlock Text="بازگشت به میز کار" FontSize="14" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Foreground="{ThemeResource SalesChromeTextBrush}" />
                 </StackPanel>
             </Button>
         </Grid>
@@ -250,7 +252,7 @@
                             </ItemsRepeater.Layout>
                             <ItemsRepeater.ItemTemplate>
                                 <DataTemplate x:DataType="sales:CategoryChip">
-                                    <Button Click="OnCategoryClick" Tag="{x:Bind}" Padding="13,6" CornerRadius="9" FontSize="13" FontWeight="SemiBold"
+                                    <Button Click="OnCategoryClick" Tag="{x:Bind}" Padding="13,6" CornerRadius="9" FontSize="13" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}"
                                            
                                             Background="{x:Bind local:SalesPage.ChipBackground(IsSelected), Mode=OneWay}"
                                             Foreground="{x:Bind local:SalesPage.ChipForeground(IsSelected), Mode=OneWay}"
@@ -282,7 +284,7 @@
                                                     </Canvas>
                                                 </Viewbox>
                                             </Border>
-                                            <TextBlock Text="{x:Bind Name}" FontSize="13" FontWeight="SemiBold" TextAlignment="Center"
+                                            <TextBlock Text="{x:Bind Name}" FontSize="13" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" TextAlignment="Center"
                                                        TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
                                             <TextBlock Text="{x:Bind PriceText}" FontSize="12" Foreground="{ThemeResource SalesMutedTextBrush}" TextAlignment="Center" />
                                         </StackPanel>
@@ -332,9 +334,9 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Button x:Name="FilterAllButton" Click="OnFilterClick" Tag="All" HorizontalAlignment="Stretch" Height="36" CornerRadius="10" FontSize="13" FontWeight="SemiBold" Content="همه کالاها" />
-                        <Button x:Name="FilterTopButton" Grid.Column="1" Click="OnFilterClick" Tag="TopSelling" HorizontalAlignment="Stretch" Height="36" CornerRadius="10" FontSize="13" FontWeight="SemiBold" Content="پر فروش‌ها" />
-                        <Button x:Name="FilterLowButton" Grid.Column="2" Click="OnFilterClick" Tag="LowStock" HorizontalAlignment="Stretch" Height="36" CornerRadius="10" FontSize="13" FontWeight="SemiBold" Content="موجودی کم" />
+                        <Button x:Name="FilterAllButton" Click="OnFilterClick" Tag="All" HorizontalAlignment="Stretch" Height="36" CornerRadius="10" FontSize="13" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Content="همه کالاها" />
+                        <Button x:Name="FilterTopButton" Grid.Column="1" Click="OnFilterClick" Tag="TopSelling" HorizontalAlignment="Stretch" Height="36" CornerRadius="10" FontSize="13" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Content="پر فروش‌ها" />
+                        <Button x:Name="FilterLowButton" Grid.Column="2" Click="OnFilterClick" Tag="LowStock" HorizontalAlignment="Stretch" Height="36" CornerRadius="10" FontSize="13" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Content="موجودی کم" />
                     </Grid>
 
                     <Grid Grid.Row="2" Padding="12,8" Background="{ThemeResource SalesMutedFillBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="0,1,0,1">
@@ -343,9 +345,9 @@
                             <ColumnDefinition Width="64" />
                             <ColumnDefinition Width="96" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="نام کالا" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" />
-                        <TextBlock Grid.Column="1" Text="موجودی" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                        <TextBlock Grid.Column="2" Text="قیمت (تومان)" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock Text="نام کالا" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
+                        <TextBlock Grid.Column="1" Text="موجودی" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Text="قیمت (تومان)" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Center" />
                     </Grid>
 
                     <ListView Grid.Row="3" ItemsSource="{x:Bind ViewModel.Products}" SelectionMode="None" IsItemClickEnabled="True"
@@ -366,7 +368,7 @@
                                         <ColumnDefinition Width="96" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" TextTrimming="CharacterEllipsis" />
                                         <TextBlock Text="{x:Bind CodeText}" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
                                     </StackPanel>
                                     <TextBlock Grid.Column="1" Text="{x:Bind AvailableText}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -386,7 +388,7 @@
                             <Button Click="OnPreviousProductPageClick" Width="32" Height="30" Padding="0" CornerRadius="8" AutomationProperties.Name="صفحه قبل">
                                 <TextBlock Text="›" FontSize="16" />
                             </Button>
-                            <TextBlock Text="{x:Bind ViewModel.ProductPageText, Mode=OneWay}" VerticalAlignment="Center" FontWeight="SemiBold" Margin="8,0" />
+                            <TextBlock Text="{x:Bind ViewModel.ProductPageText, Mode=OneWay}" VerticalAlignment="Center" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Margin="8,0" />
                             <Button Click="OnNextProductPageClick" Width="32" Height="30" Padding="0" CornerRadius="8" AutomationProperties.Name="صفحه بعد">
                                 <TextBlock Text="‹" FontSize="16" />
                             </Button>
@@ -469,7 +471,7 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                                         <TextBlock Grid.Column="1" Text="{x:Bind Mobile}" Foreground="{ThemeResource SalesMutedTextBrush}" FlowDirection="LeftToRight" />
                                     </Grid>
                                 </DataTemplate>
@@ -480,7 +482,7 @@
                         <Button Grid.Column="2" Command="{x:Bind ViewModel.OpenNewCustomerCommand}" Height="36" Padding="10,0" CornerRadius="10"
                                 Background="{ThemeResource AppPrimarySoftBrush}" BorderBrush="{ThemeResource AppPrimaryBrush}" BorderThickness="1"
                                 AutomationProperties.Name="ثبت مشتری جدید">
-                            <TextBlock Text="+ مشتری جدید" FontSize="12.5" FontWeight="SemiBold" Foreground="{ThemeResource SalesPrimaryDarkBrush}" />
+                            <TextBlock Text="+ مشتری جدید" FontSize="12.5" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Foreground="{ThemeResource SalesPrimaryDarkBrush}" />
                         </Button>
                     </Grid>
 
@@ -495,7 +497,7 @@
                             Visibility="{x:Bind ViewModel.CurrentTab.IsCorrection, Mode=OneWay}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="✎" FontWeight="Bold" Foreground="{ThemeResource SalesBlueBrush}" VerticalAlignment="Center" />
-                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource SalesBlueBrush}" TextWrapping="Wrap" VerticalAlignment="Center">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Foreground="{ThemeResource SalesBlueBrush}" TextWrapping="Wrap" VerticalAlignment="Center">
                                 <Run Text="اصلاحیه‌ی فاکتور" /><Run Text=" " /><Run Text="{x:Bind ViewModel.CurrentTab.CorrectionOfNumberText, Mode=OneWay}" />
                                 <Run Text=" — فقط تخفیف، هزینه، مالیات و روش پرداخت قابل تغییرند." />
                             </TextBlock>
@@ -515,7 +517,7 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="!" FontWeight="Bold" Foreground="{ThemeResource SalesAmberBrush}" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.CurrentTab.BalanceText, Mode=OneWay}" FontSize="13" FontWeight="SemiBold"
+                            <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.CurrentTab.BalanceText, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}"
                                        Foreground="{ThemeResource SalesAmberBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.CurrentTab.CustomerMobileText, Mode=OneWay}" FontSize="12.5"
                                        Foreground="{ThemeResource SalesAmberBrush}" VerticalAlignment="Center" />
@@ -528,7 +530,7 @@
                             <Button Grid.Column="3" Command="{x:Bind ViewModel.OpenReceivePaymentCommand}" Height="30" Padding="10,0" CornerRadius="8"
                                     Background="Transparent" BorderBrush="{ThemeResource SalesAmberBrush}" BorderThickness="1"
                                     AutomationProperties.Name="دریافت از مشتری" ToolTipService.ToolTip="دریافت وجه بابت مانده‌ی حساب این مشتری">
-                                <TextBlock Text="دریافت" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource SalesAmberBrush}" />
+                                <TextBlock Text="دریافت" FontSize="12" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Foreground="{ThemeResource SalesAmberBrush}" />
                             </Button>
                         </Grid>
                     </Border>
@@ -543,11 +545,11 @@
                             <ColumnDefinition Width="92" />
                             <ColumnDefinition Width="104" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="عملیات" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                        <TextBlock Grid.Column="1" Text="شرح کالا" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" Margin="6,0,0,0" />
-                        <TextBlock Grid.Column="2" Text="مقدار" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                        <TextBlock Grid.Column="3" Text="قیمت" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                        <TextBlock Grid.Column="4" Text="مبلغ (تومان)" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock Text="عملیات" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="شرح کالا" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Margin="6,0,0,0" />
+                        <TextBlock Grid.Column="2" Text="مقدار" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="3" Text="قیمت" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="4" Text="مبلغ (تومان)" Style="{StaticResource SalesLabel}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Center" />
                     </Grid>
 
                     <!-- lines -->
@@ -590,9 +592,9 @@
                                                 </Button>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="6,0,0,0">
-                                                <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" TextTrimming="CharacterEllipsis" />
                                                 <TextBlock Text="{x:Bind CodeText}" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
-                                                <TextBlock Text="{x:Bind WarningText}" FontSize="11.5" FontWeight="SemiBold" Foreground="{ThemeResource SalesAmberBrush}"
+                                                <TextBlock Text="{x:Bind WarningText}" FontSize="11.5" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Foreground="{ThemeResource SalesAmberBrush}"
                                                            Visibility="{x:Bind HasWarning}" TextWrapping="Wrap" />
                                             </StackPanel>
                                             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -688,7 +690,7 @@
                                                  LostFocus="OnTaxLostFocus" KeyDown="OnFooterKeyDown" Tag="tax" AutomationProperties.Name="درصد مالیات" />
                                         <TextBlock Text="٪" Style="{StaticResource SalesLabel}" VerticalAlignment="Center" />
                                         <Border Width="104" Padding="8,5" CornerRadius="7" Background="{ThemeResource SalesMutedFillBrush}">
-                                            <TextBlock Text="{x:Bind ViewModel.CurrentTab.TaxText, Mode=OneWay}" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                            <TextBlock Text="{x:Bind ViewModel.CurrentTab.TaxText, Mode=OneWay}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Right" />
                                         </Border>
                                     </StackPanel>
                                 </Grid>
@@ -696,7 +698,7 @@
                                 <Grid>
                                     <StackPanel Orientation="Horizontal" Spacing="7">
                                         <Ellipse Width="8" Height="8" Fill="{ThemeResource AppPrimaryBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Text="قابل پرداخت" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Text="قابل پرداخت" FontSize="14" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" VerticalAlignment="Center" />
                                     </StackPanel>
                                     <TextBlock Text="{x:Bind ViewModel.CurrentTab.TotalText, Mode=OneWay}" FontSize="19" FontWeight="Bold"
                                                Foreground="{ThemeResource SalesPrimaryDarkBrush}" HorizontalAlignment="Right" />
@@ -722,12 +724,12 @@
             </Grid.ColumnDefinitions>
             <Button Command="{x:Bind ViewModel.AskCancelInvoiceCommand}" Style="{StaticResource SalesActionButton}"
                     Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" AutomationProperties.Name="حذف فاکتور">
-                <TextBlock Text="حذف" Foreground="{ThemeResource SalesRedBrush}" FontWeight="SemiBold" />
+                <TextBlock Text="حذف" Foreground="{ThemeResource SalesRedBrush}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
             </Button>
             <Button Grid.Column="1" Command="{x:Bind ViewModel.NewInvoiceCommand}" Style="{StaticResource SalesActionButton}"
                     Background="{ThemeResource SalesBlueSoftBrush}" BorderBrush="{ThemeResource SalesBlueLineBrush}" AutomationProperties.Name="فاکتور جدید">
                 <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="جدید" Foreground="{ThemeResource SalesBlueBrush}" FontWeight="SemiBold" />
+                    <TextBlock Text="جدید" Foreground="{ThemeResource SalesBlueBrush}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                     <TextBlock Text="Ctrl+N" FontSize="11" Foreground="{ThemeResource SalesBlueBrush}" Opacity="0.75" VerticalAlignment="Center" />
                 </StackPanel>
             </Button>
@@ -750,7 +752,7 @@
             <Button Grid.Column="6" Click="OnSaveAndNextClick" Style="{StaticResource SalesActionButton}"
                     Background="{ThemeResource AppPrimarySoftBrush}" BorderBrush="{ThemeResource AppPrimaryBrush}" AutomationProperties.Name="ثبت و فاکتور بعدی">
                 <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="ثبت و بعدی" Foreground="{ThemeResource SalesPrimaryDarkBrush}" FontWeight="SemiBold" />
+                    <TextBlock Text="ثبت و بعدی" Foreground="{ThemeResource SalesPrimaryDarkBrush}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                     <TextBlock Text="F5" FontSize="11" Foreground="{ThemeResource SalesPrimaryDarkBrush}" VerticalAlignment="Center" />
                 </StackPanel>
             </Button>
@@ -774,7 +776,7 @@
                 <StackPanel>
                     <TextBlock Text="ویرایش سطر فاکتور" Style="{StaticResource SalesDialogTitle}" Margin="18,15" />
                     <StackPanel Spacing="12" Padding="18,4,18,16">
-                        <TextBlock Text="{x:Bind ViewModel.EditProductName, Mode=OneWay}" FontSize="15" FontWeight="SemiBold" />
+                        <TextBlock Text="{x:Bind ViewModel.EditProductName, Mode=OneWay}" FontSize="15" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
 
                         <!-- §6.10: خرید آخر، بهای تمام‌شده، آخرین قیمت فروش به همین مشتری، موجودی — نمایشی، نه قابل ویرایش -->
                         <Border Padding="12,10" CornerRadius="10" Background="{ThemeResource SalesMutedFillBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
@@ -783,19 +785,19 @@
                                 <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
                                 <StackPanel Spacing="1">
                                     <TextBlock Text="خرید آخر" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
-                                    <TextBlock Text="{x:Bind ViewModel.EditLastPurchaseText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="{x:Bind ViewModel.EditLastPurchaseText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Spacing="1">
                                     <TextBlock Text="بهای تمام‌شده" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
-                                    <TextBlock Text="{x:Bind ViewModel.EditCurrentCostText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="{x:Bind ViewModel.EditCurrentCostText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Spacing="1">
                                     <TextBlock Text="آخرین قیمت فروش به این مشتری" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" TextWrapping="Wrap" />
-                                    <TextBlock Text="{x:Bind ViewModel.EditLastPriceToCustomerText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="{x:Bind ViewModel.EditLastPriceToCustomerText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Grid.Column="1" Spacing="1">
                                     <TextBlock Text="موجودی" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
-                                    <TextBlock Text="{x:Bind ViewModel.EditStockText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="{x:Bind ViewModel.EditStockText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -811,17 +813,17 @@
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                             <StackPanel Spacing="1">
                                 <TextBlock Text="حاشیه سود" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
-                                <TextBlock Text="{x:Bind ViewModel.EditMarginText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" />
+                                <TextBlock Text="{x:Bind ViewModel.EditMarginText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Spacing="1">
                                 <TextBlock Text="درصد افزایش نسبت به بهای تمام‌شده" FontSize="11.5" Foreground="{ThemeResource SalesMutedTextBrush}" TextWrapping="Wrap" />
-                                <TextBlock Text="{x:Bind ViewModel.EditMarkupText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" />
+                                <TextBlock Text="{x:Bind ViewModel.EditMarkupText, Mode=OneWay}" FontSize="13.5" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                             </StackPanel>
                         </Grid>
 
                         <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
                                 Visibility="{x:Bind ViewModel.HasEditBelowCostWarning, Mode=OneWay}">
-                            <TextBlock Text="{x:Bind ViewModel.EditBelowCostWarning, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Text="{x:Bind ViewModel.EditBelowCostWarning, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" TextWrapping="Wrap" />
                         </Border>
 
                         <Grid ColumnSpacing="10">
@@ -832,7 +834,7 @@
                         <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesAmberSoftBrush}" BorderBrush="{ThemeResource SalesAmberLineBrush}" BorderThickness="1">
                             <CheckBox IsChecked="{x:Bind ViewModel.EditUpdateCatalogPrice, Mode=TwoWay}">
                                 <StackPanel>
-                                    <TextBlock Text="قیمت اصلی کالا هم به‌روز شود" FontWeight="SemiBold" />
+                                    <TextBlock Text="قیمت اصلی کالا هم به‌روز شود" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                                     <TextBlock Text="اگر تیک نخورد، قیمت جدید فقط روی همین فاکتور اثر دارد." FontSize="12" Foreground="{ThemeResource SalesMutedTextBrush}" TextWrapping="Wrap" />
                                 </StackPanel>
                             </CheckBox>
@@ -887,25 +889,25 @@
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                             <Button x:Name="PayCashButton" Click="OnPaymentMethodClick" Tag="Cash" HorizontalAlignment="Stretch" Height="68" CornerRadius="11" BorderThickness="1.5"
                                     AutomationProperties.Name="نقدی" ToolTipService.ToolTip="Alt+1">
-                                <StackPanel Spacing="3"><TextBlock Text="نقدی" FontWeight="SemiBold" HorizontalAlignment="Center" /><TextBlock Text="Alt+۱" FontSize="10.5" Opacity="0.7" HorizontalAlignment="Center" /></StackPanel>
+                                <StackPanel Spacing="3"><TextBlock Text="نقدی" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Center" /><TextBlock Text="Alt+۱" FontSize="10.5" Opacity="0.7" HorizontalAlignment="Center" /></StackPanel>
                             </Button>
                             <Button x:Name="PayCardButton" Grid.Column="1" Click="OnPaymentMethodClick" Tag="Card" HorizontalAlignment="Stretch" Height="68" CornerRadius="11" BorderThickness="1.5"
                                     AutomationProperties.Name="کارتخوان" ToolTipService.ToolTip="Alt+2">
-                                <StackPanel Spacing="3"><TextBlock Text="کارتخوان" FontWeight="SemiBold" HorizontalAlignment="Center" /><TextBlock Text="Alt+۲" FontSize="10.5" Opacity="0.7" HorizontalAlignment="Center" /></StackPanel>
+                                <StackPanel Spacing="3"><TextBlock Text="کارتخوان" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Center" /><TextBlock Text="Alt+۲" FontSize="10.5" Opacity="0.7" HorizontalAlignment="Center" /></StackPanel>
                             </Button>
                             <Button x:Name="PayCreditButton" Grid.Column="2" Click="OnPaymentMethodClick" Tag="Credit" HorizontalAlignment="Stretch" Height="68" CornerRadius="11" BorderThickness="1.5"
                                     AutomationProperties.Name="نسیه" ToolTipService.ToolTip="Alt+3">
-                                <StackPanel Spacing="3"><TextBlock Text="نسیه" FontWeight="SemiBold" HorizontalAlignment="Center" /><TextBlock Text="Alt+۳" FontSize="10.5" Opacity="0.7" HorizontalAlignment="Center" /></StackPanel>
+                                <StackPanel Spacing="3"><TextBlock Text="نسیه" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Center" /><TextBlock Text="Alt+۳" FontSize="10.5" Opacity="0.7" HorizontalAlignment="Center" /></StackPanel>
                             </Button>
                             <Button x:Name="PayChequeButton" Grid.Column="3" Click="OnPaymentMethodClick" Tag="Cheque" HorizontalAlignment="Stretch" Height="68" CornerRadius="11" BorderThickness="1.5"
                                     AutomationProperties.Name="چک" ToolTipService.ToolTip="Alt+4">
-                                <StackPanel Spacing="3"><TextBlock Text="چک" FontWeight="SemiBold" HorizontalAlignment="Center" /><TextBlock Text="Alt+۴" FontSize="10.5" Opacity="0.7" HorizontalAlignment="Center" /></StackPanel>
+                                <StackPanel Spacing="3"><TextBlock Text="چک" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Center" /><TextBlock Text="Alt+۴" FontSize="10.5" Opacity="0.7" HorizontalAlignment="Center" /></StackPanel>
                             </Button>
                         </Grid>
                         <Grid ColumnSpacing="10" Visibility="{x:Bind ViewModel.IsCashSelected, Mode=OneWay}">
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                             <TextBox x:Name="CashReceivedBox" Header="مبلغ دریافتی (تومان)" Text="{x:Bind ViewModel.CashReceivedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                     InputScope="Number" KeyDown="OnPaymentKeyDown" FontSize="16" FontWeight="SemiBold" />
+                                     InputScope="Number" KeyDown="OnPaymentKeyDown" FontSize="16" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                             <StackPanel Grid.Column="1" Spacing="6">
                                 <TextBlock Text="باقی‌مانده برای برگرداندن" Style="{StaticResource SalesLabel}" />
                                 <Border Padding="11,8" CornerRadius="8" Background="{ThemeResource SalesMutedFillBrush}">
@@ -916,14 +918,14 @@
                         <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesAmberSoftBrush}" BorderBrush="{ThemeResource SalesAmberLineBrush}" BorderThickness="1">
                             <CheckBox IsChecked="{x:Bind ViewModel.AllowNegativeStock, Mode=TwoWay}">
                                 <StackPanel>
-                                    <TextBlock Text="اجازه فروش با کسری موجودی" FontWeight="SemiBold" />
+                                    <TextBlock Text="اجازه فروش با کسری موجودی" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                                     <TextBlock Text="برای وقتی بار رسیده و فروش رفته ولی هنوز در سیستم ثبت نشده. موجودی منفی می‌شود و برای اصلاح علامت می‌خورد." FontSize="12" Foreground="{ThemeResource SalesMutedTextBrush}" TextWrapping="Wrap" />
                                 </StackPanel>
                             </CheckBox>
                         </Border>
                         <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
                                 Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.PaymentError), Mode=OneWay}">
-                            <TextBlock Text="{x:Bind ViewModel.PaymentError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                            <TextBlock Text="{x:Bind ViewModel.PaymentError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                         </Border>
                     </StackPanel>
                     <Grid Padding="18,12" ColumnSpacing="8" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
@@ -949,27 +951,27 @@
                     <StackPanel Spacing="12" Padding="18,4,18,16">
                         <Border Padding="12,10" CornerRadius="10" Background="{ThemeResource SalesMutedFillBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
                             <StackPanel Spacing="2">
-                                <TextBlock Text="{x:Bind ViewModel.ReceivePaymentCustomerName, Mode=OneWay}" FontSize="15" FontWeight="SemiBold" />
+                                <TextBlock Text="{x:Bind ViewModel.ReceivePaymentCustomerName, Mode=OneWay}" FontSize="15" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                                 <TextBlock Text="{x:Bind ViewModel.ReceivePaymentAccountText, Mode=OneWay}" FontSize="13.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
                             </StackPanel>
                         </Border>
 
                         <TextBox x:Name="ReceivePaymentAmountBox" Header="مبلغ دریافتی (تومان)" Text="{x:Bind ViewModel.ReceivePaymentAmountText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                 InputScope="Number" FontSize="16" FontWeight="SemiBold" />
+                                 InputScope="Number" FontSize="16" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
 
                         <Grid ColumnSpacing="8">
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                             <Button x:Name="ReceiveCashButton" Click="OnReceivePaymentMethodClick" Tag="Cash" HorizontalAlignment="Stretch" Height="46" CornerRadius="11" BorderThickness="1.5"
-                                    AutomationProperties.Name="نقدی" Content="نقدی" FontWeight="SemiBold" />
+                                    AutomationProperties.Name="نقدی" Content="نقدی" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                             <Button x:Name="ReceiveCardButton" Grid.Column="1" Click="OnReceivePaymentMethodClick" Tag="Card" HorizontalAlignment="Stretch" Height="46" CornerRadius="11" BorderThickness="1.5"
-                                    AutomationProperties.Name="کارتخوان" Content="کارتخوان" FontWeight="SemiBold" />
+                                    AutomationProperties.Name="کارتخوان" Content="کارتخوان" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                         </Grid>
 
                         <TextBox Header="توضیح (اختیاری)" Text="{x:Bind ViewModel.ReceivePaymentNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                         <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
                                 Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.ReceivePaymentError), Mode=OneWay}">
-                            <TextBlock Text="{x:Bind ViewModel.ReceivePaymentError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                            <TextBlock Text="{x:Bind ViewModel.ReceivePaymentError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                         </Border>
                     </StackPanel>
                     <Grid Padding="18,12" ColumnSpacing="8" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
@@ -1001,7 +1003,7 @@
 
                         <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
                                 Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.AdminApprovalError), Mode=OneWay}">
-                            <TextBlock Text="{x:Bind ViewModel.AdminApprovalError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                            <TextBlock Text="{x:Bind ViewModel.AdminApprovalError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                         </Border>
                     </StackPanel>
                     <Grid Padding="18,12" ColumnSpacing="8" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
@@ -1075,7 +1077,7 @@
                         <Button x:Name="KeepInvoiceButton" Command="{x:Bind ViewModel.KeepInvoiceCommand}" Style="{StaticResource SalesActionButton}" HorizontalAlignment="Stretch" Content="نه، نگه دار" />
                         <Button Grid.Column="1" Command="{x:Bind ViewModel.ConfirmCancelInvoiceCommand}" Style="{StaticResource SalesActionButton}" HorizontalAlignment="Stretch"
                                 Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}">
-                            <TextBlock Text="بله، حذف شود" Foreground="{ThemeResource SalesRedBrush}" FontWeight="SemiBold" />
+                            <TextBlock Text="بله، حذف شود" Foreground="{ThemeResource SalesRedBrush}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                         </Button>
                     </Grid>
                 </StackPanel>
@@ -1098,7 +1100,7 @@
                                     <DataTemplate x:DataType="sales:InvoiceListRow">
                                         <Grid ColumnSpacing="10" Padding="0,8">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /><ColumnDefinition Width="60" /><ColumnDefinition Width="130" /></Grid.ColumnDefinitions>
-                                            <TextBlock Text="{x:Bind CustomerText}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{x:Bind CustomerText}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                                             <TextBlock Grid.Column="1" Text="{x:Bind TimeText}" HorizontalAlignment="Center" />
                                             <TextBlock Grid.Column="2" Text="{x:Bind ItemCountText}" HorizontalAlignment="Center" />
                                             <TextBlock Grid.Column="3" Text="{x:Bind AmountText}" FontWeight="Bold" HorizontalAlignment="Right" />
@@ -1114,7 +1116,7 @@
                                         <Grid ColumnSpacing="8" Padding="0,8">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="80" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /><ColumnDefinition Width="60" /><ColumnDefinition Width="90" /><ColumnDefinition Width="110" /><ColumnDefinition Width="76" /><ColumnDefinition Width="60" /><ColumnDefinition Width="60" /></Grid.ColumnDefinitions>
                                             <TextBlock Text="{x:Bind NumberText}" FontWeight="Bold" />
-                                            <TextBlock Grid.Column="1" Text="{x:Bind CustomerText}" FontWeight="SemiBold" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind CustomerText}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                                             <TextBlock Grid.Column="2" Text="{x:Bind TimeText}" HorizontalAlignment="Center" />
                                             <TextBlock Grid.Column="3" Text="{x:Bind ItemCountText}" HorizontalAlignment="Center" />
                                             <TextBlock Grid.Column="4" Text="{x:Bind MethodText}" HorizontalAlignment="Center" Foreground="{ThemeResource SalesMutedTextBrush}" />
@@ -1166,7 +1168,7 @@
                             <Grid>
                                 <StackPanel>
                                     <TextBlock Text="فاکتور اصلی" FontSize="12.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
-                                    <TextBlock FontSize="15" FontWeight="SemiBold">
+                                    <TextBlock FontSize="15" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}">
                                         <Run Text="شماره" /><Run Text=" " /><Run Text="{x:Bind ViewModel.CorrectionOriginalNumberText, Mode=OneWay}" />
                                     </TextBlock>
                                 </StackPanel>
@@ -1180,7 +1182,7 @@
                                  AutomationProperties.Name="دلیل اصلاح فاکتور" />
                         <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
                                 Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.CorrectionError), Mode=OneWay}">
-                            <TextBlock Text="{x:Bind ViewModel.CorrectionError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                            <TextBlock Text="{x:Bind ViewModel.CorrectionError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                         </Border>
                     </StackPanel>
                     <Grid Padding="18,12" ColumnSpacing="8" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
@@ -1202,7 +1204,7 @@
                     <StackPanel Spacing="10" Padding="18,4,18,16">
                         <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
                                 Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.JournalEntryError), Mode=OneWay}">
-                            <TextBlock Text="{x:Bind ViewModel.JournalEntryError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                            <TextBlock Text="{x:Bind ViewModel.JournalEntryError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                         </Border>
                         <StackPanel Spacing="4" Visibility="{x:Bind local:SalesPage.WhenNoText(ViewModel.JournalEntryError), Mode=OneWay}">
                             <Grid>
@@ -1217,8 +1219,8 @@
                                         <Grid Padding="0,4">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="110" /><ColumnDefinition Width="110" /></Grid.ColumnDefinitions>
                                             <TextBlock Text="{x:Bind AccountName}" FontSize="13.5" />
-                                            <TextBlock Grid.Column="1" Text="{x:Bind DebitText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
-                                            <TextBlock Grid.Column="2" Text="{x:Bind CreditText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind DebitText}" FontSize="13.5" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Right" />
+                                            <TextBlock Grid.Column="2" Text="{x:Bind CreditText}" FontSize="13.5" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Right" />
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -1240,7 +1242,7 @@
                     <StackPanel Spacing="10" Padding="18,4,18,16">
                         <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
                                 Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.ReceiptError), Mode=OneWay}">
-                            <TextBlock Text="{x:Bind ViewModel.ReceiptError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                            <TextBlock Text="{x:Bind ViewModel.ReceiptError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                         </Border>
                         <StackPanel x:Name="ReceiptContentPanel" Spacing="6" Visibility="{x:Bind local:SalesPage.WhenNoText(ViewModel.ReceiptError), Mode=OneWay}">
                             <TextBlock Text="پیشکار ERP" FontWeight="Bold" FontSize="15" HorizontalAlignment="Center" />
@@ -1257,7 +1259,7 @@
                                             <TextBlock Text="{x:Bind Name}" FontSize="12.5" />
                                             <Grid>
                                                 <TextBlock Text="{x:Bind QuantityAndPrice}" FontSize="12" Foreground="{ThemeResource SalesMutedTextBrush}" />
-                                                <TextBlock Text="{x:Bind TotalText}" FontSize="12.5" FontWeight="SemiBold" HorizontalAlignment="Left" />
+                                                <TextBlock Text="{x:Bind TotalText}" FontSize="12.5" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Left" />
                                             </Grid>
                                         </StackPanel>
                                     </DataTemplate>

@@ -46,19 +46,19 @@
                                 <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
                                 <StackPanel Spacing="2">
                                     <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="باز شده از" />
-                                    <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.OpenedAtText, Mode=OneWay}" />
+                                    <TextBlock FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Text="{x:Bind ViewModel.OpenedAtText, Mode=OneWay}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Spacing="2">
                                     <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="مبلغ ابتدای صندوق" />
-                                    <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.OpeningCashText, Mode=OneWay}" />
+                                    <TextBlock FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Text="{x:Bind ViewModel.OpeningCashText, Mode=OneWay}" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Spacing="2">
                                     <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="فروش نقدی تا الان" />
-                                    <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.CashSalesSoFarText, Mode=OneWay}" />
+                                    <TextBlock FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Text="{x:Bind ViewModel.CashSalesSoFarText, Mode=OneWay}" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
                                     <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="مبلغ مورد انتظار الان" />
-                                    <TextBlock FontWeight="SemiBold" Foreground="{ThemeResource AppPrimaryBrush}" Text="{x:Bind ViewModel.ExpectedCashSoFarText, Mode=OneWay}" />
+                                    <TextBlock FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Foreground="{ThemeResource AppPrimaryBrush}" Text="{x:Bind ViewModel.ExpectedCashSoFarText, Mode=OneWay}" />
                                 </StackPanel>
                             </Grid>
                         </StackPanel>

@@ -25,12 +25,12 @@
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <StackPanel Spacing="4">
                                 <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="دیتابیس" />
-                                <TextBlock FontWeight="SemiBold" Text="{x:Bind local:BackupPage.DatabaseStatusText(ViewModel.DatabaseReachable), Mode=OneWay}"
+                                <TextBlock FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Text="{x:Bind local:BackupPage.DatabaseStatusText(ViewModel.DatabaseReachable), Mode=OneWay}"
                                            Foreground="{x:Bind local:BackupPage.DatabaseStatusBrush(ViewModel.DatabaseReachable), Mode=OneWay}" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Spacing="4">
                                 <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="Migration ها" />
-                                <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.MigrationsText, Mode=OneWay}" />
+                                <TextBlock FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Text="{x:Bind ViewModel.MigrationsText, Mode=OneWay}" />
                             </StackPanel>
                         </Grid>
                     </StackPanel>
@@ -50,11 +50,11 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <StackPanel Spacing="4">
                                     <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="زمان" />
-                                    <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.LatestBackupDateText, Mode=OneWay}" />
+                                    <TextBlock FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Text="{x:Bind ViewModel.LatestBackupDateText, Mode=OneWay}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Spacing="4">
                                     <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="وضعیت اعتبار" />
-                                    <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.LatestBackupStatusText, Mode=OneWay}" />
+                                    <TextBlock FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Text="{x:Bind ViewModel.LatestBackupStatusText, Mode=OneWay}" />
                                 </StackPanel>
                             </Grid>
                             <Button Style="{StaticResource AppPrimaryButtonStyle}" HorizontalAlignment="Left" Content="بررسی اعتبار (بازیابی آزمایشی)"
@@ -67,11 +67,11 @@
 
                         <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
                                 Visibility="{x:Bind local:BackupPage.WhenText(ViewModel.ErrorMessage), Mode=OneWay}">
-                            <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                            <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                         </Border>
                         <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource AppPrimarySoftBrush}"
                                 Visibility="{x:Bind local:BackupPage.WhenText(ViewModel.StatusMessage), Mode=OneWay}">
-                            <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" Foreground="{ThemeResource SalesPrimaryDarkBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                            <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" Foreground="{ThemeResource SalesPrimaryDarkBrush}" TextWrapping="Wrap" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                         </Border>
 
                         <ProgressRing Width="22" Height="22" HorizontalAlignment="Left" IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />

@@ -7,14 +7,24 @@
         Vazirmatn is embedded under Assets/Fonts (4 static weights: Regular,
         Medium, SemiBold, Bold — SIL Open Font License, see
         Assets/Fonts/LICENSE-Vazirmatn-OFL.txt), satisfying source-of-truth §3.6
-        "فونت فارسی خوانا و Embeddable" (Appendix A #7, closed). The embedded-font
-        URI syntax requires pointing at one file + "#<family name>"; WinUI then
-        picks the matching weight file automatically when FontWeight is set, as
-        long as every weight is also registered as Content in the .csproj.
-        "Segoe UI"/"Tahoma" stay as fallbacks only for the rare case the embedded
-        font fails to load.
+        "فونت فارسی خوانا و Embeddable" (Appendix A #7, closed).
+
+        These particular static files do NOT all share one internal family name
+        (checked with System.Drawing.Text.PrivateFontCollection): Regular and
+        Bold both report "Vazirmatn", so `FontWeight="Bold"` on AppBodyFont
+        already renders the real bold face — but Medium/SemiBold each report
+        their own separate family ("Vazirmatn Medium" / "Vazirmatn SemiBold"),
+        so WinUI cannot pick them via FontWeight on a single "Vazirmatn"
+        FontFamily; every `FontWeight="SemiBold"` in the app was silently
+        falling back to a synthetic (faux) bold of the Regular face instead of
+        rendering Vazirmatn-SemiBold.ttf's real glyphs (found and fixed
+        1405/06/29 — Appendix A #1's own follow-up). AppSemiBoldFont below
+        points straight at that file's own family name; use it wherever
+        FontWeight="SemiBold" is set. "Segoe UI"/"Tahoma" stay as fallbacks
+        only for the rare case the embedded font fails to load.
     -->
     <FontFamily x:Key="AppBodyFont">ms-appx:///Assets/Fonts/Vazirmatn-Regular.ttf#Vazirmatn, Segoe UI Variable, Segoe UI, Tahoma</FontFamily>
+    <FontFamily x:Key="AppSemiBoldFont">ms-appx:///Assets/Fonts/Vazirmatn-SemiBold.ttf#Vazirmatn SemiBold, Segoe UI Variable, Segoe UI, Tahoma</FontFamily>
 
     <!--
         WinUI controls (Button, TextBox, AutoSuggestBox, ListView, InfoBar, Pivot,
@@ -27,14 +37,14 @@
     <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/Vazirmatn-Regular.ttf#Vazirmatn, Segoe UI Variable, Segoe UI, Tahoma</FontFamily>
 
     <Style x:Key="AppPageTitleStyle" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource AppBodyFont}" />
+        <Setter Property="FontFamily" Value="{StaticResource AppSemiBoldFont}" />
         <Setter Property="FontSize" Value="24" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{ThemeResource AppTextBrush}" />
     </Style>
 
     <Style x:Key="AppSectionTitleStyle" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource AppBodyFont}" />
+        <Setter Property="FontFamily" Value="{StaticResource AppSemiBoldFont}" />
         <Setter Property="FontSize" Value="17" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{ThemeResource AppTextBrush}" />
@@ -52,7 +62,7 @@
     </Style>
 
     <Style x:Key="AppFieldLabelStyle" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource AppBodyFont}" />
+        <Setter Property="FontFamily" Value="{StaticResource AppSemiBoldFont}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{ThemeResource AppTextBrush}" />

@@ -29,12 +29,12 @@
 
                         <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
                                 Visibility="{x:Bind local:ImportCenterPage.WhenText(ViewModel.ErrorMessage), Mode=OneWay}">
-                            <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                            <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                         </Border>
 
                         <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource AppPrimarySoftBrush}"
                                 Visibility="{x:Bind local:ImportCenterPage.WhenText(ViewModel.ResultMessage), Mode=OneWay}">
-                            <TextBlock Text="{x:Bind ViewModel.ResultMessage, Mode=OneWay}" Foreground="{ThemeResource SalesPrimaryDarkBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                            <TextBlock Text="{x:Bind ViewModel.ResultMessage, Mode=OneWay}" Foreground="{ThemeResource SalesPrimaryDarkBrush}" TextWrapping="Wrap" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                         </Border>
                     </StackPanel>
                 </Border>
@@ -57,7 +57,7 @@
                                             <ColumnDefinition Width="60" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{x:Bind RowNumberText}" FontWeight="SemiBold" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                        <TextBlock Text="{x:Bind RowNumberText}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Foreground="{ThemeResource SalesMutedTextBrush}" />
                                         <TextBlock Grid.Column="1" Text="{x:Bind Text}" TextWrapping="Wrap"
                                                    Foreground="{x:Bind local:ImportCenterPage.ErrorForeground(HasError)}" />
                                     </Grid>

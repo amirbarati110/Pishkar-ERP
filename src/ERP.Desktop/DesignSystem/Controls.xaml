@@ -58,7 +58,7 @@
     <Style x:Key="AppPrimaryButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="{ThemeResource AppPrimaryBrush}" />
         <Setter Property="Foreground" Value="{ThemeResource AppOnPrimaryBrush}" />
-        <Setter Property="FontFamily" Value="{StaticResource AppBodyFont}" />
+        <Setter Property="FontFamily" Value="{StaticResource AppSemiBoldFont}" />
         <Setter Property="FontSize" Value="15" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="MinHeight" Value="48" />

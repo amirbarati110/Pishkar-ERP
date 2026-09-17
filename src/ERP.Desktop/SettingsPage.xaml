@@ -18,7 +18,7 @@
             <Border Style="{StaticResource AppCardStyle}">
                 <StackPanel Spacing="10" HorizontalAlignment="Center" Padding="0,24">
                     <SymbolIcon HorizontalAlignment="Center" Foreground="{ThemeResource SalesMutedTextBrush}" Symbol="Setting" />
-                    <TextBlock HorizontalAlignment="Center" FontSize="16" FontWeight="SemiBold" Foreground="{ThemeResource AppTextBrush}" Text="تنظیمات فروشگاه هنوز ساخته نشده" />
+                    <TextBlock HorizontalAlignment="Center" FontSize="16" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Foreground="{ThemeResource AppTextBrush}" Text="تنظیمات فروشگاه هنوز ساخته نشده" />
                     <TextBlock HorizontalAlignment="Center" FontSize="14.5" Foreground="{ThemeResource SalesMutedTextBrush}"
                                Text="اطلاعات فروشگاه، کاربران و پنل پیامک در مرحله بعد به‌صورت ساده اضافه می‌شود."
                                TextAlignment="Center" TextWrapping="Wrap" MaxWidth="420" />

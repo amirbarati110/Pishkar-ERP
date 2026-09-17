@@ -54,7 +54,7 @@
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="9" /></Grid.ColumnDefinitions>
                         <StackPanel>
                             <TextBlock FontSize="12" Foreground="{ThemeResource AppNavTextMutedBrush}" Text="وضعیت سیستم" />
-                            <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="White" Text="آماده و متصل" />
+                            <TextBlock FontSize="14" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Foreground="White" Text="آماده و متصل" />
                         </StackPanel>
                         <Ellipse Grid.Column="1" Width="9" Height="9" VerticalAlignment="Center" Fill="{ThemeResource AppSuccessBrush}" />
                     </Grid>
