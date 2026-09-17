@@ -198,6 +198,21 @@ public sealed class FirebirdSaleReadReader : ISaleReadReader
             _ => (string.Empty, "ORDER BY NAME"),
         };
 
+        // §2.8 Performance Budget: this correlated subquery joins SALE_LINE/SALE
+        // per product, so it must not run for the two filters that never look at
+        // SOLD (found by PerformanceBudgetTests: computing it unconditionally
+        // made the plain «همه کالاها» list ~2s against a realistic sale volume,
+        // 10x the 200ms budget, for a value the query then threw away).
+        var soldExpression = criteria.Filter == ProductListFilter.TopSelling
+            ? """
+              COALESCE((SELECT SUM(L.QUANTITY) FROM SALE_LINE L
+                        JOIN SALE S ON S.ID = L.SALE_ID
+                        WHERE L.PRODUCT_ID = P.ID AND S.STATUS = @COMPLETED
+                          AND S.WAREHOUSE_ID = @WAREHOUSE_ID
+                          AND S.COMPLETED_AT_UTC >= @SOLD_SINCE), 0)
+              """
+            : "0";
+
         await using var command = CreateCommand(
             $"""
             {categoryCte}
@@ -208,11 +223,7 @@ public sealed class FirebirdSaleReadReader : ISaleReadReader
                      - COALESCE((SELECT SUM(SM.QUANTITY) FROM STOCK_MOVEMENT SM
                                  WHERE SM.PRODUCT_ID = P.ID AND SM.WAREHOUSE_ID = @WAREHOUSE_ID
                                    AND SM.MOVEMENT_TYPE = @BACKORDER), 0) AS AVAILABLE,
-                       COALESCE((SELECT SUM(L.QUANTITY) FROM SALE_LINE L
-                                 JOIN SALE S ON S.ID = L.SALE_ID
-                                 WHERE L.PRODUCT_ID = P.ID AND S.STATUS = @COMPLETED
-                                   AND S.WAREHOUSE_ID = @WAREHOUSE_ID
-                                   AND S.COMPLETED_AT_UTC >= @SOLD_SINCE), 0) AS SOLD
+                       {soldExpression} AS SOLD
                 FROM PRODUCT P
                 JOIN PRODUCT_UNIT U ON U.ID = P.BASE_UNIT_ID
                 JOIN CATEGORY PC ON PC.ID = P.CATEGORY_ID
@@ -227,10 +238,14 @@ public sealed class FirebirdSaleReadReader : ISaleReadReader
             """);
         command.Parameters.Add("@WAREHOUSE_ID", FbDbType.Char).Value = criteria.WarehouseId.ToString();
         command.Parameters.Add("@BACKORDER", FbDbType.SmallInt).Value = (short)StockMovementType.BackorderSale;
-        command.Parameters.Add("@COMPLETED", FbDbType.SmallInt).Value = (short)SaleStatus.Completed;
-        command.Parameters.Add("@SOLD_SINCE", FbDbType.TimeStamp).Value = criteria.SoldSinceUtc.UtcDateTime;
         command.Parameters.Add("@OFFSET", FbDbType.Integer).Value = criteria.Offset;
         command.Parameters.Add("@LIMIT", FbDbType.Integer).Value = criteria.Limit;
+        if (criteria.Filter == ProductListFilter.TopSelling)
+        {
+            command.Parameters.Add("@COMPLETED", FbDbType.SmallInt).Value = (short)SaleStatus.Completed;
+            command.Parameters.Add("@SOLD_SINCE", FbDbType.TimeStamp).Value = criteria.SoldSinceUtc.UtcDateTime;
+        }
+
         if (criteria.CategoryId is { } categoryId)
         {
             command.Parameters.Add("@CATEGORY_ID", FbDbType.Char).Value = categoryId.ToString();
