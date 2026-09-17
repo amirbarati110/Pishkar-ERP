@@ -15,6 +15,23 @@ public sealed class FirebirdDatabaseBootstrapper
     private static readonly WarehouseId MainWarehouseId =
         WarehouseId.From(Guid.Parse("33333333-3333-4333-8333-333333333333"));
 
+    /// <summary>Exposed so a health check can compare "what the code expects" against "what the database's own <c>SCHEMA_MIGRATIONS</c> table says was applied" without hardcoding the count twice.</summary>
+    public static readonly IReadOnlyList<IMigration> Migrations =
+    [
+        new V001CreateCatalogAndInventory(),
+        new V002CreateSales(),
+        new V003SaleLineDiscountAndServiceCharge(),
+        new V004SaleNumber(),
+        new V005CreateCustomers(),
+        new V006CustomerAccount(),
+        new V007SaleNote(),
+        new V008SaleCorrection(),
+        new V009CreateAppUser(),
+        new V010CreateCashShift(),
+        new V011CreateJournalEntry(),
+        new V012CreateBackupRecord(),
+    ];
+
     private readonly FirebirdConnectionFactory _connectionFactory;
 
     public FirebirdDatabaseBootstrapper(FirebirdConnectionFactory connectionFactory)
@@ -24,18 +41,7 @@ public sealed class FirebirdDatabaseBootstrapper
 
     public async Task<RetailSetupDefaults> InitializeAsync(CancellationToken cancellationToken)
     {
-        await new MigrationRunner(
-                _connectionFactory,
-                [
-                    new V001CreateCatalogAndInventory(),
-                    new V002CreateSales(),
-                    new V003SaleLineDiscountAndServiceCharge(),
-                    new V004SaleNumber(),
-                    new V005CreateCustomers(),
-                    new V006CustomerAccount(),
-                    new V007SaleNote(),
-                    new V008SaleCorrection(),
-                ])
+        await new MigrationRunner(_connectionFactory, Migrations)
             .MigrateAsync(cancellationToken)
             .ConfigureAwait(false);
 

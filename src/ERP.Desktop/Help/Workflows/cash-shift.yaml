@@ -1,0 +1,15 @@
+page: cash-shift
+title_fa: شیفت صندوق
+steps:
+  - control: opening-cash-input
+    instruction_fa: مبلغی که ابتدای شیفت داخل صندوق می‌گذاری را وارد کن و شیفت را شروع کن.
+    action: focus
+  - control: expected-cash
+    instruction_fa: در طول شیفت، مبلغ مورد انتظار (ابتدای صندوق + فروش نقدی) زنده به‌روز می‌شود.
+    action: focus
+  - control: counted-cash-input
+    instruction_fa: در پایان شیفت، پول داخل صندوق را بشمار و همان عدد را اینجا وارد کن.
+    action: focus
+  - control: close-button
+    instruction_fa: «شمارش و بستن شیفت» را بزن — کم یا زیاد بودن نسبت به مبلغ مورد انتظار نشان داده می‌شود.
+    action: invoke

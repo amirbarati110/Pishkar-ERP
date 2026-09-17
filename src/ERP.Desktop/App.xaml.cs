@@ -1,3 +1,4 @@
+using ERP.Application.Identity;
 using ERP.Presentation.Help;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -17,6 +18,12 @@ namespace ERP.Desktop;
 public partial class App : Microsoft.UI.Xaml.Application
 {
     public static AppServices Services { get; private set; } = null!;
+
+    /// <summary>Who is signed in — set once at startup after setup/login, never a shared or placeholder identity (§3, §15.3).</summary>
+    public static SignedInUser CurrentUser { get; private set; } = null!;
+
+    /// <summary>The Identity module's own handlers — kept around after startup for the §6.7 manager re-auth prompt (<see cref="IVerifyAdminCredentialHandler"/>).</summary>
+    public static IVerifyAdminCredentialHandler VerifyAdminCredential { get; private set; } = null!;
 
     /// <summary>One cache of «راهنمای این صفحه» content (§4.1), shared by every page instead of each re-reading its own yaml file.</summary>
     public static WorkflowLoader Workflows { get; } = new();
@@ -71,8 +78,12 @@ public partial class App : Microsoft.UI.Xaml.Application
         // window instead, so the app fails visibly and recoverably.
         try
         {
-            Services = await AppServices.InitializeAsync(CancellationToken.None);
-            Window = new MainWindow();
+            var database = await AppServices.InitializeDatabaseAsync(CancellationToken.None);
+            var needsSetup = !await database.Identity.AnyUserExistsAsync(CancellationToken.None);
+
+            var authWindow = new AuthWindow(database.Identity, database.Identity, needsSetup);
+            authWindow.Completed += signedInUser => OnSignedIn(database, signedInUser, authWindow);
+            Window = authWindow;
         }
         catch (Exception exception)
         {
@@ -80,6 +91,23 @@ public partial class App : Microsoft.UI.Xaml.Application
         }
 
         Window.Activate();
+    }
+
+    /// <summary>
+    /// Runs once setup or login succeeds: builds the rest of the app under
+    /// the real signed-in user, opens the main window, and closes the
+    /// setup/login one — the same two-step shape as <c>OnLaunched</c> itself
+    /// (build first, only swap the visible window if that succeeds).
+    /// </summary>
+    private static void OnSignedIn(AppServices.DatabaseContext database, SignedInUser signedInUser, AuthWindow authWindow)
+    {
+        CurrentUser = signedInUser;
+        VerifyAdminCredential = database.Identity;
+        Services = AppServices.Build(database, new AppServices.SignedInUserContext(signedInUser.UserId.Value));
+
+        Window = new MainWindow();
+        Window.Activate();
+        authWindow.Close();
     }
 
     private void OnUnhandledException(

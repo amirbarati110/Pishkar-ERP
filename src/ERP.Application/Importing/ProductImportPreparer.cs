@@ -12,7 +12,9 @@ public sealed record PreparedProductImportRow(
     CategoryId CategoryId,
     UnitId BaseUnitId,
     Money SalePrice,
-    IReadOnlyList<string> Barcodes);
+    IReadOnlyList<string> Barcodes,
+    decimal? OpeningStockQuantity,
+    Money? OpeningStockUnitCost);
 
 public sealed record ProductImportIssue(
     int? RowNumber,
@@ -41,6 +43,8 @@ public sealed class ProductImportPreparer
         int categoryColumn;
         int unitColumn;
         int priceColumn;
+        int? openingQuantityColumn;
+        int? openingCostColumn;
         try
         {
             nameColumn = FindColumn(table.Headers, "نام کالا");
@@ -49,6 +53,8 @@ public sealed class ProductImportPreparer
             categoryColumn = FindColumn(table.Headers, "دسته‌بندی");
             unitColumn = FindColumn(table.Headers, "واحد");
             priceColumn = FindColumn(table.Headers, "قیمت فروش (تومان)");
+            openingQuantityColumn = FindOptionalColumn(table.Headers, "موجودی اولیه");
+            openingCostColumn = FindOptionalColumn(table.Headers, "بهای تمام‌شده اولیه (تومان)");
         }
         catch (InvalidDataException exception)
         {
@@ -129,6 +135,39 @@ public sealed class ProductImportPreparer
                 continue;
             }
 
+            // موجودی اولیه اختیاری است — یک کالای تازه بدون موجودی هم معتبر است؛
+            // اگر ستون پر شده، هم تعداد هم بهای تمام‌شده باید معتبر باشند، وگرنه
+            // ارزش موجودی به‌جای خطای روشن، بی‌صدا صفر ثبت می‌شود.
+            var openingQuantityText = ReadOptional(row, openingQuantityColumn);
+            decimal? openingStockQuantity = null;
+            Money? openingStockUnitCost = null;
+            if (openingQuantityText is not null)
+            {
+                if (!TryParseQuantity(openingQuantityText, out var quantity) || quantity <= 0)
+                {
+                    issues.Add(new ProductImportIssue(
+                        row.RowNumber,
+                        "import.product.invalid-opening-quantity",
+                        "موجودی اولیه باید یک عدد بیشتر از صفر باشد."));
+                    continue;
+                }
+
+                var openingCostText = ReadOptional(row, openingCostColumn);
+                if (openingCostText is null
+                    || !TryParseTomans(openingCostText, out var openingCostTomans)
+                    || openingCostTomans < 0)
+                {
+                    issues.Add(new ProductImportIssue(
+                        row.RowNumber,
+                        "import.product.invalid-opening-cost",
+                        "چون موجودی اولیه پر شده، بهای تمام‌شده اولیه هم باید یک عدد صحیح و صفر یا بیشتر باشد."));
+                    continue;
+                }
+
+                openingStockQuantity = quantity;
+                openingStockUnitCost = Money.FromTomans(openingCostTomans);
+            }
+
             items.Add(new PreparedProductImportRow(
                 row.RowNumber,
                 name,
@@ -136,7 +175,9 @@ public sealed class ProductImportPreparer
                 category.Id,
                 unit.Id,
                 Money.FromTomans(salePriceTomans),
-                barcode is null ? [] : [barcode]));
+                barcode is null ? [] : [barcode],
+                openingStockQuantity,
+                openingStockUnitCost));
         }
 
         return new ProductImportPreview(items, issues);
@@ -178,17 +219,12 @@ public sealed class ProductImportPreparer
         var length = 0;
         foreach (var character in value)
         {
-            if (character is '٬' or ',' or ' ' or '\u00A0')
+            if (IsIgnorableSeparator(character))
             {
                 continue;
             }
 
-            buffer[length++] = character switch
-            {
-                >= '۰' and <= '۹' => (char)('0' + character - '۰'),
-                >= '٠' and <= '٩' => (char)('0' + character - '٠'),
-                _ => character,
-            };
+            buffer[length++] = NormalizeDigit(character);
         }
 
         return long.TryParse(
@@ -197,4 +233,36 @@ public sealed class ProductImportPreparer
             CultureInfo.InvariantCulture,
             out result);
     }
+
+    /// <summary>Unlike <see cref="TryParseTomans"/>, allows a decimal point — opening stock can be fractional (e.g. کیلوگرم).</summary>
+    private static bool TryParseQuantity(string value, out decimal result)
+    {
+        Span<char> buffer = stackalloc char[value.Length];
+        var length = 0;
+        foreach (var character in value)
+        {
+            if (IsIgnorableSeparator(character))
+            {
+                continue;
+            }
+
+            buffer[length++] = character == '٫' ? '.' : NormalizeDigit(character);
+        }
+
+        return decimal.TryParse(
+            buffer[..length],
+            NumberStyles.AllowDecimalPoint,
+            CultureInfo.InvariantCulture,
+            out result);
+    }
+
+    private static bool IsIgnorableSeparator(char character) =>
+        character is '٬' or ',' or ' ' or ' ';
+
+    private static char NormalizeDigit(char character) => character switch
+    {
+        >= '۰' and <= '۹' => (char)('0' + character - '۰'),
+        >= '٠' and <= '٩' => (char)('0' + character - '٠'),
+        _ => character,
+    };
 }

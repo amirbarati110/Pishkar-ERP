@@ -583,6 +583,12 @@ public sealed partial class SalesWorkspaceViewModel : ObservableObject
     /// <summary>For a key or button whose feature is not built yet: say so plainly instead of doing nothing.</summary>
     public void ShowNotSoonNotice(string message) => ShowNotice(message, isError: true);
 
+    /// <summary>The receipt print job (a real OS-level print, not the ViewModel's own concern — §14.14) reports its outcome back through the same notice banner as everything else.</summary>
+    public void ShowPrintedNotice() => ShowNotice("رسید برای چاپ ارسال شد.");
+
+    public void ShowPrintFailedNotice() => ShowNotice(
+        "چاپ ناموفق بود — چاپگر پیش‌فرض ویندوز را بررسی کنید.", isError: true);
+
     private void ShowNotice(string message, bool isError = false)
     {
         NoticeIsError = isError;

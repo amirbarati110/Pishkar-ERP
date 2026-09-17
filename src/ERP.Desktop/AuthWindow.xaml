@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="ERP.Desktop.AuthWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:ERP.Desktop"
+    xmlns:ds="using:ERP.Desktop.DesignSystem"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="پیشکار ERP"
+    mc:Ignorable="d">
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid Background="{ThemeResource AppBackgroundBrush}" FlowDirection="RightToLeft">
+        <Border Style="{StaticResource AppCardStyle}" Width="440" Padding="32"
+                HorizontalAlignment="Center" VerticalAlignment="Center">
+            <StackPanel Spacing="20">
+                <ds:PishkarLogo HorizontalAlignment="Center" SymbolSize="40" />
+
+                <!-- راه‌اندازی اولیه: تنها زمانی که هنوز هیچ کاربری ساخته نشده. -->
+                <StackPanel x:Name="SetupPanel" Spacing="14">
+                    <TextBlock Text="راه‌اندازی اولیه" Style="{StaticResource AppPageTitleStyle}"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="این اولین اجرای برنامه است. برای شروع، حساب مدیر فروشگاه را بسازید."
+                               Style="{StaticResource AppMutedTextStyle}" HorizontalAlignment="Center"
+                               TextWrapping="Wrap" TextAlignment="Center" />
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="نام نمایشی" Style="{StaticResource AppFieldLabelStyle}" />
+                        <TextBox Style="{StaticResource AppTextBoxStyle}"
+                                 Text="{x:Bind SetupVm.DisplayName, Mode=TwoWay}"
+                                 PlaceholderText="مثلاً «مدیر فروشگاه»"
+                                 AutomationProperties.Name="نام نمایشی مدیر" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="نام کاربری" Style="{StaticResource AppFieldLabelStyle}" />
+                        <TextBox Style="{StaticResource AppTextBoxStyle}"
+                                 Text="{x:Bind SetupVm.Username, Mode=TwoWay}"
+                                 PlaceholderText="حروف و رقم انگلیسی"
+                                 AutomationProperties.Name="نام کاربری مدیر" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="رمز عبور (حداقل ۸ نویسه)" Style="{StaticResource AppFieldLabelStyle}" />
+                        <PasswordBox x:Name="SetupPasswordBox" MinHeight="48" CornerRadius="10"
+                                     FontFamily="{StaticResource AppBodyFont}" FontSize="15"
+                                     PasswordChanged="OnSetupPasswordChanged"
+                                     AutomationProperties.Name="رمز عبور مدیر" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="تکرار رمز عبور" Style="{StaticResource AppFieldLabelStyle}" />
+                        <PasswordBox x:Name="SetupConfirmPasswordBox" MinHeight="48" CornerRadius="10"
+                                     FontFamily="{StaticResource AppBodyFont}" FontSize="15"
+                                     PasswordChanged="OnSetupConfirmPasswordChanged"
+                                     AutomationProperties.Name="تکرار رمز عبور مدیر" />
+                    </StackPanel>
+
+                    <TextBlock Text="{x:Bind SetupVm.ErrorMessage, Mode=OneWay}" Style="{StaticResource AppErrorTextStyle}"
+                               TextWrapping="Wrap"
+                               Visibility="{x:Bind local:AuthWindow.WhenText(SetupVm.ErrorMessage), Mode=OneWay}" />
+
+                    <Button Style="{StaticResource AppPrimaryButtonStyle}" HorizontalAlignment="Stretch"
+                            Content="ساخت حساب مدیر و شروع" Command="{x:Bind SetupVm.SubmitCommand}"
+                            IsEnabled="{x:Bind local:AuthWindow.WhenNotBusy(SetupVm.IsBusy), Mode=OneWay}" />
+                </StackPanel>
+
+                <!-- ورود: هر بار پس از راه‌اندازی اولیه. -->
+                <StackPanel x:Name="LoginPanel" Spacing="14" Visibility="Collapsed">
+                    <TextBlock Text="ورود به پیشکار" Style="{StaticResource AppPageTitleStyle}"
+                               HorizontalAlignment="Center" />
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="نام کاربری" Style="{StaticResource AppFieldLabelStyle}" />
+                        <TextBox Style="{StaticResource AppTextBoxStyle}"
+                                 Text="{x:Bind LoginVm.Username, Mode=TwoWay}"
+                                 PlaceholderText="نام کاربری"
+                                 AutomationProperties.Name="نام کاربری" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="رمز عبور" Style="{StaticResource AppFieldLabelStyle}" />
+                        <PasswordBox x:Name="LoginPasswordBox" MinHeight="48" CornerRadius="10"
+                                     FontFamily="{StaticResource AppBodyFont}" FontSize="15"
+                                     PasswordChanged="OnLoginPasswordChanged"
+                                     AutomationProperties.Name="رمز عبور" />
+                    </StackPanel>
+
+                    <TextBlock Text="{x:Bind LoginVm.ErrorMessage, Mode=OneWay}" Style="{StaticResource AppErrorTextStyle}"
+                               TextWrapping="Wrap"
+                               Visibility="{x:Bind local:AuthWindow.WhenText(LoginVm.ErrorMessage), Mode=OneWay}" />
+
+                    <Button Style="{StaticResource AppPrimaryButtonStyle}" HorizontalAlignment="Stretch"
+                            Content="ورود" Command="{x:Bind LoginVm.SubmitCommand}"
+                            IsEnabled="{x:Bind local:AuthWindow.WhenNotBusy(LoginVm.IsBusy), Mode=OneWay}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

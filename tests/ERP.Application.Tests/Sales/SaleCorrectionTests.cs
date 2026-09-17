@@ -64,6 +64,21 @@ public sealed class SaleCorrectionTests
     }
 
     [Fact]
+    public async Task ACompletedCorrectionPostsItsOwnJournalEntryTaggedAsACorrection()
+    {
+        // این تست عمداً از CompleteSaleHandler واقعی برای فاکتور اصلی استفاده
+        // نمی‌کند (helper مشترک این فایل، Sale.Complete را مستقیم صدا می‌زند) —
+        // این‌که خودِ فاکتور اصلی هم سند می‌گیرد، در CompleteSaleTests ثابت شده.
+        var context = new ApplicationTestContext();
+        var original = await CompletedCashSaleAsync(context, discountTomans: 0);
+        var correction = await StartAndComplete(context, original, "روش پرداخت اشتباه بود");
+
+        var correctionEntry = Assert.Single(context.JournalEntries.Items, entry => entry.SourceId == correction.Id.ToString());
+        Assert.Equal(ERP.Domain.Accounting.JournalSourceType.SaleCorrection, correctionEntry.SourceType);
+        Assert.DoesNotContain(context.JournalEntries.Items, entry => entry.SourceId == original.Id.ToString());
+    }
+
+    [Fact]
     public async Task StartFailsWhenTheOriginalAlreadyHasACorrection()
     {
         var context = new ApplicationTestContext();
@@ -196,6 +211,7 @@ public sealed class SaleCorrectionTests
             context.Customers,
             context.CustomerLedger,
             context.Audit,
+            context.JournalEntries,
             context.UnitOfWork,
             context.User,
             context.Clock);

@@ -19,6 +19,8 @@ public sealed partial class DashboardPage : Page
         ViewModel = new WorkbenchViewModel(
             App.Services.SalesBackend.SalesOfDay,
             App.Services.SalesBackend.HeldSales,
+            App.Services.Cashiering,
+            App.Services.Defaults.MainWarehouseId,
             App.Services.SalesBackend.Clock)
         {
             ReportUnexpectedError = App.TryLogCrash,
@@ -45,4 +47,6 @@ public sealed partial class DashboardPage : Page
     private void OnProductsClick(object sender, RoutedEventArgs e) => MainPage.ShellOf(this)?.GoTo("products");
 
     private void OnInventoryClick(object sender, RoutedEventArgs e) => MainPage.ShellOf(this)?.GoTo("inventory");
+
+    private void OnTillClick(object sender, RoutedEventArgs e) => MainPage.ShellOf(this)?.GoTo("till");
 }

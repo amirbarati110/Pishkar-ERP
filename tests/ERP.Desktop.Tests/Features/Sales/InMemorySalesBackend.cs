@@ -1,12 +1,18 @@
+using ERP.Application.Accounting;
 using ERP.Application.Audit;
+using ERP.Application.Cashiering;
 using ERP.Application.Catalog;
 using ERP.Application.Common;
 using ERP.Application.Customers;
+using ERP.Application.Identity;
 using ERP.Application.Inventory;
 using ERP.Application.Sales;
+using ERP.Domain.Accounting;
+using ERP.Domain.Cashiering;
 using ERP.Domain.Catalog;
 using ERP.Domain.Common;
 using ERP.Domain.Customers;
+using ERP.Domain.Identity;
 using ERP.Domain.Inventory;
 using ERP.Domain.Sales;
 using ERP.Presentation.Features.Sales;
@@ -21,7 +27,8 @@ namespace ERP.Desktop.Tests.Features.Sales;
 internal sealed class InMemorySalesBackend :
     ISaleRepository, IProductRepository, IStockLedgerRepository, ISaleNumberGenerator,
     ICustomerRepository, ICustomerLedgerReader, ICustomerSearchReader, IAuditWriter, IUnitOfWork,
-    ISaleReadReader, IProductSearchReader, ICatalogLookupReader, ICustomerPaymentRepository, IUserContext, IClock
+    ISaleReadReader, IProductSearchReader, ICatalogLookupReader, ICustomerPaymentRepository, IUserRepository,
+    ICashShiftRepository, IJournalEntryRepository, IUserContext, IClock
 {
     private long _nextNumber = 1258;
 
@@ -49,6 +56,12 @@ internal sealed class InMemorySalesBackend :
     public List<AuditEntry> Audit { get; } = [];
 
     public List<CustomerPayment> Payments { get; } = [];
+
+    public List<User> Users { get; } = [];
+
+    public List<CashShift> CashShifts { get; } = [];
+
+    public List<JournalEntry> JournalEntries { get; } = [];
 
     public int CompleteCalls { get; set; }
 
@@ -82,9 +95,9 @@ internal sealed class InMemorySalesBackend :
             new SetSaleChargesHandler(this, this),
             new SetSaleCustomerHandler(this, this, this),
             new SetSaleNoteHandler(this, this),
-            new CountingComplete(this, new CompleteSaleHandler(this, this, this, this, this, this, this, this, this)),
+            new CountingComplete(this, new CompleteSaleHandler(this, this, this, this, this, this, this, this, this, this)),
             new StartSaleCorrectionHandler(this, this, this),
-            new CompleteSaleCorrectionHandler(this, this, this, this, this, this, this, this),
+            new CompleteSaleCorrectionHandler(this, this, this, this, this, this, this, this, this),
             new CancelSaleHandler(this, this, this, this, this),
             new GetSaleDetailsHandler(this, this, this),
             new ListHeldSalesHandler(this),
@@ -98,8 +111,69 @@ internal sealed class InMemorySalesBackend :
             new QuickCreateCustomerHandler(this, this, this, this, this),
             new GetCustomerAccountHandler(this, this),
             new RecordCustomerPaymentHandler(this, this, this, this, this, this),
+            new VerifyAdminCredentialHandler(this),
+            new GetSaleJournalEntryHandler(this),
             this);
     }
+
+    /// <summary>For §6.7 approval tests: an admin who can pass <see cref="VerifyAdminCredentialHandler"/>.</summary>
+    public User AddAdmin(string username, string password)
+    {
+        var admin = User.Create(username, username, password, UserRole.Admin);
+        Users.Add(admin);
+        return admin;
+    }
+
+    // ── IUserRepository ──
+
+    public Task<User?> GetByIdAsync(UserId id, CancellationToken cancellationToken) =>
+        Task.FromResult(Users.SingleOrDefault(user => user.Id == id));
+
+    public Task<User?> GetByUsernameAsync(string username, CancellationToken cancellationToken) =>
+        Task.FromResult(Users.SingleOrDefault(user =>
+            string.Equals(user.Username, username?.Trim(), StringComparison.OrdinalIgnoreCase)));
+
+    public Task<bool> AnyExistsAsync(CancellationToken cancellationToken) => Task.FromResult(Users.Count > 0);
+
+    public Task SaveAsync(User user, CancellationToken cancellationToken)
+    {
+        if (!Users.Contains(user))
+        {
+            Users.Add(user);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    // ── ICashShiftRepository ──
+
+    public Task<CashShift?> GetOpenAsync(WarehouseId warehouseId, CancellationToken cancellationToken) =>
+        Task.FromResult(CashShifts.SingleOrDefault(shift =>
+            shift.WarehouseId == warehouseId && shift.Status == CashShiftStatus.Open));
+
+    public Task<CashShift?> GetByIdAsync(CashShiftId id, CancellationToken cancellationToken) =>
+        Task.FromResult(CashShifts.SingleOrDefault(shift => shift.Id == id));
+
+    public Task SaveAsync(CashShift shift, CancellationToken cancellationToken)
+    {
+        if (!CashShifts.Contains(shift))
+        {
+            CashShifts.Add(shift);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    // ── IJournalEntryRepository ──
+
+    public Task SaveAsync(JournalEntry entry, CancellationToken cancellationToken)
+    {
+        JournalEntries.Add(entry);
+        return Task.CompletedTask;
+    }
+
+    public Task<JournalEntry?> GetBySourceAsync(JournalSourceType sourceType, string sourceId, CancellationToken cancellationToken) =>
+        Task.FromResult(JournalEntries.SingleOrDefault(entry => entry.SourceType == sourceType && entry.SourceId == sourceId));
 
     // ── ISaleRepository / ISaleNumberGenerator ──
     Task<Sale?> ISaleRepository.GetAsync(SaleId saleId, CancellationToken cancellationToken) =>
@@ -212,6 +286,15 @@ internal sealed class InMemorySalesBackend :
         DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<SaleListItem>>(Sales
             .Where(sale => sale.Status == SaleStatus.Completed && sale.CompletedAtUtc >= fromUtc && sale.CompletedAtUtc < toUtc)
+            .OrderByDescending(sale => sale.Number!.Value.Value)
+            .Select(sale => ToListItem(sale, sale.Totals?.Total))
+            .ToList());
+
+    Task<IReadOnlyList<SaleListItem>> ISaleReadReader.ListCompletedByWarehouseAsync(
+        WarehouseId warehouseId, DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<SaleListItem>>(Sales
+            .Where(sale => sale.Status == SaleStatus.Completed && sale.WarehouseId == warehouseId
+                && sale.CompletedAtUtc >= fromUtc && sale.CompletedAtUtc < toUtc)
             .OrderByDescending(sale => sale.Number!.Value.Value)
             .Select(sale => ToListItem(sale, sale.Totals?.Total))
             .ToList());

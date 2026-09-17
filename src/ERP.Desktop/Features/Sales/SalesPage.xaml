@@ -933,7 +933,7 @@
                                 Visibility="{x:Bind local:SalesPage.WhenFalse(ViewModel.NeedsCreditApproval), Mode=OneWay}">
                             <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="ثبت نهایی فاکتور" Foreground="White" FontWeight="Bold" /><TextBlock Text="Enter" FontSize="11" Foreground="White" Opacity="0.8" VerticalAlignment="Center" /></StackPanel>
                         </Button>
-                        <Button Grid.Column="1" Command="{x:Bind ViewModel.ApproveCreditAndCompleteCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch"
+                        <Button Grid.Column="1" Command="{x:Bind ViewModel.OpenAdminApprovalCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch"
                                 Background="{ThemeResource SalesAmberBrush}" Visibility="{x:Bind ViewModel.NeedsCreditApproval, Mode=OneWay}"
                                 Content="تأیید مدیر و ثبت نسیه" />
                     </Grid>
@@ -976,6 +976,39 @@
                         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <Button Command="{x:Bind ViewModel.CancelReceivePaymentCommand}" Style="{StaticResource SalesActionButton}" Content="انصراف" />
                         <Button Grid.Column="1" Command="{x:Bind ViewModel.ConfirmReceivePaymentCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch" Content="ثبت دریافت" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- تأیید مدیر (§6.7/§15.3) — the manager's own credential, typed right here, to approve a نسیه sale over the customer's credit limit -->
+        <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsAdminApprovalOpen, Mode=OneWay}">
+            <Border Style="{StaticResource SalesDialogCard}" Width="400">
+                <StackPanel>
+                    <TextBlock Text="تأیید مدیر" Style="{StaticResource SalesDialogTitle}" Margin="18,15" />
+                    <StackPanel Spacing="12" Padding="18,4,18,16">
+                        <TextBlock Text="این فاکتور نسیه از سقف اعتبار مشتری بیشتر است. برای ادامه، نام کاربری و رمز عبور مدیر را وارد کنید."
+                                   FontSize="13.5" Foreground="{ThemeResource SalesMutedTextBrush}" TextWrapping="Wrap" />
+
+                        <TextBox x:Name="AdminApprovalUsernameBox" Header="نام کاربری مدیر"
+                                 Text="{x:Bind ViewModel.AdminApprovalUsername, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="رمز عبور مدیر" Style="{StaticResource SalesLabel}" />
+                            <PasswordBox x:Name="AdminApprovalPasswordBox" PasswordChanged="OnAdminApprovalPasswordChanged"
+                                         AutomationProperties.Name="رمز عبور مدیر" />
+                        </StackPanel>
+
+                        <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
+                                Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.AdminApprovalError), Mode=OneWay}">
+                            <TextBlock Text="{x:Bind ViewModel.AdminApprovalError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                        </Border>
+                    </StackPanel>
+                    <Grid Padding="18,12" ColumnSpacing="8" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Button Command="{x:Bind ViewModel.CancelAdminApprovalCommand}" Style="{StaticResource SalesActionButton}" Content="انصراف" />
+                        <Button Grid.Column="1" Command="{x:Bind ViewModel.ConfirmAdminApprovalCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch"
+                                Background="{ThemeResource SalesAmberBrush}" Content="تأیید و ثبت نسیه" />
                     </Grid>
                 </StackPanel>
             </Border>
@@ -1025,7 +1058,8 @@
                     <Button x:Name="StartNextButton" Command="{x:Bind ViewModel.StartNextAfterSummaryCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch">
                         <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="فروش جدید" Foreground="White" FontWeight="Bold" /><TextBlock Text="Enter" FontSize="11" Foreground="White" Opacity="0.8" VerticalAlignment="Center" /></StackPanel>
                     </Button>
-                    <Button Style="{StaticResource SalesActionButton}" HorizontalAlignment="Stretch" IsEnabled="False" Content="چاپ فاکتور (به‌زودی)" />
+                    <Button Style="{StaticResource SalesActionButton}" HorizontalAlignment="Stretch" Content="چاپ رسید"
+                            Command="{x:Bind ViewModel.OpenReceiptPreviewCommand}" CommandParameter="{x:Bind ViewModel.CompletedSaleId}" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -1077,8 +1111,8 @@
                             <ListView ItemsSource="{x:Bind ViewModel.TodayInvoices}" SelectionMode="None">
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="sales:InvoiceListRow">
-                                        <Grid ColumnSpacing="10" Padding="0,8">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="80" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /><ColumnDefinition Width="60" /><ColumnDefinition Width="90" /><ColumnDefinition Width="120" /><ColumnDefinition Width="76" /></Grid.ColumnDefinitions>
+                                        <Grid ColumnSpacing="8" Padding="0,8">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="80" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /><ColumnDefinition Width="60" /><ColumnDefinition Width="90" /><ColumnDefinition Width="110" /><ColumnDefinition Width="76" /><ColumnDefinition Width="60" /><ColumnDefinition Width="60" /></Grid.ColumnDefinitions>
                                             <TextBlock Text="{x:Bind NumberText}" FontWeight="Bold" />
                                             <TextBlock Grid.Column="1" Text="{x:Bind CustomerText}" FontWeight="SemiBold" />
                                             <TextBlock Grid.Column="2" Text="{x:Bind TimeText}" HorizontalAlignment="Center" />
@@ -1090,6 +1124,18 @@
                                                     Background="Transparent" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1"
                                                     AutomationProperties.Name="اصلاح این فاکتور" ToolTipService.ToolTip="ثبت اصلاحیه برای این فاکتور (§10.10)">
                                                 <TextBlock Text="اصلاح" FontSize="12.5" />
+                                            </Button>
+                                            <!-- §6.23 «مشاهده سند حسابداری» — مدیر/حسابدار، نه صندوق‌دار در جریان کار عادی -->
+                                            <Button Grid.Column="7" Click="OnJournalEntryClick" Tag="{x:Bind}" Height="34" Padding="10,0" CornerRadius="8"
+                                                    Background="Transparent" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1"
+                                                    AutomationProperties.Name="مشاهده سند حسابداری" ToolTipService.ToolTip="مشاهده سند حسابداری این فاکتور (§6.23)">
+                                                <TextBlock Text="سند" FontSize="12.5" />
+                                            </Button>
+                                            <!-- §14.14/§15 معیار ۸ — چاپ مجدد بدون تکرار فروش -->
+                                            <Button Grid.Column="8" Click="OnPrintReceiptClick" Tag="{x:Bind}" Height="34" Padding="10,0" CornerRadius="8"
+                                                    Background="Transparent" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1"
+                                                    AutomationProperties.Name="چاپ رسید این فاکتور" ToolTipService.ToolTip="پیش‌نمایش و چاپ دوباره‌ی رسید این فاکتور">
+                                                <TextBlock Text="چاپ" FontSize="12.5" />
                                             </Button>
                                         </Grid>
                                     </DataTemplate>
@@ -1141,6 +1187,114 @@
                         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <Button Command="{x:Bind ViewModel.CancelCorrectionPromptCommand}" Style="{StaticResource SalesActionButton}" Content="انصراف" />
                         <Button Grid.Column="1" Command="{x:Bind ViewModel.ConfirmStartCorrectionCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch" Content="باز کردن اصلاحیه" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- «مشاهده سند حسابداری» (§6.23) — فقط نمایش، هیچ فیلدی برای ویرایش نیست -->
+        <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsJournalEntryOpen, Mode=OneWay}">
+            <Border Style="{StaticResource SalesDialogCard}" Width="440">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SalesDialogTitle}" Margin="18,15">
+                        <Run Text="سند حسابداری — فاکتور" /><Run Text=" " /><Run Text="{x:Bind ViewModel.JournalEntryNumberText, Mode=OneWay}" />
+                    </TextBlock>
+                    <StackPanel Spacing="10" Padding="18,4,18,16">
+                        <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
+                                Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.JournalEntryError), Mode=OneWay}">
+                            <TextBlock Text="{x:Bind ViewModel.JournalEntryError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                        </Border>
+                        <StackPanel Spacing="4" Visibility="{x:Bind local:SalesPage.WhenNoText(ViewModel.JournalEntryError), Mode=OneWay}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="110" /><ColumnDefinition Width="110" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="حساب" Style="{StaticResource SalesLabel}" />
+                                <TextBlock Grid.Column="1" Text="بدهکار" Style="{StaticResource SalesLabel}" HorizontalAlignment="Right" />
+                                <TextBlock Grid.Column="2" Text="بستانکار" Style="{StaticResource SalesLabel}" HorizontalAlignment="Right" />
+                            </Grid>
+                            <ItemsControl ItemsSource="{x:Bind ViewModel.JournalEntryLines}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="sales:JournalLineRow">
+                                        <Grid Padding="0,4">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="110" /><ColumnDefinition Width="110" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{x:Bind AccountName}" FontSize="13.5" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind DebitText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                            <TextBlock Grid.Column="2" Text="{x:Bind CreditText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+                    <Grid Padding="18,12" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
+                        <Button HorizontalAlignment="Stretch" Command="{x:Bind ViewModel.CloseJournalEntryCommand}" Style="{StaticResource SalesPrimaryButton}" Content="بستن" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- «پیش‌نمایش و چاپ رسید» (§14.14/§15 معیار ۸) — چاپ مجدد هرگز فروش را تکرار نمی‌کند، فقط همین سند را دوباره می‌خواند -->
+        <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsReceiptPreviewOpen, Mode=OneWay}">
+            <Border Style="{StaticResource SalesDialogCard}" Width="360">
+                <StackPanel>
+                    <TextBlock Text="پیش‌نمایش رسید" Style="{StaticResource SalesDialogTitle}" Margin="18,15" />
+                    <StackPanel Spacing="10" Padding="18,4,18,16">
+                        <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
+                                Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.ReceiptError), Mode=OneWay}">
+                            <TextBlock Text="{x:Bind ViewModel.ReceiptError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                        </Border>
+                        <StackPanel x:Name="ReceiptContentPanel" Spacing="6" Visibility="{x:Bind local:SalesPage.WhenNoText(ViewModel.ReceiptError), Mode=OneWay}">
+                            <TextBlock Text="پیشکار ERP" FontWeight="Bold" FontSize="15" HorizontalAlignment="Center" />
+                            <TextBlock HorizontalAlignment="Center" FontSize="12.5">
+                                <Run Text="فاکتور" /><Run Text=" " /><Run Text="{x:Bind ViewModel.ReceiptNumberText, Mode=OneWay}" />
+                            </TextBlock>
+                            <TextBlock Text="{x:Bind ViewModel.ReceiptDateText, Mode=OneWay}" FontSize="12" HorizontalAlignment="Center" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                            <TextBlock Text="{x:Bind ViewModel.ReceiptCustomerText, Mode=OneWay}" FontSize="12.5" />
+                            <Border Height="1" Background="{ThemeResource SalesLineBrush}" />
+                            <ItemsControl ItemsSource="{x:Bind ViewModel.ReceiptLines}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="sales:ReceiptLineRow">
+                                        <StackPanel Padding="0,3">
+                                            <TextBlock Text="{x:Bind Name}" FontSize="12.5" />
+                                            <Grid>
+                                                <TextBlock Text="{x:Bind QuantityAndPrice}" FontSize="12" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                                <TextBlock Text="{x:Bind TotalText}" FontSize="12.5" FontWeight="SemiBold" HorizontalAlignment="Left" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Border Height="1" Background="{ThemeResource SalesLineBrush}" />
+                            <Grid>
+                                <TextBlock Text="جمع کالاها" FontSize="12.5" />
+                                <TextBlock Text="{x:Bind ViewModel.ReceiptSubtotalText, Mode=OneWay}" FontSize="12.5" HorizontalAlignment="Left" />
+                            </Grid>
+                            <Grid Visibility="{x:Bind ViewModel.HasReceiptDiscount, Mode=OneWay}">
+                                <TextBlock Text="تخفیف" FontSize="12.5" />
+                                <TextBlock Text="{x:Bind ViewModel.ReceiptDiscountText, Mode=OneWay}" FontSize="12.5" HorizontalAlignment="Left" />
+                            </Grid>
+                            <Grid Visibility="{x:Bind ViewModel.HasReceiptServiceCharge, Mode=OneWay}">
+                                <TextBlock Text="هزینه/خدمات" FontSize="12.5" />
+                                <TextBlock Text="{x:Bind ViewModel.ReceiptServiceChargeText, Mode=OneWay}" FontSize="12.5" HorizontalAlignment="Left" />
+                            </Grid>
+                            <Grid Visibility="{x:Bind ViewModel.HasReceiptTax, Mode=OneWay}">
+                                <TextBlock Text="مالیات" FontSize="12.5" />
+                                <TextBlock Text="{x:Bind ViewModel.ReceiptTaxText, Mode=OneWay}" FontSize="12.5" HorizontalAlignment="Left" />
+                            </Grid>
+                            <Grid>
+                                <TextBlock Text="قابل پرداخت" FontSize="13.5" FontWeight="Bold" />
+                                <TextBlock Text="{x:Bind ViewModel.ReceiptTotalText, Mode=OneWay}" FontSize="13.5" FontWeight="Bold" HorizontalAlignment="Left" />
+                            </Grid>
+                            <TextBlock HorizontalAlignment="Center" FontSize="12">
+                                <Run Text="روش پرداخت:" /><Run Text=" " /><Run Text="{x:Bind ViewModel.ReceiptPaymentMethodText, Mode=OneWay}" />
+                            </TextBlock>
+                            <TextBlock Text="{x:Bind ViewModel.ReceiptNoteText, Mode=OneWay}" FontSize="12" TextWrapping="Wrap"
+                                       Visibility="{x:Bind ViewModel.HasReceiptNote, Mode=OneWay}" />
+                        </StackPanel>
+                    </StackPanel>
+                    <Grid Padding="18,12" ColumnSpacing="8" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Button Command="{x:Bind ViewModel.CloseReceiptPreviewCommand}" Style="{StaticResource SalesActionButton}" Content="بستن" />
+                        <Button Grid.Column="1" Click="OnActuallyPrintClick" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch" Content="چاپ" />
                     </Grid>
                 </StackPanel>
             </Border>

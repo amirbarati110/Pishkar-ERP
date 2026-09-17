@@ -219,9 +219,10 @@ public sealed class SalesWorkspaceViewModelTests
     }
 
     [Fact]
-    public async Task OverTheCreditLimitAsksForApprovalAndCompletesOnceApproved()
+    public async Task OverTheCreditLimitAsksForApprovalAndCompletesOnceTheManagersOwnCredentialIsVerified()
     {
         var (backend, viewModel) = Create();
+        backend.AddAdmin("boss", "PassWord123");
         var customer = Customer.QuickCreate("محمد رضایی", "09123456789");
         customer.SetCreditLimit(Money.FromTomans(800_000));
         backend.Customers.Add(customer);
@@ -237,10 +238,48 @@ public sealed class SalesWorkspaceViewModelTests
         Assert.True(viewModel.NeedsCreditApproval);
         Assert.Contains("تأیید مدیر", viewModel.PaymentError, StringComparison.Ordinal);
 
-        await viewModel.ApproveCreditAndCompleteCommand.ExecuteAsync(null);
+        viewModel.OpenAdminApprovalCommand.Execute(null);
+        Assert.True(viewModel.IsAdminApprovalOpen);
 
+        viewModel.AdminApprovalUsername = "boss";
+        viewModel.AdminApprovalPassword = "wrong-password";
+        await viewModel.ConfirmAdminApprovalCommand.ExecuteAsync(null);
+        Assert.True(viewModel.IsAdminApprovalOpen); // wrong credential — stays open, invoice not completed
+        Assert.NotNull(viewModel.AdminApprovalError);
+        Assert.False(viewModel.IsCompletedSummaryOpen);
+
+        viewModel.AdminApprovalPassword = "PassWord123";
+        await viewModel.ConfirmAdminApprovalCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.IsAdminApprovalOpen);
         Assert.True(viewModel.IsCompletedSummaryOpen);
         Assert.Contains(backend.Audit, entry => entry.Action == "sales.credit.over-limit-approved");
+    }
+
+    [Fact]
+    public async Task ACashierWithNoAdminAccountCannotApproveTheirOwnOverLimitSale()
+    {
+        var (backend, viewModel) = Create();
+        backend.Users.Add(Domain.Identity.User.Create("cashier1", "صندوق‌دار", "PassWord123", Domain.Identity.UserRole.Cashier));
+        var customer = Customer.QuickCreate("محمد رضایی", "09123456789");
+        customer.SetCreditLimit(Money.FromTomans(800_000));
+        backend.Customers.Add(customer);
+        await viewModel.LoadAsync(CancellationToken.None);
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products.Single(product => product.Name == "روغن حیوانی"));
+        await viewModel.ChooseCustomerCommand.ExecuteAsync(new Application.Customers.CustomerSearchResult(customer.Id, customer.Name, customer.Mobile));
+
+        viewModel.OpenPaymentCommand.Execute(CompletionFollowUp.ShowSummary);
+        viewModel.SelectPaymentMethodCommand.Execute(PaymentMethod.Credit);
+        await viewModel.ConfirmPaymentCommand.ExecuteAsync(null);
+        viewModel.OpenAdminApprovalCommand.Execute(null);
+
+        viewModel.AdminApprovalUsername = "cashier1";
+        viewModel.AdminApprovalPassword = "PassWord123";
+        await viewModel.ConfirmAdminApprovalCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsAdminApprovalOpen);
+        Assert.NotNull(viewModel.AdminApprovalError);
+        Assert.False(viewModel.IsCompletedSummaryOpen);
     }
 
     [Fact]
@@ -623,6 +662,81 @@ public sealed class SalesWorkspaceViewModelTests
         Assert.Equal("اصلاحیه‌ی ۱۲۵۸", correctionTab.Title);
         Assert.Single(correctionTab.Lines);
         Assert.Equal("روغن حیوانی", correctionTab.Lines[0].Name);
+    }
+
+    [Fact]
+    public async Task ViewingTheJournalEntryOfACompletedInvoiceShowsBalancedLines()
+    {
+        var (_, viewModel) = Create();
+        await viewModel.LoadAsync(CancellationToken.None);
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products.Single(product => product.Name == "روغن حیوانی"));
+        viewModel.OpenPaymentCommand.Execute(CompletionFollowUp.ShowSummary);
+        viewModel.SelectPaymentMethodCommand.Execute(PaymentMethod.Card);
+        await viewModel.ConfirmPaymentCommand.ExecuteAsync(null);
+        await viewModel.StartNextAfterSummaryCommand.ExecuteAsync(null);
+
+        await viewModel.OpenInvoiceListCommand.ExecuteAsync(null);
+        var row = viewModel.TodayInvoices.Single();
+
+        await viewModel.OpenJournalEntryCommand.ExecuteAsync(row);
+
+        Assert.True(viewModel.IsJournalEntryOpen);
+        Assert.Null(viewModel.JournalEntryError);
+        Assert.Equal("۱۲۵۸", viewModel.JournalEntryNumberText);
+        Assert.NotEmpty(viewModel.JournalEntryLines);
+        Assert.Contains(viewModel.JournalEntryLines, line => line.AccountName == "کارتخوان (در راه وصول)");
+        Assert.Contains(viewModel.JournalEntryLines, line => line.AccountName == "درآمد فروش");
+
+        viewModel.CloseJournalEntryCommand.Execute(null);
+        Assert.False(viewModel.IsJournalEntryOpen);
+    }
+
+    [Fact]
+    public async Task TheReceiptSummaryPrintButtonPreviewsTheJustCompletedInvoice()
+    {
+        var (_, viewModel) = Create();
+        await viewModel.LoadAsync(CancellationToken.None);
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products.Single(product => product.Name == "روغن حیوانی"));
+        viewModel.OpenPaymentCommand.Execute(CompletionFollowUp.ShowSummary);
+        viewModel.SelectPaymentMethodCommand.Execute(PaymentMethod.Cash);
+        await viewModel.ConfirmPaymentCommand.ExecuteAsync(null);
+
+        await viewModel.OpenReceiptPreviewCommand.ExecuteAsync(viewModel.CompletedSaleId);
+
+        Assert.True(viewModel.IsReceiptPreviewOpen);
+        Assert.Null(viewModel.ReceiptError);
+        Assert.Equal("۱۲۵۸", viewModel.ReceiptNumberText);
+        Assert.Equal("مشتری نقدی", viewModel.ReceiptCustomerText);
+        Assert.Single(viewModel.ReceiptLines);
+        Assert.Equal("روغن حیوانی", viewModel.ReceiptLines[0].Name);
+        Assert.Equal("نقدی", viewModel.ReceiptPaymentMethodText);
+        Assert.False(viewModel.HasReceiptDiscount);
+
+        viewModel.CloseReceiptPreviewCommand.Execute(null);
+        Assert.False(viewModel.IsReceiptPreviewOpen);
+    }
+
+    [Fact]
+    public async Task ReprintingFromTodaysInvoicesReadsTheSameCompletedSaleAgain()
+    {
+        var (backend, viewModel) = Create();
+        await viewModel.LoadAsync(CancellationToken.None);
+        await viewModel.AddProductCommand.ExecuteAsync(viewModel.Products.Single(product => product.Name == "روغن حیوانی"));
+        viewModel.OpenPaymentCommand.Execute(CompletionFollowUp.ShowSummary);
+        viewModel.SelectPaymentMethodCommand.Execute(PaymentMethod.Cash);
+        await viewModel.ConfirmPaymentCommand.ExecuteAsync(null);
+        await viewModel.StartNextAfterSummaryCommand.ExecuteAsync(null);
+        await viewModel.OpenInvoiceListCommand.ExecuteAsync(null);
+        var row = viewModel.TodayInvoices.Single();
+
+        await viewModel.OpenReceiptPreviewCommand.ExecuteAsync(row.Item.SaleId);
+        await viewModel.OpenReceiptPreviewCommand.ExecuteAsync(row.Item.SaleId);
+
+        // چاپ مجدد نباید هیچ فاکتور تکمیل‌شده‌ی تازه‌ای ایجاد کند — فقط همان
+        // یک فروش کامل‌شده باید بماند (فاکتور تازه‌ی بعدی هنوز پیش‌نویس است).
+        Assert.Single(backend.Sales, sale => sale.Status == SaleStatus.Completed);
+        Assert.True(viewModel.IsReceiptPreviewOpen);
+        Assert.Equal("۱۲۵۸", viewModel.ReceiptNumberText);
     }
 
     [Fact]

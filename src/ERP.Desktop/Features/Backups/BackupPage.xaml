@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- پشتیبان‌گیری و سلامت سیستم (ترتیب ساخت مرحله اول، قدم ۱۱؛ §۱۵ معیار ۱۱). -->
+<Page
+    x:Class="ERP.Desktop.Features.Backups.BackupPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ERP.Desktop.Features.Backups"
+    Background="{ThemeResource SalesCanvasBrush}"
+    FontFamily="{StaticResource AppBodyFont}"
+    FlowDirection="RightToLeft">
+
+    <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+        <Grid MaxWidth="720" HorizontalAlignment="Center" Padding="28,24,28,32">
+            <StackPanel Spacing="18">
+                <StackPanel Spacing="4">
+                    <TextBlock Style="{StaticResource AppPageTitleStyle}" Text="پشتیبان‌گیری و سلامت سیستم" />
+                    <TextBlock Style="{StaticResource AppMutedTextStyle}" FontSize="15"
+                               Text="یک نسخه پشتیبان محلی بگیر و اعتبارش را با یک بازیابی آزمایشی واقعی بررسی کن." TextWrapping="Wrap" />
+                </StackPanel>
+
+                <Border Style="{StaticResource AppCardStyle}">
+                    <StackPanel Spacing="14">
+                        <TextBlock Style="{StaticResource AppSectionTitleStyle}" Text="سلامت سیستم" />
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <StackPanel Spacing="4">
+                                <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="دیتابیس" />
+                                <TextBlock FontWeight="SemiBold" Text="{x:Bind local:BackupPage.DatabaseStatusText(ViewModel.DatabaseReachable), Mode=OneWay}"
+                                           Foreground="{x:Bind local:BackupPage.DatabaseStatusBrush(ViewModel.DatabaseReachable), Mode=OneWay}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Spacing="4">
+                                <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="Migration ها" />
+                                <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.MigrationsText, Mode=OneWay}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource AppCardStyle}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource AppSectionTitleStyle}" Text="آخرین نسخه پشتیبان" />
+                            <Button Grid.Column="1" Style="{StaticResource AppPrimaryButtonStyle}" Content="گرفتن نسخه پشتیبان"
+                                    Command="{x:Bind ViewModel.CreateBackupCommand}" />
+                        </Grid>
+
+                        <StackPanel Spacing="10" Visibility="{x:Bind ViewModel.HasLatestBackup, Mode=OneWay}">
+                            <Grid ColumnSpacing="16">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="زمان" />
+                                    <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.LatestBackupDateText, Mode=OneWay}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="وضعیت اعتبار" />
+                                    <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.LatestBackupStatusText, Mode=OneWay}" />
+                                </StackPanel>
+                            </Grid>
+                            <Button Style="{StaticResource AppPrimaryButtonStyle}" HorizontalAlignment="Left" Content="بررسی اعتبار (بازیابی آزمایشی)"
+                                    Command="{x:Bind ViewModel.VerifyLatestCommand}" IsEnabled="{x:Bind ViewModel.CanVerifyLatest, Mode=OneWay}" />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource AppMutedTextStyle}" FontSize="13.5" TextWrapping="Wrap"
+                                   Visibility="{x:Bind local:BackupPage.WhenFalse(ViewModel.HasLatestBackup), Mode=OneWay}"
+                                   Text="هنوز هیچ نسخه پشتیبانی گرفته نشده است." />
+
+                        <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
+                                Visibility="{x:Bind local:BackupPage.WhenText(ViewModel.ErrorMessage), Mode=OneWay}">
+                            <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                        </Border>
+                        <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource AppPrimarySoftBrush}"
+                                Visibility="{x:Bind local:BackupPage.WhenText(ViewModel.StatusMessage), Mode=OneWay}">
+                            <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" Foreground="{ThemeResource SalesPrimaryDarkBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                        </Border>
+
+                        <ProgressRing Width="22" Height="22" HorizontalAlignment="Left" IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Page>

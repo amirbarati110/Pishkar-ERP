@@ -69,8 +69,15 @@ public interface ISaleReadReader
         IReadOnlyCollection<ProductId> productIds,
         CancellationToken cancellationToken);
 
-    /// <summary>Completed invoices with <paramref name="fromUtc"/> ≤ completion &lt; <paramref name="toUtc"/>, newest number first.</summary>
+    /// <summary>Completed invoices with <paramref name="fromUtc"/> ≤ completion &lt; <paramref name="toUtc"/>, newest number first — every warehouse (the workbench's «امروز» is store-wide on purpose).</summary>
     Task<IReadOnlyList<SaleListItem>> ListCompletedAsync(
+        DateTimeOffset fromUtc,
+        DateTimeOffset toUtc,
+        CancellationToken cancellationToken);
+
+    /// <summary>Same as <see cref="ListCompletedAsync"/>, restricted to one warehouse — for anything scoped to a single till/warehouse, like a cash shift's own reconciliation (checklist appendix ز.۶: the store-wide version double-counts once a second warehouse's shift is open at the same time).</summary>
+    Task<IReadOnlyList<SaleListItem>> ListCompletedByWarehouseAsync(
+        WarehouseId warehouseId,
         DateTimeOffset fromUtc,
         DateTimeOffset toUtc,
         CancellationToken cancellationToken);

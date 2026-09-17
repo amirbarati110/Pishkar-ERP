@@ -1,6 +1,7 @@
 using ERP.Application.Common;
 using ERP.Application.Sales;
 using ERP.Domain.Sales;
+using ERP.Persistence.Accounting;
 using ERP.Persistence.Audit;
 using ERP.Persistence.Catalog;
 using ERP.Persistence.Customers;
@@ -104,6 +105,7 @@ public sealed class FirebirdSalesService :
                 new FirebirdCustomerRepository(unitOfWork),
                 new FirebirdCustomerLedgerReader(unitOfWork),
                 new FirebirdAuditWriter(unitOfWork),
+                new FirebirdJournalEntryRepository(unitOfWork),
                 unitOfWork,
                 _userContext,
                 _clock)
@@ -136,6 +138,7 @@ public sealed class FirebirdSalesService :
                 new FirebirdCustomerRepository(unitOfWork),
                 new FirebirdCustomerLedgerReader(unitOfWork),
                 new FirebirdAuditWriter(unitOfWork),
+                new FirebirdJournalEntryRepository(unitOfWork),
                 unitOfWork,
                 _userContext,
                 _clock)

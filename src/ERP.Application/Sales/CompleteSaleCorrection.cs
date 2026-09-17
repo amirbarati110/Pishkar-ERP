@@ -1,7 +1,9 @@
 using System.Globalization;
+using ERP.Application.Accounting;
 using ERP.Application.Audit;
 using ERP.Application.Common;
 using ERP.Application.Customers;
+using ERP.Domain.Accounting;
 using ERP.Domain.Sales;
 
 namespace ERP.Application.Sales;
@@ -34,6 +36,7 @@ public sealed class CompleteSaleCorrectionHandler : ICompleteSaleCorrectionHandl
     private readonly ICustomerRepository _customers;
     private readonly ICustomerLedgerReader _customerLedger;
     private readonly IAuditWriter _audit;
+    private readonly IJournalEntryRepository _journal;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
     private readonly IClock _clock;
@@ -44,6 +47,7 @@ public sealed class CompleteSaleCorrectionHandler : ICompleteSaleCorrectionHandl
         ICustomerRepository customers,
         ICustomerLedgerReader customerLedger,
         IAuditWriter audit,
+        IJournalEntryRepository journal,
         IUnitOfWork unitOfWork,
         IUserContext userContext,
         IClock clock)
@@ -53,6 +57,7 @@ public sealed class CompleteSaleCorrectionHandler : ICompleteSaleCorrectionHandl
         _customers = customers;
         _customerLedger = customerLedger;
         _audit = audit;
+        _journal = journal;
         _unitOfWork = unitOfWork;
         _userContext = userContext;
         _clock = clock;
@@ -107,6 +112,15 @@ public sealed class CompleteSaleCorrectionHandler : ICompleteSaleCorrectionHandl
                         $"corrects={originalSaleId};number={number};total={totals.Total.Rials};method={command.PaymentMethod};reason={sale.Note}"),
                     _clock.UtcNow),
                 cancellationToken).ConfigureAwait(false);
+
+            // اصلاحیه سند حسابداری تازه‌ی خودش را می‌گیرد — سند فاکتور اصلی
+            // دست‌نخورده می‌ماند، دقیقاً مثل خود ردیف Sale (پیوست و.۱).
+            var journalEntry = SaleJournalEntryFactory.Create(
+                JournalSourceType.SaleCorrection, sale.Id.ToString(), totals, command.PaymentMethod, _clock.UtcNow);
+            if (journalEntry is not null)
+            {
+                await _journal.SaveAsync(journalEntry, cancellationToken).ConfigureAwait(false);
+            }
 
             await _unitOfWork.CommitAsync(cancellationToken).ConfigureAwait(false);
 

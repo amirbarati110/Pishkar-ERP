@@ -218,6 +218,7 @@ public sealed class CustomerOnSaleTests
                 context.Customers,
                 context.CustomerLedger,
                 context.Audit,
+                context.JournalEntries,
                 context.UnitOfWork,
                 context.User,
                 context.Clock)

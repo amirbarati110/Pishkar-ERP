@@ -1,4 +1,7 @@
+using ERP.Desktop.Features.Backups;
+using ERP.Desktop.Features.Cashiering;
 using ERP.Desktop.Features.Categories;
+using ERP.Desktop.Features.Importing;
 using ERP.Desktop.Features.Inventory;
 using ERP.Desktop.Features.Products;
 using ERP.Desktop.Features.Sales;
@@ -88,6 +91,9 @@ public sealed partial class MainPage : Page
             "products" => typeof(ProductEditorPage),
             "categories" => typeof(CategoriesPage),
             "inventory" => typeof(OpeningStockPage),
+            "import" => typeof(ImportCenterPage),
+            "till" => typeof(CashShiftPage),
+            "backup" => typeof(BackupPage),
             "settings" => typeof(SettingsPage),
             _ => typeof(DashboardPage),
         };
@@ -125,6 +131,9 @@ public sealed partial class MainPage : Page
             var type when type == typeof(CategoriesPage) => "categories",
             var type when type == typeof(ProductEditorPage) => "product-editor",
             var type when type == typeof(OpeningStockPage) => "opening-stock",
+            var type when type == typeof(ImportCenterPage) => "import-center",
+            var type when type == typeof(CashShiftPage) => "cash-shift",
+            var type when type == typeof(BackupPage) => "backup",
             var type when type == typeof(SettingsPage) => "settings",
             _ => "home",
         };

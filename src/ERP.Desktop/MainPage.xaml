@@ -78,6 +78,15 @@
             <NavigationViewItem x:Name="InventoryNavItem" FontSize="15" AccessKey="I" AutomationProperties.Name="انبار و موجودی" Content="انبار و موجودی" Tag="inventory">
                 <NavigationViewItem.Icon><SymbolIcon Symbol="AllApps" /></NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem x:Name="ImportNavItem" FontSize="15" AccessKey="X" AutomationProperties.Name="وارد کردن از اکسل" Content="وارد کردن از اکسل" Tag="import">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="Import" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem x:Name="TillNavItem" FontSize="15" AccessKey="T" AutomationProperties.Name="شیفت صندوق" Content="شیفت صندوق" Tag="till">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="Calculator" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem x:Name="BackupNavItem" FontSize="15" AccessKey="B" AutomationProperties.Name="پشتیبان‌گیری و سلامت سیستم" Content="پشتیبان‌گیری" Tag="backup">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="Save" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
         </NavigationView.MenuItems>
 
         <NavigationView.FooterMenuItems>

@@ -1,0 +1,12 @@
+page: backup
+title_fa: پشتیبان‌گیری و سلامت سیستم
+steps:
+  - control: system-health
+    instruction_fa: بالای صفحه وضعیت دیتابیس و به‌روز بودن migration ها را ببین.
+    action: focus
+  - control: create-backup-button
+    instruction_fa: «گرفتن نسخه پشتیبان» را بزن تا یک فایل پشتیبان تازه ساخته شود.
+    action: invoke
+  - control: verify-backup-button
+    instruction_fa: بعد از گرفتن نسخه پشتیبان، «بررسی اعتبار» را بزن — این دکمه واقعاً نسخه پشتیبان را بازیابی و بررسی می‌کند، نه فقط چک کردن وجود فایل.
+    action: invoke

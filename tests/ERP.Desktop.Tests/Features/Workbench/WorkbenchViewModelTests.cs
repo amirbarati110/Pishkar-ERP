@@ -1,3 +1,4 @@
+using ERP.Application.Cashiering;
 using ERP.Application.Sales;
 using ERP.Desktop.Tests.Features.Sales;
 using ERP.Domain.Sales;
@@ -73,7 +74,8 @@ public sealed class WorkbenchViewModelTests
     {
         var (backend, _) = Create();
         Exception? logged = null;
-        var workbench = new WorkbenchViewModel(new ThrowingDay(), backend.Build().HeldSales, backend)
+        var workbench = new WorkbenchViewModel(
+            new ThrowingDay(), backend.Build().HeldSales, new GetCashShiftStatusHandler(backend, backend, backend), backend.Warehouse, backend)
         {
             ReportUnexpectedError = exception => logged = exception,
         };
@@ -97,6 +99,7 @@ public sealed class WorkbenchViewModelTests
         var backend = new InMemorySalesBackend();
         backend.AddProduct("برنج ایرانی", "RICE-1", "6260000009001", 245_000, stock: 10);
         var built = backend.Build();
-        return (backend, new WorkbenchViewModel(built.SalesOfDay, built.HeldSales, backend));
+        return (backend, new WorkbenchViewModel(
+            built.SalesOfDay, built.HeldSales, new GetCashShiftStatusHandler(backend, backend, backend), backend.Warehouse, backend));
     }
 }

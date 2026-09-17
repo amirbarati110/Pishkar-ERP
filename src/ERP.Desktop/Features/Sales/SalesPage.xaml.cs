@@ -103,6 +103,8 @@ public sealed partial class SalesPage : Page
 
     public static Visibility WhenText(string? text) => string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
 
+    public static Visibility WhenNoText(string? text) => string.IsNullOrEmpty(text) ? Visibility.Visible : Visibility.Collapsed;
+
     /// <summary>The two banners share one row (§10.10); the correction one wins when both would otherwise apply.</summary>
     public static Visibility WhenBalanceAndNotCorrection(string? balanceText, bool isCorrection) =>
         !isCorrection && !string.IsNullOrEmpty(balanceText) ? Visibility.Visible : Visibility.Collapsed;
@@ -211,7 +213,8 @@ public sealed partial class SalesPage : Page
     private bool IsAnyWindowOpen =>
         ViewModel.IsPaymentOpen || ViewModel.IsEditLineOpen || ViewModel.IsNewCustomerOpen
         || ViewModel.IsInvoiceListOpen || ViewModel.IsCancelConfirmOpen || ViewModel.IsCompletedSummaryOpen
-        || ViewModel.IsReceivePaymentOpen || ViewModel.IsStartingCorrectionOpen || HelpOverlay.Workflow is not null;
+        || ViewModel.IsReceivePaymentOpen || ViewModel.IsStartingCorrectionOpen || ViewModel.IsJournalEntryOpen
+        || ViewModel.IsReceiptPreviewOpen || HelpOverlay.Workflow is not null;
 
     // ───── راهنمای این صفحه (§4.1/§3.14) ─────
 
@@ -566,6 +569,9 @@ public sealed partial class SalesPage : Page
         }
     }
 
+    private void OnAdminApprovalPasswordChanged(object sender, RoutedEventArgs e) =>
+        ViewModel.AdminApprovalPassword = AdminApprovalPasswordBox.Password;
+
     private void OnCustomerTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
         if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
@@ -588,4 +594,108 @@ public sealed partial class SalesPage : Page
 
     private void OnCorrectInvoiceClick(object sender, RoutedEventArgs e) =>
         RunWithItem<InvoiceListRow>(sender, ViewModel.OpenCorrectionPromptCommand);
+
+    private void OnJournalEntryClick(object sender, RoutedEventArgs e) =>
+        RunWithItem<InvoiceListRow>(sender, ViewModel.OpenJournalEntryCommand);
+
+    private void OnPrintReceiptClick(object sender, RoutedEventArgs e)
+    {
+        if (ItemOf<InvoiceListRow>(sender) is { } row)
+        {
+            ViewModel.OpenReceiptPreviewCommand.Execute(row.Item.SaleId);
+        }
+    }
+
+    /// <summary>
+    /// «چاپ» in the receipt preview — a real print job (§14.14: "چاپگر واقعی
+    /// برای توسعه اجباری نیست؛ Print Preview و Adapter آزمایشی مسیر را
+    /// پوشش می‌دهند"). Deliberately the plain GDI+ <see cref="PrintDocument"/>
+    /// path rather than WinUI's own newer print surface: it needs no printer
+    /// picker dialog to be real, always prints to Windows' current default
+    /// printer (which can be "Microsoft Print to PDF" — no thermal printer
+    /// hardware required to exercise this path), and does not depend on a
+    /// WindowsAppSDK print API this project has not otherwise needed yet.
+    /// </summary>
+    private void OnActuallyPrintClick(object sender, RoutedEventArgs e)
+    {
+        var lines = BuildReceiptPrintLines();
+        if (lines.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            using var printDocument = new System.Drawing.Printing.PrintDocument();
+            var nextLine = 0;
+            printDocument.PrintPage += (_, args) =>
+            {
+                using var font = new System.Drawing.Font("Consolas", 10);
+                var graphics = args.Graphics!;
+                var lineHeight = font.GetHeight(graphics);
+                var y = (float)args.MarginBounds.Top;
+                while (nextLine < lines.Count && y + lineHeight <= args.MarginBounds.Bottom)
+                {
+                    graphics.DrawString(lines[nextLine], font, System.Drawing.Brushes.Black, args.MarginBounds.Left, y);
+                    y += lineHeight;
+                    nextLine++;
+                }
+
+                args.HasMorePages = nextLine < lines.Count;
+            };
+
+            printDocument.Print();
+            ViewModel.ShowPrintedNotice();
+        }
+        catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            // No default printer configured, or the spooler refused — a plain
+            // Persian message, not a stack trace (§15.20).
+            ViewModel.ShowPrintFailedNotice();
+        }
+    }
+
+    private List<string> BuildReceiptPrintLines()
+    {
+        var lines = new List<string>
+        {
+            "پیشکار ERP",
+            $"فاکتور {ViewModel.ReceiptNumberText}",
+            ViewModel.ReceiptDateText,
+            ViewModel.ReceiptCustomerText,
+            new string('-', 32),
+        };
+
+        foreach (var line in ViewModel.ReceiptLines)
+        {
+            lines.Add(line.Name);
+            lines.Add($"  {line.QuantityAndPrice}    {line.TotalText}");
+        }
+
+        lines.Add(new string('-', 32));
+        lines.Add($"جمع کالاها: {ViewModel.ReceiptSubtotalText}");
+        if (ViewModel.HasReceiptDiscount)
+        {
+            lines.Add($"تخفیف: {ViewModel.ReceiptDiscountText}");
+        }
+
+        if (ViewModel.HasReceiptServiceCharge)
+        {
+            lines.Add($"هزینه/خدمات: {ViewModel.ReceiptServiceChargeText}");
+        }
+
+        if (ViewModel.HasReceiptTax)
+        {
+            lines.Add($"مالیات: {ViewModel.ReceiptTaxText}");
+        }
+
+        lines.Add($"قابل پرداخت: {ViewModel.ReceiptTotalText}");
+        lines.Add($"روش پرداخت: {ViewModel.ReceiptPaymentMethodText}");
+        if (ViewModel.HasReceiptNote)
+        {
+            lines.Add(ViewModel.ReceiptNoteText!);
+        }
+
+        return lines;
+    }
 }

@@ -1,12 +1,20 @@
 using ERP.Application.Audit;
 using ERP.Application.Common;
+using ERP.Application.Accounting;
+using ERP.Application.Backups;
 using ERP.Application.Catalog;
+using ERP.Application.Cashiering;
 using ERP.Application.Customers;
+using ERP.Application.Identity;
 using ERP.Application.Inventory;
 using ERP.Application.Sales;
+using ERP.Domain.Accounting;
+using ERP.Domain.Backups;
+using ERP.Domain.Cashiering;
 using ERP.Domain.Catalog;
 using ERP.Domain.Common;
 using ERP.Domain.Customers;
+using ERP.Domain.Identity;
 using ERP.Domain.Inventory;
 using ERP.Domain.Sales;
 
@@ -29,6 +37,14 @@ internal sealed class ApplicationTestContext
     public CustomerLedgerReader CustomerLedger { get; } = new();
 
     public RecordingAuditWriter Audit { get; } = new();
+
+    public UserRepository Users { get; } = new();
+
+    public CashShiftRepository CashShifts { get; } = new();
+
+    public JournalEntryRepository JournalEntries { get; } = new();
+
+    public BackupRecordRepository BackupRecords { get; } = new();
 
     public RecordingUnitOfWork UnitOfWork { get; } = new();
 
@@ -232,6 +248,95 @@ internal sealed class RecordingUnitOfWork : IUnitOfWork
         CommitCount++;
         return Task.CompletedTask;
     }
+}
+
+internal sealed class UserRepository : IUserRepository
+{
+    public List<User> Items { get; } = [];
+
+    public Task<User?> GetByIdAsync(UserId id, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(Items.SingleOrDefault(item => item.Id == id));
+    }
+
+    public Task<User?> GetByUsernameAsync(string username, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(Items.SingleOrDefault(item =>
+            string.Equals(item.Username, username, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    public Task<bool> AnyExistsAsync(CancellationToken cancellationToken) => Task.FromResult(Items.Count > 0);
+
+    public Task SaveAsync(User user, CancellationToken cancellationToken)
+    {
+        if (!Items.Contains(user))
+        {
+            Items.Add(user);
+        }
+
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class CashShiftRepository : ICashShiftRepository
+{
+    public List<CashShift> Items { get; } = [];
+
+    public Task<CashShift?> GetOpenAsync(WarehouseId warehouseId, CancellationToken cancellationToken) =>
+        Task.FromResult(Items.SingleOrDefault(shift =>
+            shift.WarehouseId == warehouseId && shift.Status == CashShiftStatus.Open));
+
+    public Task<CashShift?> GetByIdAsync(CashShiftId id, CancellationToken cancellationToken) =>
+        Task.FromResult(Items.SingleOrDefault(shift => shift.Id == id));
+
+    public Task SaveAsync(CashShift shift, CancellationToken cancellationToken)
+    {
+        if (!Items.Contains(shift))
+        {
+            Items.Add(shift);
+        }
+
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class JournalEntryRepository : IJournalEntryRepository
+{
+    public List<JournalEntry> Items { get; } = [];
+
+    public Task SaveAsync(JournalEntry entry, CancellationToken cancellationToken)
+    {
+        Items.Add(entry);
+        return Task.CompletedTask;
+    }
+
+    public Task<JournalEntry?> GetBySourceAsync(JournalSourceType sourceType, string sourceId, CancellationToken cancellationToken) =>
+        Task.FromResult(Items.SingleOrDefault(entry => entry.SourceType == sourceType && entry.SourceId == sourceId));
+}
+
+internal sealed class BackupRecordRepository : IBackupRecordRepository
+{
+    public List<BackupRecord> Items { get; } = [];
+
+    public Task SaveAsync(BackupRecord record, CancellationToken cancellationToken)
+    {
+        if (!Items.Contains(record))
+        {
+            Items.Add(record);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<BackupRecord?> GetByIdAsync(BackupRecordId id, CancellationToken cancellationToken) =>
+        Task.FromResult(Items.SingleOrDefault(record => record.Id == id));
+
+    public Task<BackupRecord?> GetLatestAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(Items.OrderByDescending(record => record.CreatedAtUtc).FirstOrDefault());
+
+    public Task<IReadOnlyList<BackupRecord>> ListRecentAsync(int count, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<BackupRecord>>(
+            Items.OrderByDescending(record => record.CreatedAtUtc).Take(count).ToList());
 }
 
 internal sealed record TestUserContext(Guid UserId) : IUserContext;

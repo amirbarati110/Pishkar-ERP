@@ -1,6 +1,8 @@
+using ERP.Application.Accounting;
 using ERP.Application.Catalog;
 using ERP.Application.Common;
 using ERP.Application.Customers;
+using ERP.Application.Identity;
 using ERP.Application.Sales;
 
 namespace ERP.Presentation.Features.Sales;
@@ -30,4 +32,6 @@ public sealed record SalesBackend(
     IQuickCreateCustomerHandler QuickCreateCustomer,
     IGetCustomerAccountHandler CustomerAccount,
     IRecordCustomerPaymentHandler ReceivePayment,
+    IVerifyAdminCredentialHandler VerifyAdminCredential,
+    IGetSaleJournalEntryHandler JournalEntry,
     IClock Clock);

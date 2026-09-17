@@ -1,11 +1,25 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ERP.Application.Accounting;
+using ERP.Application.Identity;
 using ERP.Application.Sales;
 using ERP.Domain.Common;
 using ERP.Domain.Sales;
 
 namespace ERP.Presentation.Features.Sales;
+
+/// <summary>One line of «سند حسابداری» as the manager's viewer shows it.</summary>
+public sealed record JournalLineRow(string AccountName, string DebitText, string CreditText)
+{
+    public JournalLineRow(JournalLineView line)
+        : this(
+            AccountingText.AccountName(line.Account),
+            line.Debit.Rials > 0 ? SalesText.Tomans(line.Debit) : string.Empty,
+            line.Credit.Rials > 0 ? SalesText.Tomans(line.Credit) : string.Empty)
+    {
+    }
+}
 
 /// <summary>What happens after «دریافت وجه»: the invoice can be completed and followed by a summary, or by a fresh invoice straight away.</summary>
 public enum CompletionFollowUp
@@ -257,8 +271,29 @@ public sealed partial class SalesWorkspaceViewModel
     [ObservableProperty]
     public partial bool NeedsCreditApproval { get; set; }
 
+    /// <summary>
+    /// «تأیید مدیر» prompt for the §6.7 over-limit approval — a manager types
+    /// their own username and password right here (§15.3 «PIN شخصی، رمز
+    /// مشترک ممنوع»); this used to complete the sale with no credential check
+    /// at all (checklist appendix د.۲).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsAdminApprovalOpen { get; set; }
+
+    [ObservableProperty]
+    public partial string AdminApprovalUsername { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string AdminApprovalPassword { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string? AdminApprovalError { get; set; }
+
     [ObservableProperty]
     public partial bool IsCompletedSummaryOpen { get; set; }
+
+    /// <summary>Set alongside the summary text below, before the tab (and its <c>SaleId</c>) might get reset — «چاپ رسید» in the summary dialog needs it.</summary>
+    public SaleId CompletedSaleId { get; private set; }
 
     [ObservableProperty]
     public partial string CompletedNumberText { get; set; } = string.Empty;
@@ -329,9 +364,33 @@ public sealed partial class SalesWorkspaceViewModel
     [RelayCommand]
     private Task ConfirmPaymentAsync() => CompleteCoreAsync(approveCreditOverLimit: false);
 
-    /// <summary>Completes after the over-limit warning was shown and confirmed.</summary>
+    /// <summary>Opens the «تأیید مدیر» prompt after the over-limit warning was shown.</summary>
     [RelayCommand]
-    private Task ApproveCreditAndCompleteAsync() => CompleteCoreAsync(approveCreditOverLimit: true);
+    private void OpenAdminApproval()
+    {
+        AdminApprovalUsername = string.Empty;
+        AdminApprovalPassword = string.Empty;
+        AdminApprovalError = null;
+        IsAdminApprovalOpen = true;
+    }
+
+    [RelayCommand]
+    private void CancelAdminApproval() => IsAdminApprovalOpen = false;
+
+    [RelayCommand]
+    private Task ConfirmAdminApprovalAsync() => RunAsync(async () =>
+    {
+        var verified = await _backend.VerifyAdminCredential.ExecuteAsync(
+            new VerifyAdminCredentialCommand(AdminApprovalUsername, AdminApprovalPassword), CancellationToken.None);
+        if (!verified.IsSuccess)
+        {
+            AdminApprovalError = verified.Error?.Message ?? "تأیید مدیر ناموفق بود.";
+            return;
+        }
+
+        IsAdminApprovalOpen = false;
+        await CompleteAsync(approveCreditOverLimit: true);
+    });
 
     [RelayCommand]
     private Task StartNextAfterSummaryAsync() => RunAsync(async () =>
@@ -340,7 +399,15 @@ public sealed partial class SalesWorkspaceViewModel
         await ResetCurrentTabAsync();
     });
 
-    private Task CompleteCoreAsync(bool approveCreditOverLimit) => RunAsync(async () =>
+    private Task CompleteCoreAsync(bool approveCreditOverLimit) => RunAsync(() => CompleteAsync(approveCreditOverLimit));
+
+    /// <summary>
+    /// The actual completion logic, split out from <see cref="CompleteCoreAsync"/>
+    /// so <see cref="ConfirmAdminApprovalAsync"/> can call it directly after
+    /// verifying the manager's credential — <see cref="RunAsync"/> refuses to
+    /// re-enter while already busy, so it must wrap this call exactly once.
+    /// </summary>
+    private async Task CompleteAsync(bool approveCreditOverLimit)
     {
         var tab = RequireTab();
         if (IsCashSelected
@@ -382,6 +449,7 @@ public sealed partial class SalesWorkspaceViewModel
 
         var completed = result.Value;
         IsPaymentOpen = false;
+        CompletedSaleId = tab.SaleId;
         CompletedNumberText = completed.Number.ToPersianString();
         CompletedTotalText = SalesText.Tomans(completed.Totals.Total);
         CompletedMethodText = SalesText.PaymentMethodName(SelectedPaymentMethod);
@@ -404,7 +472,7 @@ public sealed partial class SalesWorkspaceViewModel
         }
 
         await LoadProductsAsync(CancellationToken.None); // stock just changed
-    });
+    }
 
     private async Task ResetCurrentTabAsync()
     {
@@ -569,11 +637,60 @@ public sealed partial class SalesWorkspaceViewModel
         ShowNotice($"اصلاحیه‌ی فاکتور {tab.CorrectionOfNumberText} باز شد — فقط تخفیف، هزینه، مالیات و روش پرداخت قابل تغییر است.");
     });
 
+    // ───── «مشاهده سند حسابداری» (§6.23) — مدیر/حسابدار، هرگز خودکار برای صندوق‌دار ─────
+
+    public ObservableCollection<JournalLineRow> JournalEntryLines { get; } = [];
+
+    [ObservableProperty]
+    public partial bool IsJournalEntryOpen { get; set; }
+
+    [ObservableProperty]
+    public partial string JournalEntryNumberText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string? JournalEntryError { get; set; }
+
+    /// <summary>«سند» on a row of «فاکتورهای امروز» — read-only, nothing here can be edited (§10.5: a journal entry is auto-posted, never hand-built).</summary>
+    [RelayCommand]
+    private Task OpenJournalEntryAsync(InvoiceListRow? row) => RunAsync(async () =>
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        JournalEntryNumberText = row.NumberText;
+        JournalEntryError = null;
+        JournalEntryLines.Clear();
+
+        var view = await _backend.JournalEntry.ExecuteAsync(
+            new GetSaleJournalEntryQuery(row.Item.SaleId), CancellationToken.None);
+        if (view is null)
+        {
+            JournalEntryError = "سند حسابداری این فاکتور پیدا نشد.";
+        }
+        else
+        {
+            foreach (var line in view.Lines)
+            {
+                JournalEntryLines.Add(new JournalLineRow(line));
+            }
+        }
+
+        IsJournalEntryOpen = true;
+    });
+
+    [RelayCommand]
+    private void CloseJournalEntry() => IsJournalEntryOpen = false;
+
     /// <summary>Esc: closes whichever window is open, innermost first.</summary>
     [RelayCommand]
     private void CloseTopDialog()
     {
         if (IsCancelConfirmOpen) { IsCancelConfirmOpen = false; }
+        else if (IsAdminApprovalOpen) { IsAdminApprovalOpen = false; }
+        else if (IsJournalEntryOpen) { IsJournalEntryOpen = false; }
+        else if (IsReceiptPreviewOpen) { IsReceiptPreviewOpen = false; }
         else if (IsNewCustomerOpen) { IsNewCustomerOpen = false; }
         else if (IsReceivePaymentOpen) { IsReceivePaymentOpen = false; }
         else if (IsEditLineOpen) { IsEditLineOpen = false; }

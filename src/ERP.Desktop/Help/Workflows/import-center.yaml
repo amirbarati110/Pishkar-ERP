@@ -1,0 +1,12 @@
+page: import-center
+title_fa: وارد کردن کالا از اکسل
+steps:
+  - control: choose-file
+    instruction_fa: روی «انتخاب فایل اکسل…» بزنید و فایلی با ستون‌های نام کالا، دسته‌بندی، واحد و قیمت فروش را انتخاب کنید.
+    action: invoke
+  - control: preview-list
+    instruction_fa: هر ردیف را بررسی کنید — ردیف‌های قرمز خطا دارند و باید در خود فایل اکسل اصلاح شوند.
+    action: focus
+  - control: import-button
+    instruction_fa: وقتی هیچ خطایی نماند، «وارد کردن» را بزنید. همه‌ی کالاها با هم ثبت می‌شوند یا هیچ‌کدام.
+    action: invoke

@@ -1,8 +1,10 @@
 using System.Globalization;
+using ERP.Application.Accounting;
 using ERP.Application.Audit;
 using ERP.Application.Common;
 using ERP.Application.Customers;
 using ERP.Application.Inventory;
+using ERP.Domain.Accounting;
 using ERP.Domain.Common;
 using ERP.Domain.Customers;
 using ERP.Domain.Inventory;
@@ -63,6 +65,7 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
     private readonly ICustomerRepository _customers;
     private readonly ICustomerLedgerReader _customerLedger;
     private readonly IAuditWriter _audit;
+    private readonly IJournalEntryRepository _journal;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
     private readonly IClock _clock;
@@ -74,6 +77,7 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
         ICustomerRepository customers,
         ICustomerLedgerReader customerLedger,
         IAuditWriter audit,
+        IJournalEntryRepository journal,
         IUnitOfWork unitOfWork,
         IUserContext userContext,
         IClock clock)
@@ -84,6 +88,7 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
         _customers = customers;
         _customerLedger = customerLedger;
         _audit = audit;
+        _journal = journal;
         _unitOfWork = unitOfWork;
         _userContext = userContext;
         _clock = clock;
@@ -168,6 +173,14 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
                         string.Create(CultureInfo.InvariantCulture, $"number={number};total={totals.Total.Rials}"),
                         _clock.UtcNow),
                     cancellationToken).ConfigureAwait(false);
+            }
+
+            // «سند حسابداری حداقلی» (§10.5) — تولید خودکار، صندوق‌دار هرگز آن را نمی‌بیند یا نمی‌سازد.
+            var journalEntry = SaleJournalEntryFactory.Create(
+                JournalSourceType.Sale, sale.Id.ToString(), totals, command.PaymentMethod, _clock.UtcNow);
+            if (journalEntry is not null)
+            {
+                await _journal.SaveAsync(journalEntry, cancellationToken).ConfigureAwait(false);
             }
 
             await _unitOfWork.CommitAsync(cancellationToken).ConfigureAwait(false);

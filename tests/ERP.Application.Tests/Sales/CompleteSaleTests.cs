@@ -57,6 +57,35 @@ public sealed class CompleteSaleTests
     }
 
     [Fact]
+    public async Task ExecutePostsAMinimalBalancedJournalEntryForTheCompletedSale()
+    {
+        var context = new ApplicationTestContext();
+        var warehouseId = WarehouseId.New();
+        var productId = ProductId.New();
+
+        var ledger = StockLedger.Empty(productId, warehouseId);
+        ledger.ReceiveOpeningStock(Quantity.Create(10), Money.FromTomans(50_000), DateOnly.FromDateTime(context.Clock.UtcNow.Date));
+        context.StockLedgers.Items.Add(ledger);
+
+        var sale = Sale.OpenDraft(warehouseId, null, context.Clock.UtcNow);
+        sale.AddOrIncreaseLine(productId, Quantity.Create(4), Money.FromTomans(100_000));
+        context.Sales.Items.Add(sale);
+        var handler = CreateHandler(context);
+
+        var result = await handler.ExecuteAsync(
+            new CompleteSaleCommand(sale.Id, PaymentMethod.Card, DiscountRials: 0, TaxRatePercent: 9),
+            CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        var entry = Assert.Single(context.JournalEntries.Items);
+        Assert.Equal(sale.Id.ToString(), entry.SourceId);
+        var totalDebit = entry.Lines.Sum(line => line.Debit.Rials);
+        var totalCredit = entry.Lines.Sum(line => line.Credit.Rials);
+        Assert.Equal(totalDebit, totalCredit); // دوبار-ثبت باید همیشه موازنه داشته باشد
+        Assert.Equal(result.Value!.Totals.Total.Rials, totalDebit);
+    }
+
+    [Fact]
     public async Task ExecuteAllowsNegativeStockWhenExplicitlyOptedInAndTracksTheShortfall()
     {
         // "بار اومده، فروش رفته، فاکتور خرید هنوز ثبت نشده": 2 on record, 5 sold
@@ -125,6 +154,7 @@ public sealed class CompleteSaleTests
             context.Customers,
             context.CustomerLedger,
             context.Audit,
+            context.JournalEntries,
             context.UnitOfWork,
             context.User,
             context.Clock);

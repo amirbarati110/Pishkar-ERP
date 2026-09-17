@@ -158,11 +158,11 @@
                             </StackPanel>
                         </Button>
 
-                        <Button x:Name="TillTile" Grid.Column="3" Style="{StaticResource DeskTile}" IsEnabled="False"
-                                AutomationProperties.Name="وضعیت صندوق — هنوز ساخته نشده">
+                        <Button x:Name="TillTile" Grid.Column="3" Style="{StaticResource DeskTile}" Click="OnTillClick"
+                                AutomationProperties.Name="وضعیت صندوق">
                             <StackPanel Spacing="6">
                                 <TextBlock FontSize="20" FontWeight="Bold" Text="وضعیت صندوق" />
-                                <TextBlock Style="{StaticResource DeskLabel}" Text="شیفت صندوق هنوز ساخته نشده (§۶.۲۴)" />
+                                <TextBlock Style="{StaticResource DeskLabel}" Text="{x:Bind ViewModel.ShiftStatusText, Mode=OneWay}" />
                             </StackPanel>
                         </Button>
                     </Grid>

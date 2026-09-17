@@ -61,6 +61,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ERP.Application\ERP.Application.csproj" />
     <ProjectReference Include="..\ERP.Domain\ERP.Domain.csproj" />
+    <ProjectReference Include="..\ERP.Infrastructure\ERP.Infrastructure.csproj" />
     <ProjectReference Include="..\ERP.Persistence\ERP.Persistence.csproj" />
     <ProjectReference Include="..\ERP.Presentation\ERP.Presentation.csproj" />
   </ItemGroup>
@@ -87,6 +88,7 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" />
+    <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
 
   <!--

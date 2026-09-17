@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using ERP.Application.Cashiering;
 using ERP.Application.Common;
 using ERP.Application.Sales;
 using ERP.Domain.Common;
+using ERP.Domain.Inventory;
 using ERP.Presentation.Features.Sales;
 
 namespace ERP.Presentation.Features.Workbench;
@@ -37,12 +39,21 @@ public partial class WorkbenchViewModel : ObservableObject
 {
     private readonly IListSalesOfDayHandler _salesOfDay;
     private readonly IListHeldSalesHandler _heldSales;
+    private readonly IGetCashShiftStatusHandler _shiftStatus;
+    private readonly WarehouseId _warehouseId;
     private readonly IClock _clock;
 
-    public WorkbenchViewModel(IListSalesOfDayHandler salesOfDay, IListHeldSalesHandler heldSales, IClock clock)
+    public WorkbenchViewModel(
+        IListSalesOfDayHandler salesOfDay,
+        IListHeldSalesHandler heldSales,
+        IGetCashShiftStatusHandler shiftStatus,
+        WarehouseId warehouseId,
+        IClock clock)
     {
         _salesOfDay = salesOfDay;
         _heldSales = heldSales;
+        _shiftStatus = shiftStatus;
+        _warehouseId = warehouseId;
         _clock = clock;
     }
 
@@ -70,6 +81,13 @@ public partial class WorkbenchViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string? LoadError { get; set; }
+
+    /// <summary>«وضعیت صندوق» tile — whether a cash shift is open right now, and since when/for how much.</summary>
+    [ObservableProperty]
+    public partial bool IsShiftOpen { get; set; }
+
+    [ObservableProperty]
+    public partial string ShiftStatusText { get; set; } = "بارگذاری نشده";
 
     public bool HasNoRecentInvoices => RecentInvoices.Count == 0;
 
@@ -125,6 +143,14 @@ public partial class WorkbenchViewModel : ObservableObject
 
             Fill(RecentInvoices, day.Sales);
             Fill(HeldInvoices, held);
+
+            var shift = await _shiftStatus
+                .ExecuteAsync(new GetCashShiftStatusQuery(_warehouseId), cancellationToken)
+                .ConfigureAwait(true);
+            IsShiftOpen = shift.IsOpen;
+            ShiftStatusText = shift.IsOpen
+                ? $"باز — از ساعت {SalesText.ClockTime(shift.OpenedAtUtc!.Value)}"
+                : "بسته — برای شروع شیفت بزن";
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

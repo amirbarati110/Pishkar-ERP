@@ -114,6 +114,31 @@ public sealed class FirebirdSaleReadReader : ISaleReadReader
         return await ReadListAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<SaleListItem>> ListCompletedByWarehouseAsync(
+        WarehouseId warehouseId,
+        DateTimeOffset fromUtc,
+        DateTimeOffset toUtc,
+        CancellationToken cancellationToken)
+    {
+        await using var command = CreateCommand(
+            $"""
+            SELECT {ListColumns}, S.TOTAL_RIALS, S.PAYMENT_METHOD
+            FROM SALE S
+            LEFT JOIN CUSTOMER C ON C.ID = S.CUSTOMER_ID
+            WHERE S.STATUS = @COMPLETED
+              AND S.WAREHOUSE_ID = @WAREHOUSE_ID
+              AND S.COMPLETED_AT_UTC >= @FROM_UTC AND S.COMPLETED_AT_UTC < @TO_UTC
+              {ExcludeCorrectedAwayClause}
+            ORDER BY S.NUMBER DESC
+            """);
+        command.Parameters.Add("@COMPLETED", FbDbType.SmallInt).Value = (short)SaleStatus.Completed;
+        command.Parameters.Add("@WAREHOUSE_ID", FbDbType.Char).Value = warehouseId.ToString();
+        command.Parameters.Add("@FROM_UTC", FbDbType.TimeStamp).Value = fromUtc.UtcDateTime;
+        command.Parameters.Add("@TO_UTC", FbDbType.TimeStamp).Value = toUtc.UtcDateTime;
+
+        return await ReadListAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// A draft's amount is its goods subtotal, rounded per line to whole Rials
     /// exactly as <see cref="SaleLine.GrossAmount"/> rounds (half away from
