@@ -61,6 +61,28 @@ public sealed class FirebirdCustomerLedgerReader : ICustomerLedgerReader
             }
         }
 
+        // A return refunded «off the customer's debt» lowers what they owe
+        // exactly as a payment would; a cash or card refund never touched the
+        // account, so it is not counted here.
+        await using (var command = CreateCommand(
+            """
+            SELECT COALESCE(SUM(L.NET_RIALS + L.TAX_RIALS), 0)
+            FROM SALE_RETURN R
+            JOIN SALE_RETURN_LINE L ON L.RETURN_ID = R.ID
+            WHERE R.CUSTOMER_ID = @CUSTOMER_ID AND R.REFUND_METHOD = @CREDIT
+            GROUP BY R.ID
+            """))
+        {
+            command.Parameters.Add("@CUSTOMER_ID", FbDbType.Char).Value = customerId.ToString();
+            command.Parameters.Add("@CREDIT", FbDbType.SmallInt).Value = (short)PaymentMethod.Credit;
+
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                payments.Add(Money.FromRials(reader.GetInt64(0)));
+            }
+        }
+
         return new CustomerLedgerEntries(invoices, payments);
     }
 

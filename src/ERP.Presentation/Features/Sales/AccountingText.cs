@@ -13,6 +13,9 @@ public static class AccountingText
         AccountCode.ChequesReceivable => "چک‌های دریافتنی",
         AccountCode.SalesRevenue => "درآمد فروش",
         AccountCode.VatPayable => "مالیات بر ارزش‌افزوده پرداختنی",
+        AccountCode.CostOfGoodsSold => "بهای تمام‌شده کالای فروش‌رفته",
+        AccountCode.Inventory => "موجودی کالا",
+        AccountCode.SalesReturns => "برگشت از فروش",
         _ => account.ToString(),
     };
 }

@@ -1,3 +1,4 @@
+using ERP.Domain.Accounting;
 using ERP.Application.Accounting;
 using ERP.Application.Cashiering;
 using ERP.Application.Catalog;
@@ -84,6 +85,10 @@ public sealed class CriticalPathTests
         var journal = await accounting.ExecuteAsync(new GetSaleJournalEntryQuery(started.Value), CancellationToken.None);
         Assert.NotNull(journal);
         Assert.Equal(journal!.Lines.Sum(line => line.Debit.Rials), journal.Lines.Sum(line => line.Credit.Rials));
+
+        // بهای تمام‌شده‌ی واقعی FIFO: ۳ عدد × ۲٬۰۰۰٬۰۰۰ ریال (هزینه‌ی موجودی اولیه) = ۶٬۰۰۰٬۰۰۰
+        Assert.Contains(journal.Lines, line => line.Account == AccountCode.CostOfGoodsSold && line.Debit.Rials == 6_000_000);
+        Assert.Contains(journal.Lines, line => line.Account == AccountCode.Inventory && line.Credit.Rials == 6_000_000);
 
         // ۶) بستن شیفت — فروش نقدی باید در تطبیق دیده شود
         clock.UtcNow = clock.UtcNow.AddMinutes(5); // بعد از فروش، قبل از بستن شیفت

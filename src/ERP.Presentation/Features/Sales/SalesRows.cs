@@ -249,6 +249,11 @@ public sealed partial class InvoiceTab : ObservableObject
     [ObservableProperty]
     public partial bool IsCurrent { get; set; }
 
+    /// <summary>What the return this «تعویض» invoice replaces refunded — zero for an ordinary invoice. Only used to show the difference at payment time; it changes no amount.</summary>
+    public long ExchangeRefundRials { get; set; }
+
+    public string ExchangeReturnNumberText { get; set; } = string.Empty;
+
     public decimal TaxRatePercent { get; set; } = DefaultTaxRatePercent;
 
     public Money Subtotal { get; private set; } = Money.Zero;
@@ -268,6 +273,8 @@ public sealed partial class InvoiceTab : ObservableObject
         TaxRatePercent = DefaultTaxRatePercent;
         TaxPercentInput = SalesText.Percent(DefaultTaxRatePercent);
         IsCorrection = false;
+        ExchangeRefundRials = 0;
+        ExchangeReturnNumberText = string.Empty;
         CorrectionOfNumberText = string.Empty;
         CustomerId = null;
         CustomerName = "مشتری نقدی";

@@ -39,6 +39,8 @@ public sealed partial class DashboardPage : Page
 
     private void OnHeldInvoicesClick(object sender, RoutedEventArgs e) => OpenSales(SalesPage.StartOnInvoiceList);
 
+    private void OnReturnsClick(object sender, RoutedEventArgs e) => OpenSales(SalesPage.StartOnReturn);
+
     private void OpenSales(string mode) => MainPage.ShellOf(this)?.OpenSalesWorkspace(mode);
 
     // Through the shell, so the menu highlight moves with the page.

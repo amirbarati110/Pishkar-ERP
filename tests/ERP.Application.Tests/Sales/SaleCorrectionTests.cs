@@ -202,7 +202,7 @@ public sealed class SaleCorrectionTests
     }
 
     private static StartSaleCorrectionHandler StartHandler(ApplicationTestContext context) =>
-        new(context.Sales, context.UnitOfWork, context.Clock);
+        new(context.Sales, context.SaleReturns, context.UnitOfWork, context.Clock);
 
     private static CompleteSaleCorrectionHandler CompleteHandler(ApplicationTestContext context) =>
         new(

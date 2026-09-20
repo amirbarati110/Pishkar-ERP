@@ -51,6 +51,9 @@ public sealed partial class CashShiftViewModel : ObservableObject
     public partial string CashSalesSoFarText { get; set; } = string.Empty;
 
     [ObservableProperty]
+    public partial string CashRefundsSoFarText { get; set; } = string.Empty;
+
+    [ObservableProperty]
     public partial string ExpectedCashSoFarText { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -88,6 +91,7 @@ public sealed partial class CashShiftViewModel : ObservableObject
                 OpenedAtText = SalesText.ClockTime(status.OpenedAtUtc!.Value);
                 OpeningCashText = $"{SalesText.Tomans(status.OpeningCash!.Value)} تومان";
                 CashSalesSoFarText = $"{SalesText.Tomans(status.CashSalesSoFar!.Value)} تومان";
+                CashRefundsSoFarText = $"{SalesText.Tomans(status.CashRefundsSoFar!.Value)} تومان";
                 ExpectedCashSoFarText = $"{SalesText.Tomans(status.ExpectedCashSoFar!.Value)} تومان";
                 CountedCashInput = string.Empty;
                 CloseNoteInput = string.Empty;
@@ -172,6 +176,7 @@ public sealed partial class CashShiftViewModel : ObservableObject
             };
             CloseSummaryText =
                 $"فروش نقدی این شیفت: {SalesText.Tomans(summary.CashSalesDuringShift)} تومان\n"
+                + $"مرجوعی نقدی این شیفت: {SalesText.Tomans(summary.CashRefundsDuringShift)} تومان\n"
                 + $"مبلغ مورد انتظار: {SalesText.Tomans(summary.ExpectedCash)} تومان\n"
                 + $"مبلغ شمارش‌شده: {SalesText.Tomans(summary.CountedCash)} تومان\n"
                 + varianceText;

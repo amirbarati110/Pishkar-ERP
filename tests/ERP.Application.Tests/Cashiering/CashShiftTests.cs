@@ -178,6 +178,8 @@ internal sealed class FakeSaleReadReader : ISaleReadReader
 {
     public List<SaleListItem> Completed { get; } = [];
 
+    public List<ReturnListItem> Returns { get; } = [];
+
     public Task<IReadOnlyDictionary<ProductId, SaleProductInfo>> ReadProductsAsync(
         WarehouseId warehouseId, IReadOnlyCollection<ProductId> productIds, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyDictionary<ProductId, SaleProductInfo>>(new Dictionary<ProductId, SaleProductInfo>());
@@ -196,6 +198,13 @@ internal sealed class FakeSaleReadReader : ISaleReadReader
     public Task<(IReadOnlyList<SaleProductListItem> Items, int TotalCount)> BrowseProductsAsync(
         ProductListCriteria criteria, CancellationToken cancellationToken) =>
         Task.FromResult<(IReadOnlyList<SaleProductListItem>, int)>(([], 0));
+
+    public Task<SaleListItem?> FindCompletedByNumberAsync(long number, CancellationToken cancellationToken) =>
+        Task.FromResult(Completed.FirstOrDefault(item => item.Number?.Value == number));
+
+    public Task<IReadOnlyList<ReturnListItem>> ListReturnsByWarehouseAsync(
+        WarehouseId warehouseId, DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<ReturnListItem>>(Returns);
 
     public Task<LineEditInfo> ReadLineEditInfoAsync(
         WarehouseId warehouseId, ProductId productId, CustomerId? customerId, CancellationToken cancellationToken) =>

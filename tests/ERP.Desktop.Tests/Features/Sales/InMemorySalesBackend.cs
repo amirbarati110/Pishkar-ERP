@@ -28,7 +28,8 @@ internal sealed class InMemorySalesBackend :
     ISaleRepository, IProductRepository, IStockLedgerRepository, ISaleNumberGenerator,
     ICustomerRepository, ICustomerLedgerReader, ICustomerSearchReader, IAuditWriter, IUnitOfWork,
     ISaleReadReader, IProductSearchReader, ICatalogLookupReader, ICustomerPaymentRepository, IUserRepository,
-    ICashShiftRepository, IJournalEntryRepository, IUserContext, IClock
+    ICashShiftRepository, IJournalEntryRepository, ISaleLineCostRepository, ISaleReturnRepository,
+    IReturnNumberGenerator, IUserContext, IClock
 {
     private long _nextNumber = 1258;
 
@@ -63,6 +64,12 @@ internal sealed class InMemorySalesBackend :
 
     public List<JournalEntry> JournalEntries { get; } = [];
 
+    public List<SaleReturn> SaleReturns { get; } = [];
+
+    public Dictionary<SaleId, List<SaleLineCost>> LineCosts { get; } = [];
+
+    private long _nextReturnNumber = 1;
+
     public int CompleteCalls { get; set; }
 
     public Guid UserId { get; } = Guid.NewGuid();
@@ -95,8 +102,8 @@ internal sealed class InMemorySalesBackend :
             new SetSaleChargesHandler(this, this),
             new SetSaleCustomerHandler(this, this, this),
             new SetSaleNoteHandler(this, this),
-            new CountingComplete(this, new CompleteSaleHandler(this, this, this, this, this, this, this, this, this, this)),
-            new StartSaleCorrectionHandler(this, this, this),
+            new CountingComplete(this, new CompleteSaleHandler(this, this, this, this, this, this, this, this, this, this, this)),
+            new StartSaleCorrectionHandler(this, this, this, this),
             new CompleteSaleCorrectionHandler(this, this, this, this, this, this, this, this, this),
             new CancelSaleHandler(this, this, this, this, this),
             new GetSaleDetailsHandler(this, this, this),
@@ -113,6 +120,10 @@ internal sealed class InMemorySalesBackend :
             new RecordCustomerPaymentHandler(this, this, this, this, this, this),
             new VerifyAdminCredentialHandler(this),
             new GetSaleJournalEntryHandler(this),
+            new FindSaleForReturnHandler(this),
+            new GetReturnableSaleHandler(this, this, this),
+            new PreviewSaleReturnHandler(this, this, this),
+            new CompleteSaleReturnHandler(this, this, this, this, this, this, this, this, this, this),
             this);
     }
 
@@ -319,6 +330,83 @@ internal sealed class InMemorySalesBackend :
         return Task.FromResult<(IReadOnlyList<SaleProductListItem>, int)>(
             (all.Skip(criteria.Offset).Take(criteria.Limit).ToList(), all.Count));
     }
+
+    Task<SaleListItem?> ISaleReadReader.FindCompletedByNumberAsync(long number, CancellationToken cancellationToken)
+    {
+        var sale = Sales.FirstOrDefault(item =>
+            item.Status == SaleStatus.Completed
+            && item.Number?.Value == number
+            && !Sales.Any(other => other.CorrectsSaleId == item.Id));
+        var effective = sale ?? Sales.FirstOrDefault(item =>
+            item.Status == SaleStatus.Completed
+            && Sales.Any(original => original.Number?.Value == number && item.CorrectsSaleId == original.Id));
+        return Task.FromResult(effective is null
+            ? null
+            : new SaleListItem(
+                effective.Id, effective.Number, effective.OpenedAtUtc, effective.CompletedAtUtc,
+                effective.CustomerId, null, effective.Lines.Count, effective.Totals?.Total, effective.PaymentMethod));
+    }
+
+    Task<IReadOnlyList<ReturnListItem>> ISaleReadReader.ListReturnsByWarehouseAsync(
+        WarehouseId warehouseId, DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<ReturnListItem> items = SaleReturns
+            .Where(item => item.WarehouseId == warehouseId && item.CompletedAtUtc >= fromUtc && item.CompletedAtUtc < toUtc)
+            .Select(item => new ReturnListItem(
+                item.Id, item.Number, Sales.FirstOrDefault(sale => sale.Id == item.SaleId)?.Number,
+                item.CompletedAtUtc, item.RefundMethod, item.RefundTotal))
+            .ToList();
+        return Task.FromResult(items);
+    }
+
+    // ── ISaleLineCostRepository / ISaleReturnRepository / IReturnNumberGenerator ──
+
+    Task ISaleLineCostRepository.RecordAsync(SaleId saleId, IReadOnlyCollection<SaleLineCost> costs, CancellationToken cancellationToken)
+    {
+        LineCosts[saleId] = costs.ToList();
+        return Task.CompletedTask;
+    }
+
+    Task<IReadOnlyDictionary<ProductId, Money>> ISaleLineCostRepository.GetUnitCostsAsync(SaleId saleId, CancellationToken cancellationToken)
+    {
+        var result = new Dictionary<ProductId, Money>();
+        if (LineCosts.TryGetValue(saleId, out var costs))
+        {
+            foreach (var cost in costs)
+            {
+                result[cost.ProductId] = cost.TotalCost.Multiply(1m / cost.CostedQuantity);
+            }
+        }
+
+        return Task.FromResult<IReadOnlyDictionary<ProductId, Money>>(result);
+    }
+
+    Task ISaleReturnRepository.AddAsync(SaleReturn saleReturn, CancellationToken cancellationToken)
+    {
+        SaleReturns.Add(saleReturn);
+        return Task.CompletedTask;
+    }
+
+    Task<IReadOnlyDictionary<ProductId, PreviouslyReturned>> ISaleReturnRepository.GetReturnedAsync(SaleId saleId, CancellationToken cancellationToken)
+    {
+        var result = SaleReturns
+            .Where(item => item.SaleId == saleId)
+            .SelectMany(item => item.Lines)
+            .GroupBy(line => line.ProductId)
+            .ToDictionary(
+                group => group.Key,
+                group => new PreviouslyReturned(
+                    group.Sum(line => line.Quantity.Value),
+                    Money.FromRials(group.Sum(line => line.Net.Rials)),
+                    Money.FromRials(group.Sum(line => line.Tax.Rials))));
+        return Task.FromResult<IReadOnlyDictionary<ProductId, PreviouslyReturned>>(result);
+    }
+
+    Task<bool> ISaleReturnRepository.AnyForSaleAsync(SaleId saleId, CancellationToken cancellationToken) =>
+        Task.FromResult(SaleReturns.Any(item => item.SaleId == saleId));
+
+    Task<ReturnNumber> IReturnNumberGenerator.NextAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(ReturnNumber.From(_nextReturnNumber++));
 
     Task<LineEditInfo> ISaleReadReader.ReadLineEditInfoAsync(
         WarehouseId warehouseId, ProductId productId, CustomerId? customerId, CancellationToken cancellationToken)

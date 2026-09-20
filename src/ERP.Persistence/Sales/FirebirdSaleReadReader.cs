@@ -139,6 +139,64 @@ public sealed class FirebirdSaleReadReader : ISaleReadReader
         return await ReadListAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<SaleListItem?> FindCompletedByNumberAsync(long number, CancellationToken cancellationToken)
+    {
+        // A number typed from the original receipt must still lead to the
+        // invoice the customer effectively holds: when the original was
+        // corrected, the correction is the answer.
+        await using var command = CreateCommand(
+            $"""
+            SELECT FIRST 1 {ListColumns}, S.TOTAL_RIALS, S.PAYMENT_METHOD
+            FROM SALE S
+            LEFT JOIN CUSTOMER C ON C.ID = S.CUSTOMER_ID
+            WHERE S.STATUS = @COMPLETED
+              AND (S.NUMBER = @NUMBER
+                   OR S.CORRECTS_SALE_ID IN (SELECT O.ID FROM SALE O WHERE O.NUMBER = @NUMBER))
+              {ExcludeCorrectedAwayClause}
+            """);
+        command.Parameters.Add("@COMPLETED", FbDbType.SmallInt).Value = (short)SaleStatus.Completed;
+        command.Parameters.Add("@NUMBER", FbDbType.BigInt).Value = number;
+
+        var found = await ReadListAsync(command, cancellationToken).ConfigureAwait(false);
+        return found.Count == 0 ? null : found[0];
+    }
+
+    public async Task<IReadOnlyList<ReturnListItem>> ListReturnsByWarehouseAsync(
+        WarehouseId warehouseId,
+        DateTimeOffset fromUtc,
+        DateTimeOffset toUtc,
+        CancellationToken cancellationToken)
+    {
+        await using var command = CreateCommand(
+            """
+            SELECT R.ID, R.NUMBER, S.NUMBER, R.COMPLETED_AT_UTC, R.REFUND_METHOD,
+                   COALESCE((SELECT SUM(L.NET_RIALS + L.TAX_RIALS) FROM SALE_RETURN_LINE L WHERE L.RETURN_ID = R.ID), 0)
+            FROM SALE_RETURN R
+            JOIN SALE S ON S.ID = R.SALE_ID
+            WHERE R.WAREHOUSE_ID = @WAREHOUSE_ID
+              AND R.COMPLETED_AT_UTC >= @FROM_UTC AND R.COMPLETED_AT_UTC < @TO_UTC
+            ORDER BY R.NUMBER DESC
+            """);
+        command.Parameters.Add("@WAREHOUSE_ID", FbDbType.Char).Value = warehouseId.ToString();
+        command.Parameters.Add("@FROM_UTC", FbDbType.TimeStamp).Value = fromUtc.UtcDateTime;
+        command.Parameters.Add("@TO_UTC", FbDbType.TimeStamp).Value = toUtc.UtcDateTime;
+
+        var items = new List<ReturnListItem>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            items.Add(new ReturnListItem(
+                SaleReturnId.From(Guid.Parse(reader.GetString(0))),
+                ReturnNumber.From(reader.GetInt64(1)),
+                reader.IsDBNull(2) ? null : SaleNumber.From(reader.GetInt64(2)),
+                new DateTimeOffset(DateTime.SpecifyKind(reader.GetDateTime(3), DateTimeKind.Utc)),
+                (PaymentMethod)reader.GetInt16(4),
+                Money.FromRials(reader.GetInt64(5))));
+        }
+
+        return items;
+    }
+
     /// <summary>
     /// A draft's amount is its goods subtotal, rounded per line to whole Rials
     /// exactly as <see cref="SaleLine.GrossAmount"/> rounds (half away from

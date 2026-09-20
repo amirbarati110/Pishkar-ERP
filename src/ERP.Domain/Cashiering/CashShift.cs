@@ -48,11 +48,14 @@ public sealed class CashShift : Entity<CashShiftId>
     /// <summary>Total of cash-method sales completed between open and close — read from Sales by the Application layer, not this module (module boundary rule §5).</summary>
     public Money? CashSalesDuringShift { get; private set; }
 
+    /// <summary>Cash handed back to customers for returns between open and close — it left the drawer just as sales put cash in.</summary>
+    public Money? CashRefundsDuringShift { get; private set; }
+
     public string? Note { get; private set; }
 
-    /// <summary>OpeningCash + CashSalesDuringShift — what the drawer should hold. Only meaningful once closed.</summary>
+    /// <summary>OpeningCash + CashSalesDuringShift − CashRefundsDuringShift — what the drawer should hold. Only meaningful once closed. Never below zero: a drawer cannot hold less than nothing, and refunds that outrun it show up as the variance.</summary>
     public Money? ExpectedCash => CashSalesDuringShift is { } sales
-        ? Money.FromRials(OpeningCash.Rials + sales.Rials)
+        ? Money.FromRials(Math.Max(0, OpeningCash.Rials + sales.Rials - (CashRefundsDuringShift?.Rials ?? 0)))
         : null;
 
     /// <summary>
@@ -86,6 +89,7 @@ public sealed class CashShift : Entity<CashShiftId>
         DateTimeOffset? closedAtUtc,
         Money? countedCash,
         Money? cashSalesDuringShift,
+        Money? cashRefundsDuringShift,
         string? note)
     {
         return new CashShift(id, warehouseId, openedByUserId, openedAtUtc, openingCash)
@@ -95,14 +99,17 @@ public sealed class CashShift : Entity<CashShiftId>
             ClosedAtUtc = closedAtUtc,
             CountedCash = countedCash,
             CashSalesDuringShift = cashSalesDuringShift,
+            CashRefundsDuringShift = cashRefundsDuringShift,
             Note = note,
         };
     }
 
     /// <param name="cashSalesDuringShift">Summed by the Application layer from Sales, covering exactly [OpenedAtUtc, closedAtUtc).</param>
+    /// <param name="cashRefundsDuringShift">Cash refunded for returns in the same window, summed the same way.</param>
     public void Close(
         Money countedCash,
         Money cashSalesDuringShift,
+        Money cashRefundsDuringShift,
         UserId closedByUserId,
         DateTimeOffset closedAtUtc,
         string? note)
@@ -119,6 +126,7 @@ public sealed class CashShift : Entity<CashShiftId>
 
         CountedCash = countedCash;
         CashSalesDuringShift = cashSalesDuringShift;
+        CashRefundsDuringShift = cashRefundsDuringShift;
         ClosedByUserId = closedByUserId;
         ClosedAtUtc = closedAtUtc;
         Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();

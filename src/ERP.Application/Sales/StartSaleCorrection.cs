@@ -32,12 +32,14 @@ public interface IStartSaleCorrectionHandler
 public sealed class StartSaleCorrectionHandler : IStartSaleCorrectionHandler
 {
     private readonly ISaleRepository _sales;
+    private readonly ISaleReturnRepository _returns;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
 
-    public StartSaleCorrectionHandler(ISaleRepository sales, IUnitOfWork unitOfWork, IClock clock)
+    public StartSaleCorrectionHandler(ISaleRepository sales, ISaleReturnRepository returns, IUnitOfWork unitOfWork, IClock clock)
     {
         _sales = sales;
+        _returns = returns;
         _unitOfWork = unitOfWork;
         _clock = clock;
     }
@@ -78,6 +80,15 @@ public sealed class StartSaleCorrectionHandler : IStartSaleCorrectionHandler
             return Result.Failure<SaleId>(
                 "sales.correction.already-corrected",
                 "برای این فاکتور قبلاً یک اصلاحیه ثبت شده است.");
+        }
+
+        // A correction restates the whole invoice, so once part of it has
+        // been given back the two documents would count the same goods twice.
+        if (await _returns.AnyForSaleAsync(original.Id, cancellationToken).ConfigureAwait(false))
+        {
+            return Result.Failure<SaleId>(
+                "sales.correction.has-returns",
+                "از این فاکتور مرجوعی گرفته شده؛ اصلاحیه‌ی آن ممکن نیست.");
         }
 
         var correction = Sale.OpenCorrection(original, _clock.UtcNow);

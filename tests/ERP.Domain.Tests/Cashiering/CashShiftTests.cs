@@ -33,6 +33,7 @@ public sealed class CashShiftTests
         shift.Close(
             countedCash: Money.FromTomans(650_000),
             cashSalesDuringShift: Money.FromTomans(450_000),
+            cashRefundsDuringShift: Money.Zero,
             closedByUserId: Cashier,
             closedAtUtc: closedAt,
             note: null);
@@ -44,6 +45,40 @@ public sealed class CashShiftTests
     }
 
     [Fact]
+    public void CashRefundedForReturnsLowersTheExpectedDrawer()
+    {
+        var shift = CashShift.Open(Warehouse, Cashier, Money.FromTomans(200_000), OpenedAt);
+
+        shift.Close(
+            Money.FromTomans(600_000),
+            Money.FromTomans(450_000),
+            Money.FromTomans(50_000),
+            Cashier,
+            OpenedAt.AddHours(8),
+            null);
+
+        Assert.Equal(Money.FromTomans(600_000).Rials, shift.ExpectedCash!.Value.Rials); // ۲۰۰ + ۴۵۰ − ۵۰
+        Assert.Equal(0, shift.Variance);
+        Assert.Equal(Money.FromTomans(50_000).Rials, shift.CashRefundsDuringShift!.Value.Rials);
+    }
+
+    [Fact]
+    public void RefundsBiggerThanEverythingInTheDrawerNeverProduceANegativeExpectedAmount()
+    {
+        var shift = CashShift.Open(Warehouse, Cashier, Money.Zero, OpenedAt);
+
+        shift.Close(
+            Money.Zero,
+            Money.FromTomans(10_000),
+            Money.FromTomans(30_000),
+            Cashier,
+            OpenedAt.AddHours(8),
+            null);
+
+        Assert.Equal(0, shift.ExpectedCash!.Value.Rials);
+    }
+
+    [Fact]
     public void ClosingShortOfTheExpectedAmountRecordsANegativeVariance()
     {
         var shift = CashShift.Open(Warehouse, Cashier, Money.FromTomans(200_000), OpenedAt);
@@ -51,6 +86,7 @@ public sealed class CashShiftTests
         shift.Close(
             Money.FromTomans(600_000),
             Money.FromTomans(450_000),
+            Money.Zero,
             Cashier,
             OpenedAt.AddHours(8),
             note: "۵۰ هزار تومان کم بود");
@@ -64,7 +100,7 @@ public sealed class CashShiftTests
     {
         var shift = CashShift.Open(Warehouse, Cashier, Money.FromTomans(200_000), OpenedAt);
 
-        shift.Close(Money.FromTomans(700_000), Money.FromTomans(450_000), Cashier, OpenedAt.AddHours(8), null);
+        shift.Close(Money.FromTomans(700_000), Money.FromTomans(450_000), Money.Zero, Cashier, OpenedAt.AddHours(8), null);
 
         Assert.Equal(50_000 * 10, shift.Variance);
     }
@@ -73,10 +109,10 @@ public sealed class CashShiftTests
     public void AClosedShiftCannotBeClosedAgain()
     {
         var shift = CashShift.Open(Warehouse, Cashier, Money.FromTomans(200_000), OpenedAt);
-        shift.Close(Money.FromTomans(600_000), Money.FromTomans(400_000), Cashier, OpenedAt.AddHours(8), null);
+        shift.Close(Money.FromTomans(600_000), Money.FromTomans(400_000), Money.Zero, Cashier, OpenedAt.AddHours(8), null);
 
         var exception = Assert.Throws<DomainException>(() =>
-            shift.Close(Money.FromTomans(600_000), Money.FromTomans(400_000), Cashier, OpenedAt.AddHours(9), null));
+            shift.Close(Money.FromTomans(600_000), Money.FromTomans(400_000), Money.Zero, Cashier, OpenedAt.AddHours(9), null));
 
         Assert.Equal("این شیفت قبلاً بسته شده است.", exception.Message);
     }
@@ -87,7 +123,7 @@ public sealed class CashShiftTests
         var shift = CashShift.Open(Warehouse, Cashier, Money.FromTomans(200_000), OpenedAt);
 
         var exception = Assert.Throws<DomainException>(() =>
-            shift.Close(Money.FromTomans(600_000), Money.FromTomans(400_000), Cashier, OpenedAt.AddHours(-1), null));
+            shift.Close(Money.FromTomans(600_000), Money.FromTomans(400_000), Money.Zero, Cashier, OpenedAt.AddHours(-1), null));
 
         Assert.Equal("زمان بستن شیفت نمی‌تواند قبل از زمان بازکردن آن باشد.", exception.Message);
     }
@@ -97,7 +133,7 @@ public sealed class CashShiftTests
     {
         var shift = CashShift.Open(Warehouse, Cashier, Money.FromTomans(200_000), OpenedAt);
 
-        shift.Close(Money.FromTomans(600_000), Money.FromTomans(400_000), Cashier, OpenedAt.AddHours(8), "   ");
+        shift.Close(Money.FromTomans(600_000), Money.FromTomans(400_000), Money.Zero, Cashier, OpenedAt.AddHours(8), "   ");
 
         Assert.Null(shift.Note);
     }

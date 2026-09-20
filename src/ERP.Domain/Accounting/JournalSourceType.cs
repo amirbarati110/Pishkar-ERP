@@ -4,4 +4,5 @@ public enum JournalSourceType
 {
     Sale = 1,
     SaleCorrection = 2,
+    SaleReturn = 3,
 }

@@ -34,4 +34,8 @@ public sealed record SalesBackend(
     IRecordCustomerPaymentHandler ReceivePayment,
     IVerifyAdminCredentialHandler VerifyAdminCredential,
     IGetSaleJournalEntryHandler JournalEntry,
+    IFindSaleForReturnHandler FindReturnInvoice,
+    IGetReturnableSaleHandler ReturnableSale,
+    IPreviewSaleReturnHandler PreviewReturn,
+    ICompleteSaleReturnHandler CompleteReturn,
     IClock Clock);

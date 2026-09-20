@@ -19,7 +19,7 @@ namespace ERP.Persistence.Tests.Accounting;
 public sealed class JournalEntryServiceTests
 {
     [Fact]
-    public async Task ACompletedCashSaleWithTaxPostsABalancedThreeLineEntryReadableAfterward()
+    public async Task ACompletedCashSaleWithTaxPostsABalancedEntryWithRevenueVatAndCostLinesReadableAfterward()
     {
         var context = await SetupAsync();
 
@@ -33,14 +33,16 @@ public sealed class JournalEntryServiceTests
 
         Assert.NotNull(view);
         Assert.Equal(JournalSourceType.Sale, view!.SourceType);
-        Assert.Equal(3, view.Lines.Count);
+        Assert.Equal(5, view.Lines.Count);
         var totalDebit = view.Lines.Sum(line => line.Debit.Rials);
         var totalCredit = view.Lines.Sum(line => line.Credit.Rials);
         Assert.Equal(totalDebit, totalCredit);
-        Assert.Equal(5_390_000, totalDebit);
+        Assert.Equal(5_390_000 + 4_000_000, totalDebit); // فروش + بهای تمام‌شده‌ی FIFO (۲ × ۲٬۰۰۰٬۰۰۰)
         Assert.Contains(view.Lines, line => line.Account == AccountCode.CardClearing && line.Debit.Rials == 5_390_000);
         Assert.Contains(view.Lines, line => line.Account == AccountCode.SalesRevenue && line.Credit.Rials == 4_900_000);
         Assert.Contains(view.Lines, line => line.Account == AccountCode.VatPayable && line.Credit.Rials == 490_000);
+        Assert.Contains(view.Lines, line => line.Account == AccountCode.CostOfGoodsSold && line.Debit.Rials == 4_000_000);
+        Assert.Contains(view.Lines, line => line.Account == AccountCode.Inventory && line.Credit.Rials == 4_000_000);
     }
 
     [Fact]

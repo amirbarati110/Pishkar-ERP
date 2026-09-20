@@ -14,4 +14,7 @@ public enum AccountCode
     ChequesReceivable = 4,
     SalesRevenue = 5,
     VatPayable = 6,
+    CostOfGoodsSold = 7,
+    Inventory = 8,
+    SalesReturns = 9,
 }

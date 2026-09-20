@@ -144,17 +144,11 @@
                             </StackPanel>
                         </Button>
 
-                        <!--
-                            Returns (§6.25) and the till shift (§6.24) are in the
-                            source-of-truth but are not built. They stay visible and
-                            disabled with the reason written on them: the user rule is
-                            that a missing part is stated plainly, never faked.
-                        -->
-                        <Button x:Name="ReturnsTile" Grid.Column="2" Style="{StaticResource DeskTile}" IsEnabled="False"
-                                AutomationProperties.Name="مرجوعی — هنوز ساخته نشده">
+                        <Button x:Name="ReturnsTile" Grid.Column="2" Style="{StaticResource DeskTile}" Click="OnReturnsClick"
+                                AutomationProperties.Name="مرجوعی و تعویض">
                             <StackPanel Spacing="6">
-                                <TextBlock FontSize="20" FontWeight="Bold" Text="مرجوعی" />
-                                <TextBlock Style="{StaticResource DeskLabel}" Text="هنوز ساخته نشده (§۶.۲۵)" />
+                                <TextBlock FontSize="20" FontWeight="Bold" Foreground="{ThemeResource AppTextBrush}" Text="مرجوعی" />
+                                <TextBlock Style="{StaticResource DeskLabel}" Text="برگشت کالا و تعویض" />
                             </StackPanel>
                         </Button>
 

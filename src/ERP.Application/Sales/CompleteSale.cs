@@ -61,6 +61,7 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
 {
     private readonly ISaleRepository _sales;
     private readonly IStockLedgerRepository _stockLedgers;
+    private readonly ISaleLineCostRepository _lineCosts;
     private readonly ISaleNumberGenerator _numbers;
     private readonly ICustomerRepository _customers;
     private readonly ICustomerLedgerReader _customerLedger;
@@ -73,6 +74,7 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
     public CompleteSaleHandler(
         ISaleRepository sales,
         IStockLedgerRepository stockLedgers,
+        ISaleLineCostRepository lineCosts,
         ISaleNumberGenerator numbers,
         ICustomerRepository customers,
         ICustomerLedgerReader customerLedger,
@@ -84,6 +86,7 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
     {
         _sales = sales;
         _stockLedgers = stockLedgers;
+        _lineCosts = lineCosts;
         _numbers = numbers;
         _customers = customers;
         _customerLedger = customerLedger;
@@ -121,6 +124,8 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
                 return creditRejection;
             }
 
+            var costOfGoodsSold = Money.Zero;
+            var lineCosts = new List<SaleLineCost>(sale.Lines.Count);
             foreach (var line in sale.Lines)
             {
                 var ledger = await _stockLedgers
@@ -128,13 +133,24 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
                     .ConfigureAwait(false)
                     ?? StockLedger.Empty(line.ProductId, sale.WarehouseId);
 
-                if (command.AllowNegativeStock)
+                var allocations = command.AllowNegativeStock
+                    ? ledger.ConsumeFifoAllowingBackorder(line.Quantity, $"sale:{sale.Id}")
+                    : ledger.ConsumeFifo(line.Quantity, $"sale:{sale.Id}");
+
+                // The backordered part of a negative sale has no layer, so no
+                // known cost yet — it is left out rather than guessed.
+                var lineCost = Money.Zero;
+                var costedQuantity = 0m;
+                foreach (var allocation in allocations)
                 {
-                    ledger.ConsumeFifoAllowingBackorder(line.Quantity, $"sale:{sale.Id}");
+                    lineCost = lineCost.Add(allocation.UnitCost.Multiply(allocation.Quantity.Value));
+                    costedQuantity += allocation.Quantity.Value;
                 }
-                else
+
+                costOfGoodsSold = costOfGoodsSold.Add(lineCost);
+                if (costedQuantity > 0)
                 {
-                    ledger.ConsumeFifo(line.Quantity, $"sale:{sale.Id}");
+                    lineCosts.Add(new SaleLineCost(line.ProductId, lineCost, costedQuantity));
                 }
 
                 await _stockLedgers.SaveAsync(ledger, cancellationToken).ConfigureAwait(false);
@@ -146,6 +162,7 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
             var totals = sale.Complete(number, command.PaymentMethod, command.TaxRatePercent, _clock.UtcNow);
 
             await _sales.SaveAsync(sale, cancellationToken).ConfigureAwait(false);
+            await _lineCosts.RecordAsync(sale.Id, lineCosts, cancellationToken).ConfigureAwait(false);
             await _audit.WriteAsync(
                 new AuditEntry(
                     Guid.NewGuid(),
@@ -177,7 +194,7 @@ public sealed class CompleteSaleHandler : ICompleteSaleHandler
 
             // «سند حسابداری حداقلی» (§10.5) — تولید خودکار، صندوق‌دار هرگز آن را نمی‌بیند یا نمی‌سازد.
             var journalEntry = SaleJournalEntryFactory.Create(
-                JournalSourceType.Sale, sale.Id.ToString(), totals, command.PaymentMethod, _clock.UtcNow);
+                JournalSourceType.Sale, sale.Id.ToString(), totals, command.PaymentMethod, _clock.UtcNow, costOfGoodsSold);
             if (journalEntry is not null)
             {
                 await _journal.SaveAsync(journalEntry, cancellationToken).ConfigureAwait(false);

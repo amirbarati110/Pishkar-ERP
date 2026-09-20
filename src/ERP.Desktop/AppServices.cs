@@ -104,6 +104,10 @@ public sealed record AppServices(
             ReceivePayment: customerService,
             VerifyAdminCredential: database.Identity,
             JournalEntry: new FirebirdAccountingService(factory),
+            FindReturnInvoice: salesService,
+            ReturnableSale: salesService,
+            PreviewReturn: salesService,
+            CompleteReturn: salesService,
             Clock: clock);
 
         var backupDirectory = Path.Combine(

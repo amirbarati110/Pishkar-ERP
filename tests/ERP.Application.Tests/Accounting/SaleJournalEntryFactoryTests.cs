@@ -70,4 +70,33 @@ public sealed class SaleJournalEntryFactoryTests
 
         Assert.Null(entry);
     }
+
+    [Fact]
+    public void ASaleThatConsumedCostedStockAlsoDebitsCostOfGoodsSoldAndCreditsInventory()
+    {
+        var totals = new SaleTotals(Money.FromTomans(245_000), Money.Zero, Money.Zero, Money.Zero, Money.FromTomans(245_000));
+
+        var entry = SaleJournalEntryFactory.Create(
+            JournalSourceType.Sale, "sale-6", totals, PaymentMethod.Cash, PostedAt, Money.FromTomans(200_000));
+
+        Assert.NotNull(entry);
+        Assert.Equal(4, entry!.Lines.Count);
+        Assert.Contains(entry.Lines, line => line.Account == AccountCode.CostOfGoodsSold && line.Debit.Rials == 2_000_000);
+        Assert.Contains(entry.Lines, line => line.Account == AccountCode.Inventory && line.Credit.Rials == 2_000_000);
+        Assert.Equal(entry.Lines.Sum(line => line.Debit.Rials), entry.Lines.Sum(line => line.Credit.Rials));
+    }
+
+    [Fact]
+    public void AFreeSaleThatStillTookCostedStockPostsTheCostPairAlone()
+    {
+        var totals = new SaleTotals(Money.FromTomans(100_000), Money.FromTomans(100_000), Money.Zero, Money.Zero, Money.Zero);
+
+        var entry = SaleJournalEntryFactory.Create(
+            JournalSourceType.Sale, "sale-7", totals, PaymentMethod.Cash, PostedAt, Money.FromTomans(60_000));
+
+        Assert.NotNull(entry);
+        Assert.Equal(2, entry!.Lines.Count);
+        Assert.Contains(entry.Lines, line => line.Account == AccountCode.CostOfGoodsSold && line.Debit.Rials == 600_000);
+        Assert.Contains(entry.Lines, line => line.Account == AccountCode.Inventory && line.Credit.Rials == 600_000);
+    }
 }

@@ -32,6 +32,12 @@ internal sealed class ApplicationTestContext
 
     public SequentialSaleNumberGenerator SaleNumbers { get; } = new(firstNumber: 1258);
 
+    public SaleLineCostRepository SaleLineCosts { get; } = new();
+
+    public SaleReturnRepository SaleReturns { get; } = new();
+
+    public SequentialReturnNumberGenerator ReturnNumbers { get; } = new(firstNumber: 1);
+
     public CustomerRepository Customers { get; } = new();
 
     public CustomerLedgerReader CustomerLedger { get; } = new();
@@ -342,3 +348,65 @@ internal sealed class BackupRecordRepository : IBackupRecordRepository
 internal sealed record TestUserContext(Guid UserId) : IUserContext;
 
 internal sealed record TestClock(DateTimeOffset UtcNow) : IClock;
+
+internal sealed class SaleLineCostRepository : ISaleLineCostRepository
+{
+    public Dictionary<SaleId, List<SaleLineCost>> Recorded { get; } = [];
+
+    public Task RecordAsync(SaleId saleId, IReadOnlyCollection<SaleLineCost> costs, CancellationToken cancellationToken)
+    {
+        Recorded[saleId] = costs.ToList();
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyDictionary<ProductId, Money>> GetUnitCostsAsync(SaleId saleId, CancellationToken cancellationToken)
+    {
+        var result = new Dictionary<ProductId, Money>();
+        if (Recorded.TryGetValue(saleId, out var costs))
+        {
+            foreach (var cost in costs)
+            {
+                result[cost.ProductId] = cost.TotalCost.Multiply(1m / cost.CostedQuantity);
+            }
+        }
+
+        return Task.FromResult<IReadOnlyDictionary<ProductId, Money>>(result);
+    }
+}
+
+internal sealed class SaleReturnRepository : ISaleReturnRepository
+{
+    public List<SaleReturn> Items { get; } = [];
+
+    public Task AddAsync(SaleReturn saleReturn, CancellationToken cancellationToken)
+    {
+        Items.Add(saleReturn);
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyDictionary<ProductId, PreviouslyReturned>> GetReturnedAsync(SaleId saleId, CancellationToken cancellationToken)
+    {
+        var result = Items
+            .Where(item => item.SaleId == saleId)
+            .SelectMany(item => item.Lines)
+            .GroupBy(line => line.ProductId)
+            .ToDictionary(
+                group => group.Key,
+                group => new PreviouslyReturned(
+                    group.Sum(line => line.Quantity.Value),
+                    Money.FromRials(group.Sum(line => line.Net.Rials)),
+                    Money.FromRials(group.Sum(line => line.Tax.Rials))));
+        return Task.FromResult<IReadOnlyDictionary<ProductId, PreviouslyReturned>>(result);
+    }
+
+    public Task<bool> AnyForSaleAsync(SaleId saleId, CancellationToken cancellationToken) =>
+        Task.FromResult(Items.Any(item => item.SaleId == saleId));
+}
+
+internal sealed class SequentialReturnNumberGenerator(long firstNumber) : IReturnNumberGenerator
+{
+    private long _next = firstNumber;
+
+    public Task<ReturnNumber> NextAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(ReturnNumber.From(_next++));
+}

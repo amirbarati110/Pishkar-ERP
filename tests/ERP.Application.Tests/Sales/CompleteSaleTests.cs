@@ -1,3 +1,4 @@
+using ERP.Domain.Accounting;
 using ERP.Application.Sales;
 using ERP.Application.Tests.TestDoubles;
 using ERP.Domain.Catalog;
@@ -82,7 +83,10 @@ public sealed class CompleteSaleTests
         var totalDebit = entry.Lines.Sum(line => line.Debit.Rials);
         var totalCredit = entry.Lines.Sum(line => line.Credit.Rials);
         Assert.Equal(totalDebit, totalCredit); // دوبار-ثبت باید همیشه موازنه داشته باشد
-        Assert.Equal(result.Value!.Totals.Total.Rials, totalDebit);
+        Assert.Contains(entry.Lines, line => line.Account == AccountCode.CardClearing && line.Debit.Rials == result.Value!.Totals.Total.Rials);
+        // ۴ عدد × ۵۰٬۰۰۰ تومان بهای FIFO = ۲٬۰۰۰٬۰۰۰ ریال، جدا از درآمد در سند ثبت می‌شود
+        Assert.Contains(entry.Lines, line => line.Account == AccountCode.CostOfGoodsSold && line.Debit.Rials == 2_000_000);
+        Assert.Contains(entry.Lines, line => line.Account == AccountCode.Inventory && line.Credit.Rials == 2_000_000);
     }
 
     [Fact]
@@ -150,6 +154,7 @@ public sealed class CompleteSaleTests
         return new CompleteSaleHandler(
             context.Sales,
             context.StockLedgers,
+            context.SaleLineCosts,
             context.SaleNumbers,
             context.Customers,
             context.CustomerLedger,

@@ -214,6 +214,7 @@ public sealed class CustomerOnSaleTests
         return new CompleteSaleHandler(
                 context.Sales,
                 context.StockLedgers,
+                context.SaleLineCosts,
                 context.SaleNumbers,
                 context.Customers,
                 context.CustomerLedger,

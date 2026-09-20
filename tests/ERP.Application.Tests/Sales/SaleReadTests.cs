@@ -156,6 +156,16 @@ public sealed class SaleReadTests
             return Task.FromResult<(IReadOnlyList<SaleProductListItem>, int)>(([], 31));
         }
 
+        public Task<SaleListItem?> FindCompletedByNumberAsync(long number, CancellationToken cancellationToken) =>
+            Task.FromResult(Completed.FirstOrDefault(item => item.Number?.Value == number));
+
+        public Task<IReadOnlyList<ReturnListItem>> ListReturnsByWarehouseAsync(
+            WarehouseId warehouseId,
+            DateTimeOffset fromUtc,
+            DateTimeOffset toUtc,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<ReturnListItem>>([]);
+
         public Task<LineEditInfo> ReadLineEditInfoAsync(
             WarehouseId warehouseId,
             ProductId productId,

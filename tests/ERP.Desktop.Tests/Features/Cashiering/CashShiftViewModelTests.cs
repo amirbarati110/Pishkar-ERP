@@ -107,9 +107,9 @@ public sealed class CashShiftViewModelTests
                 return Task.FromResult(Result.Failure<CashShiftCloseSummary>("cashiering.shift.not-found", "شیفت صندوق پیدا نشد."));
             }
 
-            _shift.Close(Money.FromTomans(command.CountedCashTomans), Money.Zero, Domain.Identity.UserId.New(), DateTimeOffset.UtcNow, command.Note);
+            _shift.Close(Money.FromTomans(command.CountedCashTomans), Money.Zero, Money.Zero, Domain.Identity.UserId.New(), DateTimeOffset.UtcNow, command.Note);
             var summary = new CashShiftCloseSummary(
-                _shift.OpeningCash, Money.Zero, _shift.ExpectedCash!.Value, _shift.CountedCash!.Value, _shift.Variance!.Value);
+                _shift.OpeningCash, Money.Zero, Money.Zero, _shift.ExpectedCash!.Value, _shift.CountedCash!.Value, _shift.Variance!.Value);
             return Task.FromResult(Result.Success(summary));
         }
 
@@ -117,11 +117,11 @@ public sealed class CashShiftViewModelTests
         {
             if (_shift is null || _shift.Status == CashShiftStatus.Closed)
             {
-                return Task.FromResult(new CashShiftStatusView(false, null, null, null, null, null));
+                return Task.FromResult(new CashShiftStatusView(false, null, null, null, null, null, null));
             }
 
             return Task.FromResult(new CashShiftStatusView(
-                true, _shift.Id, _shift.OpenedAtUtc, _shift.OpeningCash, Money.Zero, _shift.OpeningCash));
+                true, _shift.Id, _shift.OpenedAtUtc, _shift.OpeningCash, Money.Zero, Money.Zero, _shift.OpeningCash));
         }
     }
 }

@@ -14,6 +14,7 @@ public sealed record CashShiftStatusView(
     DateTimeOffset? OpenedAtUtc,
     Money? OpeningCash,
     Money? CashSalesSoFar,
+    Money? CashRefundsSoFar,
     Money? ExpectedCashSoFar);
 
 public sealed record GetCashShiftStatusQuery(WarehouseId WarehouseId);
@@ -43,7 +44,7 @@ public sealed class GetCashShiftStatusHandler : IGetCashShiftStatusHandler
         var shift = await _shifts.GetOpenAsync(query.WarehouseId, cancellationToken).ConfigureAwait(false);
         if (shift is null)
         {
-            return new CashShiftStatusView(false, null, null, null, null, null);
+            return new CashShiftStatusView(false, null, null, null, null, null, null);
         }
 
         var completed = await _sales
@@ -53,12 +54,20 @@ public sealed class GetCashShiftStatusHandler : IGetCashShiftStatusHandler
             .Where(item => item.PaymentMethod == PaymentMethod.Cash)
             .Sum(item => item.Amount?.Rials ?? 0));
 
+        var returns = await _sales
+            .ListReturnsByWarehouseAsync(shift.WarehouseId, shift.OpenedAtUtc, _clock.UtcNow, cancellationToken)
+            .ConfigureAwait(false);
+        var cashRefundsSoFar = Money.FromRials(returns
+            .Where(item => item.RefundMethod == PaymentMethod.Cash)
+            .Sum(item => item.Refund.Rials));
+
         return new CashShiftStatusView(
             true,
             shift.Id,
             shift.OpenedAtUtc,
             shift.OpeningCash,
             cashSalesSoFar,
-            Money.FromRials(shift.OpeningCash.Rials + cashSalesSoFar.Rials));
+            cashRefundsSoFar,
+            Money.FromRials(Math.Max(0, shift.OpeningCash.Rials + cashSalesSoFar.Rials - cashRefundsSoFar.Rials)));
     }
 }

@@ -30,6 +30,9 @@ public sealed partial class SalesPage : Page
     /// <summary>Navigation parameter: open the workspace with the invoice list (F2) already up, to continue a held invoice.</summary>
     public const string StartOnInvoiceList = "held";
 
+    /// <summary>Navigation parameter: open the workspace with the return window (§6.25) already up.</summary>
+    public const string StartOnReturn = "return";
+
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(20) };
     private readonly DispatcherTimer _noticeTimer = new() { Interval = TimeSpan.FromSeconds(4) };
 
@@ -61,12 +64,14 @@ public sealed partial class SalesPage : Page
     public SalesWorkspaceViewModel ViewModel { get; }
 
     private bool _openInvoiceListOnLoad;
+    private bool _openReturnOnLoad;
 
     protected override void OnNavigatedTo(Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
     {
         ArgumentNullException.ThrowIfNull(e);
         base.OnNavigatedTo(e);
         _openInvoiceListOnLoad = e.Parameter as string == StartOnInvoiceList;
+        _openReturnOnLoad = e.Parameter as string == StartOnReturn;
     }
 
     // ───── x:Bind helpers (visual states) ─────
@@ -111,6 +116,9 @@ public sealed partial class SalesPage : Page
 
     public static Visibility WhenFalse(bool value) => value ? Visibility.Collapsed : Visibility.Visible;
 
+    public static Visibility WhenReturnCanBeConfirmed(bool hasInvoice, bool isDone) =>
+        hasInvoice && !isDone ? Visibility.Visible : Visibility.Collapsed;
+
     private static Brush Token(string key) => (Brush)Microsoft.UI.Xaml.Application.Current.Resources[key];
 
     // ───── lifecycle ─────
@@ -122,6 +130,13 @@ public sealed partial class SalesPage : Page
         ApplyLayout(ActualWidth);
         UpdateFilterButtons();
         await ViewModel.LoadAsync(CancellationToken.None);
+
+        if (_openReturnOnLoad)
+        {
+            _openReturnOnLoad = false;
+            ViewModel.OpenReturnCommand.Execute(null);
+            return;
+        }
 
         if (_openInvoiceListOnLoad)
         {
@@ -176,6 +191,14 @@ public sealed partial class SalesPage : Page
             case nameof(SalesWorkspaceViewModel.SelectedPaymentMethod):
                 UpdatePaymentButtons();
                 break;
+            case nameof(SalesWorkspaceViewModel.ReturnRefundMethod):
+            case nameof(SalesWorkspaceViewModel.CanRefundToDebt):
+                UpdateReturnRefundButtons();
+                break;
+            case nameof(SalesWorkspaceViewModel.IsReturnOpen) when ViewModel.IsReturnOpen:
+                UpdateReturnRefundButtons();
+                DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () => ReturnNumberBox.Focus(FocusState.Programmatic));
+                break;
             case nameof(SalesWorkspaceViewModel.ReceivePaymentMethod):
                 UpdateReceivePaymentButtons();
                 break;
@@ -214,7 +237,7 @@ public sealed partial class SalesPage : Page
         ViewModel.IsPaymentOpen || ViewModel.IsEditLineOpen || ViewModel.IsNewCustomerOpen
         || ViewModel.IsInvoiceListOpen || ViewModel.IsCancelConfirmOpen || ViewModel.IsCompletedSummaryOpen
         || ViewModel.IsReceivePaymentOpen || ViewModel.IsStartingCorrectionOpen || ViewModel.IsJournalEntryOpen
-        || ViewModel.IsReceiptPreviewOpen || HelpOverlay.Workflow is not null;
+        || ViewModel.IsReceiptPreviewOpen || ViewModel.IsReturnOpen || HelpOverlay.Workflow is not null;
 
     // ───── راهنمای این صفحه (§4.1/§3.14) ─────
 
@@ -258,6 +281,22 @@ public sealed partial class SalesPage : Page
         })
         {
             var selected = ViewModel.SelectedPaymentMethod == method;
+            button.Background = Token(selected ? "AppPrimarySoftBrush" : "AppSurfaceBrush");
+            button.BorderBrush = Token(selected ? "AppPrimaryBrush" : "SalesLineBrush");
+            button.Foreground = Token(selected ? "SalesPrimaryDarkBrush" : "SalesMutedTextBrush");
+        }
+    }
+
+    private void UpdateReturnRefundButtons()
+    {
+        foreach (var (button, method) in new[]
+        {
+            (ReturnCashButton, PaymentMethod.Cash),
+            (ReturnCardButton, PaymentMethod.Card),
+            (ReturnDebtButton, PaymentMethod.Credit),
+        })
+        {
+            var selected = ViewModel.ReturnRefundMethod == method;
             button.Background = Token(selected ? "AppPrimarySoftBrush" : "AppSurfaceBrush");
             button.BorderBrush = Token(selected ? "AppPrimaryBrush" : "SalesLineBrush");
             button.Foreground = Token(selected ? "SalesPrimaryDarkBrush" : "SalesMutedTextBrush");
@@ -591,6 +630,32 @@ public sealed partial class SalesPage : Page
 
     private void OnHeldInvoiceClick(object sender, ItemClickEventArgs e)
         { if (e.ClickedItem is InvoiceListRow row) { ViewModel.ResumeHeldInvoiceCommand.Execute(row); } }
+
+    private void OnReturnInvoiceClick(object sender, RoutedEventArgs e) =>
+        RunWithItem<InvoiceListRow>(sender, ViewModel.OpenReturnForRowCommand);
+
+    private void OnIncreaseReturnClick(object sender, RoutedEventArgs e) =>
+        RunWithItem<ReturnLineRow>(sender, ViewModel.IncreaseReturnQuantityCommand);
+
+    private void OnDecreaseReturnClick(object sender, RoutedEventArgs e) =>
+        RunWithItem<ReturnLineRow>(sender, ViewModel.DecreaseReturnQuantityCommand);
+
+    private void OnReturnRefundMethodClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string tag } && Enum.TryParse<PaymentMethod>(tag, out var method))
+        {
+            ViewModel.SelectReturnRefundMethodCommand.Execute(method);
+        }
+    }
+
+    private void OnReturnNumberKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key == VirtualKey.Enter)
+        {
+            ViewModel.FindReturnInvoiceCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
 
     private void OnCorrectInvoiceClick(object sender, RoutedEventArgs e) =>
         RunWithItem<InvoiceListRow>(sender, ViewModel.OpenCorrectionPromptCommand);

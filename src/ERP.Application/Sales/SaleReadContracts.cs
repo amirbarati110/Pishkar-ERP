@@ -96,4 +96,18 @@ public interface ISaleReadReader
         ProductId productId,
         CustomerId? customerId,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The completed invoice with this number — or, when it was corrected, the
+    /// correction standing in for it (the one a return may be taken against).
+    /// Null when no completed invoice has the number.
+    /// </summary>
+    Task<SaleListItem?> FindCompletedByNumberAsync(long number, CancellationToken cancellationToken);
+
+    /// <summary>Returns completed in one warehouse with <paramref name="fromUtc"/> ≤ completion &lt; <paramref name="toUtc"/>, newest first — what a cash shift needs to know about money that left the drawer.</summary>
+    Task<IReadOnlyList<ReturnListItem>> ListReturnsByWarehouseAsync(
+        WarehouseId warehouseId,
+        DateTimeOffset fromUtc,
+        DateTimeOffset toUtc,
+        CancellationToken cancellationToken);
 }

@@ -739,8 +739,8 @@
                     <TextBlock Text="F2" FontSize="11" Foreground="{ThemeResource SalesMutedTextBrush}" VerticalAlignment="Center" />
                 </StackPanel>
             </Button>
-            <Button Grid.Column="3" Style="{StaticResource SalesActionButton}" IsEnabled="False" Content="مرجوعی"
-                    ToolTipService.ToolTip="مرجوعی در قدم بعدی ساخته می‌شود" AutomationProperties.Name="مرجوعی (به‌زودی)" />
+            <Button Grid.Column="3" Command="{x:Bind ViewModel.OpenReturnCommand}" Style="{StaticResource SalesActionButton}" Content="مرجوعی"
+                    ToolTipService.ToolTip="مرجوعی و تعویض (§۶.۲۵)" AutomationProperties.Name="مرجوعی" />
 
             <Button Grid.Column="5" Style="{StaticResource SalesActionButton}" IsEnabled="False"
                     ToolTipService.ToolTip="چاپ فاکتور در قدم بعدی ساخته می‌شود" AutomationProperties.Name="ثبت و چاپ (به‌زودی)">
@@ -884,6 +884,11 @@
                                     <TextBlock Text="تومان" FontSize="15" Foreground="White" VerticalAlignment="Bottom" Margin="0,0,0,5" />
                                 </StackPanel>
                             </StackPanel>
+                        </Border>
+                        <!-- §6.26 تعویض — فقط راهنما برای صندوق‌دار؛ مبلغی را عوض نمی‌کند -->
+                        <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesAmberSoftBrush}" BorderBrush="{ThemeResource SalesAmberBrush}" BorderThickness="1"
+                                Visibility="{x:Bind ViewModel.HasExchangeHint, Mode=OneWay}">
+                            <TextBlock Text="{x:Bind ViewModel.ExchangeHintText, Mode=OneWay}" TextWrapping="Wrap" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                         </Border>
                         <Grid ColumnSpacing="8">
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
@@ -1086,7 +1091,7 @@
 
         <!-- invoice list (F2) -->
         <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsInvoiceListOpen, Mode=OneWay}">
-            <Border Style="{StaticResource SalesDialogCard}" Width="820" MaxHeight="720">
+            <Border Style="{StaticResource SalesDialogCard}" Width="900" MaxHeight="720">
                 <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <TextBlock Text="لیست فاکتورها" Style="{StaticResource SalesDialogTitle}" Margin="18,15" />
@@ -1114,7 +1119,7 @@
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="sales:InvoiceListRow">
                                         <Grid ColumnSpacing="8" Padding="0,8">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="80" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /><ColumnDefinition Width="60" /><ColumnDefinition Width="90" /><ColumnDefinition Width="110" /><ColumnDefinition Width="76" /><ColumnDefinition Width="60" /><ColumnDefinition Width="60" /></Grid.ColumnDefinitions>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="80" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /><ColumnDefinition Width="60" /><ColumnDefinition Width="90" /><ColumnDefinition Width="110" /><ColumnDefinition Width="76" /><ColumnDefinition Width="60" /><ColumnDefinition Width="60" /><ColumnDefinition Width="76" /></Grid.ColumnDefinitions>
                                             <TextBlock Text="{x:Bind NumberText}" FontWeight="Bold" />
                                             <TextBlock Grid.Column="1" Text="{x:Bind CustomerText}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                                             <TextBlock Grid.Column="2" Text="{x:Bind TimeText}" HorizontalAlignment="Center" />
@@ -1138,6 +1143,12 @@
                                                     Background="Transparent" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1"
                                                     AutomationProperties.Name="چاپ رسید این فاکتور" ToolTipService.ToolTip="پیش‌نمایش و چاپ دوباره‌ی رسید این فاکتور">
                                                 <TextBlock Text="چاپ" FontSize="12.5" />
+                                            </Button>
+                                            <!-- §6.25 مرجوعی — همین فاکتور، بدون تایپ شماره -->
+                                            <Button Grid.Column="9" Click="OnReturnInvoiceClick" Tag="{x:Bind}" Height="34" Padding="10,0" CornerRadius="8"
+                                                    Background="Transparent" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1"
+                                                    AutomationProperties.Name="مرجوعی این فاکتور" ToolTipService.ToolTip="گرفتن مرجوعی از این فاکتور">
+                                                <TextBlock Text="مرجوعی" FontSize="12.5" />
                                             </Button>
                                         </Grid>
                                     </DataTemplate>
@@ -1191,6 +1202,118 @@
                         <Button Grid.Column="1" Command="{x:Bind ViewModel.ConfirmStartCorrectionCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch" Content="باز کردن اصلاحیه" />
                     </Grid>
                 </StackPanel>
+            </Border>
+        </Grid>
+
+        <!--
+            «مرجوعی / تعویض» (§6.25–6.26) — فاکتور را پیدا می‌کند، سطر و تعداد و مقصد کالا را می‌گیرد،
+            مبلغ بازپرداخت را از همان کدی نشان می‌دهد که هنگام ثبت هم استفاده می‌شود.
+        -->
+        <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsReturnOpen, Mode=OneWay}">
+            <Border Style="{StaticResource SalesDialogCard}" Width="720" MaxHeight="740">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <TextBlock Text="مرجوعی / تعویض" Style="{StaticResource SalesDialogTitle}" Margin="18,15" />
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="12" Padding="18,4,18,16">
+                            <!-- ۱) پیدا کردن فاکتور -->
+                            <StackPanel Spacing="8" Visibility="{x:Bind local:SalesPage.WhenFalse(ViewModel.HasReturnInvoice), Mode=OneWay}">
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBox x:Name="ReturnNumberBox" Header="شماره فاکتور" PlaceholderText="مثلاً ۱۲۵۸" InputScope="Number" FontSize="16"
+                                             Text="{x:Bind ViewModel.ReturnNumberInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             KeyDown="OnReturnNumberKeyDown" AutomationProperties.Name="شماره فاکتور برای مرجوعی" />
+                                    <Button Grid.Column="1" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.FindReturnInvoiceCommand}" Style="{StaticResource SalesPrimaryButton}" Content="پیدا کردن" />
+                                </Grid>
+                                <TextBlock Style="{StaticResource SalesLabel}" TextWrapping="Wrap"
+                                           Text="شماره‌ی روی رسید مشتری را بنویسید. فاکتور امروز را هم می‌شود از «لیست فاکتورها ← فاکتورهای امروز» با دکمه‌ی «مرجوعی» باز کرد." />
+                            </StackPanel>
+
+                            <!-- ۲) سطرها -->
+                            <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.HasReturnInvoice, Mode=OneWay}" IsHitTestVisible="{x:Bind ViewModel.IsReturnEditable, Mode=OneWay}" Opacity="1">
+                                <Border Padding="12,10" CornerRadius="10" Background="{ThemeResource SalesMutedFillBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
+                                    <TextBlock Text="{x:Bind ViewModel.ReturnInvoiceHeaderText, Mode=OneWay}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" TextWrapping="Wrap" />
+                                </Border>
+                                <Grid>
+                                    <TextBlock Text="کدام کالا و چند عدد برگردد؟" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" VerticalAlignment="Center" />
+                                    <Button HorizontalAlignment="Right" Height="34" Padding="12,0" CornerRadius="8" Command="{x:Bind ViewModel.ReturnAllCommand}"
+                                            Background="Transparent" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1" Content="برگشت همه" />
+                                </Grid>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.ReturnLines}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="sales:ReturnLineRow">
+                                            <Border Padding="12,10" Margin="0,0,0,8" CornerRadius="10" BorderThickness="1"
+                                                    BorderBrush="{ThemeResource SalesLineBrush}" Background="{ThemeResource AppSurfaceBrush}">
+                                                <Grid ColumnSpacing="10">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="150" /></Grid.ColumnDefinitions>
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock Text="{x:Bind ProductName}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" TextWrapping="Wrap" />
+                                                        <TextBlock Text="{x:Bind SoldText}" FontSize="12.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                                        <TextBlock Text="{x:Bind RemainingText}" FontSize="12.5" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsHitTestVisible="{x:Bind CanReturn}">
+                                                        <Button Click="OnDecreaseReturnClick" Tag="{x:Bind}" Style="{StaticResource SalesStepButton}" Width="36" Height="36" Content="−" AutomationProperties.Name="کم کردن تعداد مرجوعی" />
+                                                        <TextBlock Text="{x:Bind QuantityText, Mode=OneWay}" MinWidth="30" TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" />
+                                                        <Button Click="OnIncreaseReturnClick" Tag="{x:Bind}" Style="{StaticResource SalesStepButton}" Width="36" Height="36" Content="+" AutomationProperties.Name="زیاد کردن تعداد مرجوعی" />
+                                                    </StackPanel>
+                                                    <ComboBox Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Center" SelectedIndex="{x:Bind DispositionIndex, Mode=TwoWay}"
+                                                              IsEnabled="{x:Bind IsSelected, Mode=OneWay}" AutomationProperties.Name="مقصد کالای برگشتی">
+                                                        <ComboBoxItem Content="برگشت به انبار" />
+                                                        <ComboBoxItem Content="خراب" />
+                                                        <ComboBoxItem Content="ضایعات" />
+                                                    </ComboBox>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- ۳) روش بازپرداخت -->
+                                <TextBlock Text="پول مشتری چطور برگردد؟" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                    <Button x:Name="ReturnCashButton" Click="OnReturnRefundMethodClick" Tag="Cash" HorizontalAlignment="Stretch" Height="52" CornerRadius="11" BorderThickness="1.5" Content="نقدی (از صندوق)" />
+                                    <Button x:Name="ReturnCardButton" Grid.Column="1" Click="OnReturnRefundMethodClick" Tag="Card" HorizontalAlignment="Stretch" Height="52" CornerRadius="11" BorderThickness="1.5" Content="کارتخوان" />
+                                    <Button x:Name="ReturnDebtButton" Grid.Column="2" Click="OnReturnRefundMethodClick" Tag="Credit" HorizontalAlignment="Stretch" Height="52" CornerRadius="11" BorderThickness="1.5"
+                                            IsEnabled="{x:Bind ViewModel.CanRefundToDebt, Mode=OneWay}" Content="کم شدن از بدهی"
+                                            ToolTipService.ToolTip="فقط وقتی فاکتور مشتری دارد" />
+                                </Grid>
+
+                                <TextBox Header="دلیل مرجوعی (الزامی)" Text="{x:Bind ViewModel.ReturnReasonText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         PlaceholderText="مثلاً «اندازه نبود» یا «شکسته تحویل شد»" TextWrapping="Wrap" AcceptsReturn="True" Height="72" VerticalContentAlignment="Top"
+                                         AutomationProperties.Name="دلیل مرجوعی" />
+
+                                <Border Padding="14,12" CornerRadius="12" Background="{ThemeResource AppPrimarySoftBrush}" BorderBrush="{ThemeResource AppPrimaryBrush}" BorderThickness="1">
+                                    <Grid>
+                                        <TextBlock Text="مبلغ بازپرداخت به مشتری" VerticalAlignment="Center" />
+                                        <TextBlock HorizontalAlignment="Right" FontSize="22" FontWeight="Bold" Foreground="{ThemeResource SalesPrimaryDarkBrush}">
+                                            <Run Text="{x:Bind ViewModel.ReturnRefundText, Mode=OneWay}" /><Run Text=" تومان" />
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
+                                    Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.ReturnError), Mode=OneWay}">
+                                <TextBlock Text="{x:Bind ViewModel.ReturnError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
+                            </Border>
+
+                            <!-- ۴) نتیجه -->
+                            <Border Padding="14,12" CornerRadius="12" Background="{ThemeResource AppPrimarySoftBrush}" BorderBrush="{ThemeResource AppPrimaryBrush}" BorderThickness="1"
+                                    Visibility="{x:Bind ViewModel.IsReturnDone, Mode=OneWay}">
+                                <TextBlock Text="{x:Bind ViewModel.ReturnDoneText, Mode=OneWay}" Foreground="{ThemeResource SalesPrimaryDarkBrush}" TextWrapping="Wrap" FontWeight="Bold" />
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <Grid Grid.Row="2" Padding="18,12" ColumnSpacing="8" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Button Command="{x:Bind ViewModel.CloseReturnCommand}" Style="{StaticResource SalesActionButton}" Content="بستن" />
+                        <Button Grid.Column="1" Command="{x:Bind ViewModel.StartExchangeCommand}" Style="{StaticResource SalesActionButton}" Content="تعویض: باز کردن فاکتور جایگزین"
+                                Visibility="{x:Bind ViewModel.IsReturnDone, Mode=OneWay}" />
+                        <Button Grid.Column="2" Command="{x:Bind ViewModel.ConfirmReturnCommand}" Style="{StaticResource SalesPrimaryButton}" HorizontalAlignment="Stretch" Content="ثبت مرجوعی"
+                                Visibility="{x:Bind local:SalesPage.WhenReturnCanBeConfirmed(ViewModel.HasReturnInvoice, ViewModel.IsReturnDone), Mode=OneWay}" />
+                    </Grid>
+                </Grid>
             </Border>
         </Grid>
 

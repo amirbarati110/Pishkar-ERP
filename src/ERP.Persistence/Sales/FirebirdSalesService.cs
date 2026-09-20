@@ -36,7 +36,11 @@ public sealed class FirebirdSalesService :
     IGetLineEditInfoHandler,
     ISetSaleNoteHandler,
     IStartSaleCorrectionHandler,
-    ICompleteSaleCorrectionHandler
+    ICompleteSaleCorrectionHandler,
+    ICompleteSaleReturnHandler,
+    IFindSaleForReturnHandler,
+    IGetReturnableSaleHandler,
+    IPreviewSaleReturnHandler
 {
     private readonly FirebirdConnectionFactory _connectionFactory;
     private readonly IUserContext _userContext;
@@ -101,6 +105,7 @@ public sealed class FirebirdSalesService :
         return await new CompleteSaleHandler(
                 new FirebirdSaleRepository(unitOfWork),
                 new FirebirdStockLedgerRepository(unitOfWork),
+                new FirebirdSaleLineCostRepository(unitOfWork),
                 new FirebirdSaleNumberGenerator(unitOfWork),
                 new FirebirdCustomerRepository(unitOfWork),
                 new FirebirdCustomerLedgerReader(unitOfWork),
@@ -120,7 +125,11 @@ public sealed class FirebirdSalesService :
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
-        return await new StartSaleCorrectionHandler(new FirebirdSaleRepository(unitOfWork), unitOfWork, _clock)
+        return await new StartSaleCorrectionHandler(
+                new FirebirdSaleRepository(unitOfWork),
+                new FirebirdSaleReturnRepository(unitOfWork),
+                unitOfWork,
+                _clock)
             .ExecuteAsync(command, cancellationToken)
             .ConfigureAwait(false);
     }
@@ -289,6 +298,70 @@ public sealed class FirebirdSalesService :
                 _userContext,
                 _clock)
             .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<CompletedSaleReturn>> ExecuteAsync(
+        CompleteSaleReturnCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new CompleteSaleReturnHandler(
+                new FirebirdSaleRepository(unitOfWork),
+                new FirebirdSaleReturnRepository(unitOfWork),
+                new FirebirdSaleLineCostRepository(unitOfWork),
+                new FirebirdStockLedgerRepository(unitOfWork),
+                new FirebirdReturnNumberGenerator(unitOfWork),
+                new FirebirdAuditWriter(unitOfWork),
+                new FirebirdJournalEntryRepository(unitOfWork),
+                unitOfWork,
+                _userContext,
+                _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<SaleId>> ExecuteAsync(
+        FindSaleForReturnQuery query,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new FindSaleForReturnHandler(new FirebirdSaleReadReader(unitOfWork))
+            .ExecuteAsync(query, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<ReturnableSale>> ExecuteAsync(
+        GetReturnableSaleQuery query,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new GetReturnableSaleHandler(
+                new FirebirdSaleRepository(unitOfWork),
+                new FirebirdSaleReturnRepository(unitOfWork),
+                new FirebirdSaleReadReader(unitOfWork))
+            .ExecuteAsync(query, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<SaleReturnPreview>> ExecuteAsync(
+        PreviewSaleReturnQuery query,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new PreviewSaleReturnHandler(
+                new FirebirdSaleRepository(unitOfWork),
+                new FirebirdSaleReturnRepository(unitOfWork),
+                new FirebirdSaleLineCostRepository(unitOfWork))
+            .ExecuteAsync(query, cancellationToken)
             .ConfigureAwait(false);
     }
 }

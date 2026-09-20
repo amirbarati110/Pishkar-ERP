@@ -255,6 +255,14 @@ public sealed partial class SalesWorkspaceViewModel
     [ObservableProperty]
     public partial string PaymentDueText { get; set; } = "۰";
 
+    /// <summary>«تعویض» — «مرجوعی شماره ۳ ثبت شد؛ مابه‌التفاوت: ...» or empty for an ordinary invoice.</summary>
+    [ObservableProperty]
+    public partial string ExchangeHintText { get; set; } = string.Empty;
+
+    public bool HasExchangeHint => ExchangeHintText.Length > 0;
+
+    partial void OnExchangeHintTextChanged(string value) => OnPropertyChanged(nameof(HasExchangeHint));
+
     [ObservableProperty]
     public partial string CashReceivedText { get; set; } = string.Empty;
 
@@ -348,11 +356,29 @@ public sealed partial class SalesWorkspaceViewModel
         PendingFollowUp = followUp;
         SelectedPaymentMethod = PaymentMethod.Cash;
         PaymentDueText = tab.TotalText;
+        ExchangeHintText = ExchangeHint(tab);
         CashReceivedText = tab.TotalText;
         AllowNegativeStock = false;
         NeedsCreditApproval = false;
         PaymentError = null;
         IsPaymentOpen = true;
+    }
+
+    private static string ExchangeHint(InvoiceTab tab)
+    {
+        if (tab.ExchangeRefundRials <= 0)
+        {
+            return string.Empty;
+        }
+
+        var difference = tab.Payable.Rials - tab.ExchangeRefundRials;
+        var head = $"تعویض — مرجوعی شماره {tab.ExchangeReturnNumberText}: {SalesText.Tomans(tab.ExchangeRefundRials)} تومان. ";
+        return difference switch
+        {
+            > 0 => head + $"مابه‌التفاوت: {SalesText.Tomans(difference)} تومان از مشتری بگیرید.",
+            < 0 => head + $"مابه‌التفاوت: {SalesText.Tomans(-difference)} تومان به مشتری برگردانید.",
+            _ => head + "مابه‌التفاوتی نیست.",
+        };
     }
 
     [RelayCommand]
@@ -688,6 +714,7 @@ public sealed partial class SalesWorkspaceViewModel
     private void CloseTopDialog()
     {
         if (IsCancelConfirmOpen) { IsCancelConfirmOpen = false; }
+        else if (IsReturnOpen) { IsReturnOpen = false; }
         else if (IsAdminApprovalOpen) { IsAdminApprovalOpen = false; }
         else if (IsJournalEntryOpen) { IsJournalEntryOpen = false; }
         else if (IsReceiptPreviewOpen) { IsReceiptPreviewOpen = false; }

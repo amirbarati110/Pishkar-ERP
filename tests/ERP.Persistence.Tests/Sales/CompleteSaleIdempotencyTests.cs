@@ -1,3 +1,4 @@
+using ERP.Domain.Accounting;
 using ERP.Application.Accounting;
 using ERP.Application.Catalog;
 using ERP.Application.Common;
@@ -67,7 +68,7 @@ public sealed class CompleteSaleIdempotencyTests
 
         var journal = await accounting.ExecuteAsync(new GetSaleJournalEntryQuery(started.Value), CancellationToken.None);
         Assert.NotNull(journal);
-        Assert.Equal(490_000, journal!.Lines.Single(line => line.Debit.Rials > 0).Debit.ToTomansExact()); // یک سند، نه دوتا با مبلغ دوبرابر
+        Assert.Equal(490_000, journal!.Lines.Single(line => line.Account == AccountCode.Cash).Debit.ToTomansExact()); // یک سند، نه دوتا با مبلغ دوبرابر
     }
 
     private sealed record TestUserContext(Guid UserId) : IUserContext;

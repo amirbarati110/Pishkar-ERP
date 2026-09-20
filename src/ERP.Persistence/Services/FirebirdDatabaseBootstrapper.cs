@@ -31,6 +31,7 @@ public sealed class FirebirdDatabaseBootstrapper
         new V011CreateJournalEntry(),
         new V012CreateBackupRecord(),
         new V013SaleLineProductIndex(),
+        new V014SaleReturns(),
     ];
 
     private readonly FirebirdConnectionFactory _connectionFactory;

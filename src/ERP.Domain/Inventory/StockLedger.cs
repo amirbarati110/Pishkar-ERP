@@ -76,6 +76,28 @@ public sealed class StockLedger
             DateTimeOffset.UtcNow));
     }
 
+    /// <summary>
+    /// Puts returned goods back on the shelf as a layer of their own, at the
+    /// cost they originally left at (not today's cost) so a sale followed by
+    /// its return leaves the stock's value exactly where it started. Dated
+    /// today, so FIFO sells it after older stock.
+    /// </summary>
+    public void ReceiveReturn(Quantity quantity, Money unitCost, DateOnly receivedOn, string reference)
+    {
+        var normalizedReference = NormalizeReference(reference);
+
+        var layer = new InventoryLayer(InventoryLayerId.New(), quantity, unitCost, receivedOn);
+        _layers.Add(layer);
+        _movements.Add(new StockMovement(
+            StockMovementId.New(),
+            ProductId,
+            WarehouseId,
+            StockMovementType.Return,
+            quantity,
+            normalizedReference,
+            DateTimeOffset.UtcNow));
+    }
+
     public IReadOnlyList<InventoryAllocation> ConsumeFifo(Quantity quantity, string reference)
     {
         var normalizedReference = NormalizeReference(reference);
