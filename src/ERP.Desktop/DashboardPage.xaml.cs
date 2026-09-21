@@ -1,4 +1,5 @@
 using ERP.Desktop.Features.Sales;
+using ERP.Presentation.Features.Navigation;
 using ERP.Presentation.Features.Workbench;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -44,11 +45,11 @@ public sealed partial class DashboardPage : Page
     private void OpenSales(string mode) => MainPage.ShellOf(this)?.OpenSalesWorkspace(mode);
 
     // Through the shell, so the menu highlight moves with the page.
-    private void OnCategoriesClick(object sender, RoutedEventArgs e) => MainPage.ShellOf(this)?.GoTo("categories");
+    private void OnCategoriesClick(object sender, RoutedEventArgs e) => MainPage.ShellOf(this)?.OpenCard(NavigationMap.Categories);
 
-    private void OnProductsClick(object sender, RoutedEventArgs e) => MainPage.ShellOf(this)?.GoTo("products");
+    private void OnProductsClick(object sender, RoutedEventArgs e) => MainPage.ShellOf(this)?.OpenCard(NavigationMap.ProductList);
 
-    private void OnInventoryClick(object sender, RoutedEventArgs e) => MainPage.ShellOf(this)?.GoTo("inventory");
+    private void OnInventoryClick(object sender, RoutedEventArgs e) => MainPage.ShellOf(this)?.OpenCard(NavigationMap.OpeningStock);
 
-    private void OnTillClick(object sender, RoutedEventArgs e) => MainPage.ShellOf(this)?.GoTo("till");
+    private void OnTillClick(object sender, RoutedEventArgs e) => MainPage.ShellOf(this)?.OpenCard(NavigationMap.CashShift);
 }

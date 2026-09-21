@@ -140,14 +140,28 @@ public sealed class FirebirdProductRepository : IProductRepository
         await using var command = CreateCommand(
             """
             UPDATE PRODUCT
-            SET NAME = @NAME, SALE_PRICE_RIALS = @SALE_PRICE_RIALS, STATUS = @STATUS
+            SET NAME = @NAME, SKU = @SKU, CATEGORY_ID = @CATEGORY_ID,
+                SALE_PRICE_RIALS = @SALE_PRICE_RIALS, STATUS = @STATUS
             WHERE ID = @ID
             """);
         command.Parameters.Add("@ID", FbDbType.Char).Value = product.Id.ToString();
         command.Parameters.Add("@NAME", FbDbType.VarChar).Value = product.Name;
+        command.Parameters.Add("@SKU", FbDbType.VarChar).Value = product.Sku is { } sku ? sku : DBNull.Value;
+        command.Parameters.Add("@CATEGORY_ID", FbDbType.Char).Value = product.CategoryId.ToString();
         command.Parameters.Add("@SALE_PRICE_RIALS", FbDbType.BigInt).Value = product.SalePrice.Rials;
         command.Parameters.Add("@STATUS", FbDbType.SmallInt).Value = (short)product.Status;
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (FbException exception) when (
+            FirebirdConstraint.IsViolation(exception, "UQ_PRODUCT_SKU"))
+        {
+            throw new DataConflictException(
+                "catalog.product.duplicate-sku",
+                "این کد کالا قبلاً برای کالای دیگری استفاده شده است.",
+                exception);
+        }
     }
 
     private async Task<IReadOnlyList<string>> ReadBarcodesAsync(

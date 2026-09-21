@@ -19,6 +19,9 @@ namespace ERP.Desktop.Features.Sales;
 /// <see cref="SalesWorkspaceViewModel"/>; this file only turns clicks, keys and
 /// window size into those commands, and picks brushes for visual states.
 /// </summary>
+/// <summary>Navigation parameter: open the workspace on the completed invoice with this number (from a row of a product's کاردکس).</summary>
+public sealed record OpenInvoiceRequest(long Number);
+
 public sealed partial class SalesPage : Page
 {
     /// <summary>Below this width the category column moves above the product list (as in the approved mockup's breakpoint).</summary>
@@ -65,6 +68,7 @@ public sealed partial class SalesPage : Page
 
     private bool _openInvoiceListOnLoad;
     private bool _openReturnOnLoad;
+    private long? _openInvoiceNumberOnLoad;
 
     protected override void OnNavigatedTo(Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
     {
@@ -72,6 +76,7 @@ public sealed partial class SalesPage : Page
         base.OnNavigatedTo(e);
         _openInvoiceListOnLoad = e.Parameter as string == StartOnInvoiceList;
         _openReturnOnLoad = e.Parameter as string == StartOnReturn;
+        _openInvoiceNumberOnLoad = (e.Parameter as OpenInvoiceRequest)?.Number;
     }
 
     // ───── x:Bind helpers (visual states) ─────
@@ -130,6 +135,14 @@ public sealed partial class SalesPage : Page
         ApplyLayout(ActualWidth);
         UpdateFilterButtons();
         await ViewModel.LoadAsync(CancellationToken.None);
+
+        if (_openInvoiceNumberOnLoad is { } invoiceNumber)
+        {
+            // Came from a row of a product's کاردکس: land on that invoice, not on an empty till.
+            _openInvoiceNumberOnLoad = null;
+            await ViewModel.OpenInvoiceByNumberCommand.ExecuteAsync(invoiceNumber);
+            return;
+        }
 
         if (_openReturnOnLoad)
         {
@@ -237,7 +250,7 @@ public sealed partial class SalesPage : Page
         ViewModel.IsPaymentOpen || ViewModel.IsEditLineOpen || ViewModel.IsNewCustomerOpen
         || ViewModel.IsInvoiceListOpen || ViewModel.IsCancelConfirmOpen || ViewModel.IsCompletedSummaryOpen
         || ViewModel.IsReceivePaymentOpen || ViewModel.IsStartingCorrectionOpen || ViewModel.IsJournalEntryOpen
-        || ViewModel.IsReceiptPreviewOpen || ViewModel.IsReturnOpen || HelpOverlay.Workflow is not null;
+        || ViewModel.IsReceiptPreviewOpen || ViewModel.IsReturnOpen || ViewModel.IsInvoiceViewOpen || HelpOverlay.Workflow is not null;
 
     // ───── راهنمای این صفحه (§4.1/§3.14) ─────
 
@@ -655,6 +668,19 @@ public sealed partial class SalesPage : Page
             ViewModel.FindReturnInvoiceCommand.Execute(null);
             e.Handled = true;
         }
+    }
+
+    // «دیدن فاکتور» → اصلاح / مرجوعی: the next window replaces this one, so close it first (سند و چاپ روی آن باز می‌شوند).
+    private void OnViewCorrectClick(object sender, RoutedEventArgs e)
+    {
+        ViewModel.CloseInvoiceViewCommand.Execute(null);
+        OnCorrectInvoiceClick(sender, e);
+    }
+
+    private void OnViewReturnClick(object sender, RoutedEventArgs e)
+    {
+        ViewModel.CloseInvoiceViewCommand.Execute(null);
+        OnReturnInvoiceClick(sender, e);
     }
 
     private void OnCorrectInvoiceClick(object sender, RoutedEventArgs e) =>

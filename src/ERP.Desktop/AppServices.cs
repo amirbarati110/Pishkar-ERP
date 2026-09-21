@@ -1,6 +1,7 @@
 using ERP.Application.Catalog;
 using ERP.Application.Common;
 using ERP.Application.Importing;
+using ERP.Application.Inventory;
 using ERP.Infrastructure.Spreadsheets;
 using ERP.Persistence.Accounting;
 using ERP.Persistence.Backups;
@@ -9,6 +10,7 @@ using ERP.Persistence.Catalog;
 using ERP.Persistence.Customers;
 using ERP.Persistence.Database;
 using ERP.Persistence.Identity;
+using ERP.Persistence.Inventory;
 using ERP.Persistence.Sales;
 using ERP.Persistence.Services;
 using ERP.Presentation.Features.Sales;
@@ -20,6 +22,8 @@ public sealed record AppServices(
     FirebirdSalesService Sales,
     ICatalogLookupReader CatalogLookup,
     ISearchProductsHandler ProductSearch,
+    IListProductsHandler ProductList,
+    IGetStockCardHandler StockCard,
     SalesBackend SalesBackend,
     RetailSetupDefaults Defaults,
     ISpreadsheetReader SpreadsheetReader,
@@ -77,6 +81,8 @@ public sealed record AppServices(
         var customerService = new FirebirdCustomerService(factory, userContext, clock);
         var catalogLookup = new FirebirdCatalogLookupReader(factory);
         var productSearch = new SearchProductsHandler(new FirebirdProductSearchReader(factory));
+        var productList = new ListProductsHandler(new FirebirdProductListReader(factory));
+        var stockCard = new GetStockCardHandler(new FirebirdStockCardReader(factory));
 
         var salesBackend = new SalesBackend(
             StartSale: salesService,
@@ -120,6 +126,8 @@ public sealed record AppServices(
             salesService,
             catalogLookup,
             productSearch,
+            productList,
+            stockCard,
             salesBackend,
             database.Defaults,
             new OpenXmlSpreadsheetReader(),

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    صفحه‌ی یک بخش منو (checklist «م»): عنوان + کارت‌های زیرمجموعه؛ هر کارت یک
+    صفحه‌ی جدا را باز می‌کند. ساختار از برنامه‌ی «باران» است، ظاهر از طرح
+    تأییدشده‌ی صفحه‌ی فروش: کارت سفید، خط ملایم، شعاع ۱۲، هدف لمسی بزرگ.
+    فقط کارت‌هایی که واقعاً کار می‌کنند اینجا هستند (NavigationMap).
+-->
+<Page
+    x:Class="ERP.Desktop.Features.Navigation.HubPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:nav="using:ERP.Presentation.Features.Navigation"
+    Background="{ThemeResource SalesCanvasBrush}"
+    FontFamily="{StaticResource AppBodyFont}"
+    FontSize="15"
+    FlowDirection="RightToLeft">
+
+    <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1240" HorizontalAlignment="Center" Padding="28,24,28,32" Spacing="20">
+
+            <StackPanel Spacing="4">
+                <TextBlock x:Name="SectionTitle" FontSize="26" FontWeight="Bold" Foreground="{ThemeResource AppTextBrush}"
+                           AutomationProperties.AutomationId="HubTitle" />
+                <TextBlock x:Name="SectionSubtitle" FontSize="15" Foreground="{ThemeResource SalesMutedTextBrush}" />
+            </StackPanel>
+
+            <GridView x:Name="Cards" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnCardClick"
+                      AutomationProperties.AutomationId="HubCards" AutomationProperties.Name="زیرمجموعه‌های این بخش">
+                <GridView.ItemTemplate>
+                    <DataTemplate x:DataType="nav:HubCard">
+                        <Grid Width="290" Height="118" Padding="18,14" ColumnSpacing="14"
+                              Background="{ThemeResource AppSurfaceBrush}" BorderBrush="{ThemeResource SalesLineBrush}"
+                              BorderThickness="1" CornerRadius="12"
+                              AutomationProperties.Name="{x:Bind Title}" AutomationProperties.AutomationId="{x:Bind AutomationId}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="48" Height="48" CornerRadius="12" VerticalAlignment="Top"
+                                    Background="{ThemeResource AppPrimarySoftBrush}">
+                                <FontIcon FontSize="22" Glyph="{x:Bind Glyph}" Foreground="{ThemeResource AppSuccessBrush}" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                                <TextBlock FontSize="17" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}"
+                                           Foreground="{ThemeResource AppTextBrush}" Text="{x:Bind Title}" TextWrapping="Wrap" />
+                                <TextBlock FontSize="14" Foreground="{ThemeResource SalesMutedTextBrush}" Text="{x:Bind Description}"
+                                           TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </GridView.ItemTemplate>
+            </GridView>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

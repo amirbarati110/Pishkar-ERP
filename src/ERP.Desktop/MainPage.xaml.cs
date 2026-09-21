@@ -3,8 +3,10 @@ using ERP.Desktop.Features.Cashiering;
 using ERP.Desktop.Features.Categories;
 using ERP.Desktop.Features.Importing;
 using ERP.Desktop.Features.Inventory;
+using ERP.Desktop.Features.Navigation;
 using ERP.Desktop.Features.Products;
 using ERP.Desktop.Features.Sales;
+using ERP.Presentation.Features.Navigation;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -40,18 +42,42 @@ public sealed partial class MainPage : Page
         return null;
     }
 
-    /// <summary>Opens the section with this Tag, exactly as clicking its menu item would.</summary>
-    public void GoTo(string tag)
+    /// <summary>
+    /// Opens the screen behind a hub card (<see cref="NavigationMap"/> keys), exactly as
+    /// clicking that card would: the menu highlight moves to the card's section and the
+    /// breadcrumb names where the user is. The three sales cards open the full-window
+    /// sales workspace instead of a page inside this shell.
+    /// </summary>
+    public void OpenCard(string cardKey)
     {
-        var item = RootNavigationView.MenuItems
-            .Concat(RootNavigationView.FooterMenuItems)
-            .OfType<NavigationViewItem>()
-            .FirstOrDefault(candidate => (string?)candidate.Tag == tag);
-
-        if (item is not null)
+        switch (cardKey)
         {
-            RootNavigationView.SelectedItem = item;
+            case NavigationMap.NewSale:
+                OpenSalesWorkspace(SalesPage.StartFresh);
+                return;
+            case NavigationMap.HeldInvoices:
+                OpenSalesWorkspace(SalesPage.StartOnInvoiceList);
+                return;
+            case NavigationMap.Returns:
+                OpenSalesWorkspace(SalesPage.StartOnReturn);
+                return;
         }
+
+        var card = NavigationMap.FindCard(cardKey);
+        var section = NavigationMap.SectionOf(cardKey);
+        var pageType = PageOf(cardKey);
+        if (card is null || section is null || pageType is null)
+        {
+            return;
+        }
+
+        SelectMenuItem(section.Key);
+        ContentFrame.Navigate(pageType);
+        BreadcrumbSection.Content = section.Title;
+        BreadcrumbSection.Tag = section.Key;
+        BreadcrumbPage.Text = card.Title;
+        Breadcrumb.Visibility = Visibility.Visible;
+        HelpOverlay.Workflow = null; // a new page means the old page's help no longer applies
     }
 
     /// <summary>
@@ -59,51 +85,77 @@ public sealed partial class MainPage : Page
     /// shell rather than opening inside it. <paramref name="mode"/> is one of
     /// the <see cref="SalesPage"/> start constants.
     /// </summary>
-    public void OpenSalesWorkspace(string mode) => Frame.Navigate(typeof(SalesPage), mode);
+    public void OpenSalesWorkspace(object mode) => Frame.Navigate(typeof(SalesPage), mode);
+
+    private static Type? PageOf(string cardKey) => cardKey switch
+    {
+        NavigationMap.ProductList => typeof(ProductListPage),
+        NavigationMap.Categories => typeof(CategoriesPage),
+        NavigationMap.Import => typeof(ImportCenterPage),
+        NavigationMap.CashShift => typeof(CashShiftPage),
+        NavigationMap.OpeningStock => typeof(OpeningStockPage),
+        NavigationMap.Backup => typeof(BackupPage),
+        _ => null,
+    };
+
+    /// <summary>Highlights a menu item (by its Tag). Navigation is done on <c>ItemInvoked</c>, so moving the highlight from code never opens anything by itself.</summary>
+    private void SelectMenuItem(string tag)
+    {
+        var item = RootNavigationView.MenuItems
+            .Concat(RootNavigationView.FooterMenuItems)
+            .OfType<NavigationViewItem>()
+            .FirstOrDefault(candidate => (string?)candidate.Tag == tag);
+
+        if (item is not null && !ReferenceEquals(RootNavigationView.SelectedItem, item))
+        {
+            RootNavigationView.SelectedItem = item;
+        }
+    }
+
+    private void ShowSection(string sectionKey)
+    {
+        SelectMenuItem(sectionKey);
+        ContentFrame.Navigate(typeof(HubPage), sectionKey);
+        Breadcrumb.Visibility = Visibility.Collapsed;
+        HelpOverlay.Workflow = null;
+    }
+
+    private void OnBreadcrumbSectionClick(object sender, RoutedEventArgs e)
+    {
+        if (BreadcrumbSection.Tag is string sectionKey)
+        {
+            ShowSection(sectionKey);
+        }
+    }
 
     /// <summary>
-    /// Routes ContentFrame to the page matching the selected NavigationViewItem's
-    /// Tag. NavigationView owns the selected-item visual state itself (via the
-    /// ThemeResource aliases in MainPage.xaml), so no manual style/foreground
-    /// bookkeeping is needed here — unlike the hand-rolled Button sidebar this
-    /// replaced (source-of-truth Appendix A #10).
+    /// A click (or Enter) on a menu item: «میز کار» opens the workbench, any other item
+    /// opens its section's page of cards. <c>ItemInvoked</c> rather than
+    /// <c>SelectionChanged</c> on purpose: while a card's screen is open its section is
+    /// already the highlighted one, and clicking it must still bring the user back to the
+    /// cards — a selection change would never fire. NavigationView owns the selected-item
+    /// visual state itself (ThemeResource aliases in MainPage.xaml, source-of-truth
+    /// Appendix A #10).
     /// </summary>
-    private void OnNavigationSelectionChanged(
+    private void OnNavigationItemInvoked(
         NavigationView sender,
-        NavigationViewSelectionChangedEventArgs args)
+        NavigationViewItemInvokedEventArgs args)
     {
-        if (args.SelectedItem is not NavigationViewItem { Tag: string tag })
+        if (args.InvokedItemContainer?.Tag is not string tag)
         {
             return;
         }
 
-        // The sales workspace is its own full-window space with an exit button
-        // (approved design): it replaces this page instead of opening inside it.
-        if (tag == "sales")
+        if (tag == NavigationMap.Home)
         {
-            sender.SelectedItem = HomeNavItem;
-            OpenSalesWorkspace(SalesPage.StartFresh);
+            SelectMenuItem(tag);
+            ContentFrame.Navigate(typeof(DashboardPage));
+            Breadcrumb.Visibility = Visibility.Collapsed;
+            HelpOverlay.Workflow = null;
             return;
         }
 
-        var pageType = tag switch
-        {
-            "products" => typeof(ProductEditorPage),
-            "categories" => typeof(CategoriesPage),
-            "inventory" => typeof(OpeningStockPage),
-            "import" => typeof(ImportCenterPage),
-            "till" => typeof(CashShiftPage),
-            "backup" => typeof(BackupPage),
-            "settings" => typeof(SettingsPage),
-            _ => typeof(DashboardPage),
-        };
-
-        if (ContentFrame.CurrentSourcePageType != pageType)
-        {
-            ContentFrame.Navigate(pageType);
-        }
-
-        HelpOverlay.Workflow = null; // a new page means the old page's help no longer applies
+        ShowSection(tag);
     }
 
     // ───── راهنمای این صفحه (§4.1/§3.14) ─────
@@ -129,12 +181,14 @@ public sealed partial class MainPage : Page
         var page = ContentFrame.CurrentSourcePageType switch
         {
             var type when type == typeof(CategoriesPage) => "categories",
+            var type when type == typeof(ProductListPage) => "product-list",
+            var type when type == typeof(Features.Inventory.StockCardPage) => "stock-card",
             var type when type == typeof(ProductEditorPage) => "product-editor",
             var type when type == typeof(OpeningStockPage) => "opening-stock",
             var type when type == typeof(ImportCenterPage) => "import-center",
             var type when type == typeof(CashShiftPage) => "cash-shift",
             var type when type == typeof(BackupPage) => "backup",
-            var type when type == typeof(SettingsPage) => "settings",
+            var type when type == typeof(HubPage) => "hub",
             _ => "home",
         };
 

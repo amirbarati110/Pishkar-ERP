@@ -717,12 +717,13 @@ public sealed partial class SalesWorkspaceViewModel
         else if (IsReturnOpen) { IsReturnOpen = false; }
         else if (IsAdminApprovalOpen) { IsAdminApprovalOpen = false; }
         else if (IsJournalEntryOpen) { IsJournalEntryOpen = false; }
+        else if (IsStartingCorrectionOpen) { IsStartingCorrectionOpen = false; }
+        else if (IsInvoiceViewOpen) { IsInvoiceViewOpen = false; }
         else if (IsReceiptPreviewOpen) { IsReceiptPreviewOpen = false; }
         else if (IsNewCustomerOpen) { IsNewCustomerOpen = false; }
         else if (IsReceivePaymentOpen) { IsReceivePaymentOpen = false; }
         else if (IsEditLineOpen) { IsEditLineOpen = false; }
         else if (IsPaymentOpen) { IsPaymentOpen = false; }
-        else if (IsStartingCorrectionOpen) { IsStartingCorrectionOpen = false; }
         else if (IsInvoiceListOpen) { IsInvoiceListOpen = false; }
     }
 }

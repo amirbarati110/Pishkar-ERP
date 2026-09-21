@@ -1166,6 +1166,69 @@
         </Grid>
 
         <!--
+            «دیدن فاکتور» — یک فاکتور ثبت‌شده با شماره‌اش (از کاردکس کالا). همان چهار کاری را دارد که
+            «فاکتورهای امروز» دارد: اصلاح، سند، چاپ، مرجوعی؛ دکمه‌ها همان فرمان‌های قبلی‌اند.
+        -->
+        <Grid Grid.RowSpan="4" Background="{ThemeResource SalesOverlayBrush}" Visibility="{x:Bind ViewModel.IsInvoiceViewOpen, Mode=OneWay}">
+            <Border Style="{StaticResource SalesDialogCard}" Width="660" MaxHeight="640">
+                <Grid RowSpacing="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="{x:Bind ViewModel.InvoiceViewTitleText, Mode=OneWay}" Style="{StaticResource SalesDialogTitle}" Margin="18,15,18,2"
+                               AutomationProperties.AutomationId="InvoiceViewTitle" />
+                    <TextBlock Grid.Row="1" Text="{x:Bind ViewModel.InvoiceViewInfoText, Mode=OneWay}" Style="{StaticResource SalesLabel}" Margin="18,0,18,10" TextWrapping="Wrap" />
+
+                    <Border Grid.Row="2" Margin="18,0" Padding="14,10" CornerRadius="10" Background="{ThemeResource SalesRedSoftBrush}" BorderBrush="{ThemeResource SalesRedLineBrush}" BorderThickness="1"
+                            VerticalAlignment="Top" Visibility="{x:Bind local:SalesPage.WhenText(ViewModel.InvoiceViewError), Mode=OneWay}">
+                        <TextBlock Text="{x:Bind ViewModel.InvoiceViewError, Mode=OneWay}" Foreground="{ThemeResource SalesRedBrush}" TextWrapping="Wrap" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
+                    </Border>
+
+                    <ScrollViewer Grid.Row="2" Margin="18,0" VerticalScrollBarVisibility="Auto" Visibility="{x:Bind ViewModel.HasInvoiceViewActions, Mode=OneWay}">
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.InvoiceViewLines}" AutomationProperties.AutomationId="InvoiceViewLines">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="sales:ReceiptLineRow">
+                                    <Grid Padding="0,8" ColumnSpacing="10" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="0,0,0,1">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="110" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" TextWrapping="Wrap" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind QuantityAndPrice}" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                                        <TextBlock Grid.Column="2" Text="{x:Bind TotalText}" FontWeight="Bold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <StackPanel Grid.Row="3" Margin="18,10,18,4" Spacing="4" Visibility="{x:Bind ViewModel.HasInvoiceViewActions, Mode=OneWay}">
+                        <Grid><TextBlock Text="جمع کالاها" Style="{StaticResource SalesLabel}" /><TextBlock Text="{x:Bind ViewModel.InvoiceViewSubtotalText, Mode=OneWay}" HorizontalAlignment="Right" /></Grid>
+                        <Grid Visibility="{x:Bind ViewModel.HasInvoiceViewDiscount, Mode=OneWay}"><TextBlock Text="تخفیف" Style="{StaticResource SalesLabel}" /><TextBlock Text="{x:Bind ViewModel.InvoiceViewDiscountText, Mode=OneWay}" HorizontalAlignment="Right" /></Grid>
+                        <Grid Visibility="{x:Bind ViewModel.HasInvoiceViewServiceCharge, Mode=OneWay}"><TextBlock Text="خدمات / هزینه" Style="{StaticResource SalesLabel}" /><TextBlock Text="{x:Bind ViewModel.InvoiceViewServiceChargeText, Mode=OneWay}" HorizontalAlignment="Right" /></Grid>
+                        <Grid Visibility="{x:Bind ViewModel.HasInvoiceViewTax, Mode=OneWay}"><TextBlock Text="مالیات" Style="{StaticResource SalesLabel}" /><TextBlock Text="{x:Bind ViewModel.InvoiceViewTaxText, Mode=OneWay}" HorizontalAlignment="Right" /></Grid>
+                        <Grid><TextBlock Text="قابل پرداخت (تومان)" FontWeight="Bold" /><TextBlock Text="{x:Bind ViewModel.InvoiceViewTotalText, Mode=OneWay}" FontWeight="Bold" FontSize="17" HorizontalAlignment="Right" AutomationProperties.AutomationId="InvoiceViewTotal" /></Grid>
+                        <TextBlock Text="{x:Bind ViewModel.InvoiceViewNoteText, Mode=OneWay}" Style="{StaticResource SalesLabel}" TextWrapping="Wrap" Visibility="{x:Bind ViewModel.HasInvoiceViewNote, Mode=OneWay}" />
+                    </StackPanel>
+
+                    <Grid Grid.Row="4" Padding="18,12" ColumnSpacing="8" Background="{ThemeResource SalesMutedFillBrush}" CornerRadius="0,0,16,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button Click="OnViewCorrectClick" Tag="{x:Bind ViewModel.ViewedInvoice, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.HasInvoiceViewActions, Mode=OneWay}" Style="{StaticResource SalesActionButton}"
+                                AutomationProperties.AutomationId="InvoiceViewCorrect" AutomationProperties.Name="اصلاح این فاکتور" Content="اصلاح" />
+                        <Button Grid.Column="1" Click="OnJournalEntryClick" Tag="{x:Bind ViewModel.ViewedInvoice, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.HasInvoiceViewActions, Mode=OneWay}" Style="{StaticResource SalesActionButton}"
+                                AutomationProperties.AutomationId="InvoiceViewJournal" AutomationProperties.Name="مشاهده سند حسابداری" Content="سند" />
+                        <Button Grid.Column="2" Click="OnPrintReceiptClick" Tag="{x:Bind ViewModel.ViewedInvoice, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.HasInvoiceViewActions, Mode=OneWay}" Style="{StaticResource SalesActionButton}"
+                                AutomationProperties.AutomationId="InvoiceViewPrint" AutomationProperties.Name="چاپ رسید این فاکتور" Content="چاپ" />
+                        <Button Grid.Column="3" Click="OnViewReturnClick" Tag="{x:Bind ViewModel.ViewedInvoice, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.HasInvoiceViewActions, Mode=OneWay}" Style="{StaticResource SalesActionButton}"
+                                AutomationProperties.AutomationId="InvoiceViewReturn" AutomationProperties.Name="مرجوعی این فاکتور" Content="مرجوعی" />
+                        <Button Grid.Column="5" Command="{x:Bind ViewModel.CloseInvoiceViewCommand}" Style="{StaticResource SalesActionButton}"
+                                AutomationProperties.AutomationId="InvoiceViewClose" Content="بستن" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!--
             «شروع اصلاحیه» (§10.10) — فقط دلیل را می‌پرسد؛ خودِ اصلاح (تخفیف،
             هزینه، مالیات، روش پرداخت) در همان صفحه‌ی فروش، مثل هر فاکتور دیگر،
             انجام می‌شود؛ چیزی نوشته نمی‌شود تا این پنجره تأیید شود.
@@ -1183,7 +1246,7 @@
                                         <Run Text="شماره" /><Run Text=" " /><Run Text="{x:Bind ViewModel.CorrectionOriginalNumberText, Mode=OneWay}" />
                                     </TextBlock>
                                 </StackPanel>
-                                <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="15" FontWeight="Bold" Text="{x:Bind ViewModel.CorrectionOriginalAmountText, Mode=OneWay}" />
+                                <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="15" FontWeight="Bold" Text="{x:Bind ViewModel.CorrectionOriginalAmountText, Mode=OneWay}" />
                             </Grid>
                         </Border>
                         <TextBlock FontSize="13.5" Foreground="{ThemeResource SalesMutedTextBrush}" TextWrapping="Wrap"
@@ -1382,7 +1445,7 @@
                                             <TextBlock Text="{x:Bind Name}" FontSize="12.5" />
                                             <Grid>
                                                 <TextBlock Text="{x:Bind QuantityAndPrice}" FontSize="12" Foreground="{ThemeResource SalesMutedTextBrush}" />
-                                                <TextBlock Text="{x:Bind TotalText}" FontSize="12.5" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Left" />
+                                                <TextBlock Text="{x:Bind TotalText}" FontSize="12.5" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" HorizontalAlignment="Right" />
                                             </Grid>
                                         </StackPanel>
                                     </DataTemplate>
@@ -1391,23 +1454,23 @@
                             <Border Height="1" Background="{ThemeResource SalesLineBrush}" />
                             <Grid>
                                 <TextBlock Text="جمع کالاها" FontSize="12.5" />
-                                <TextBlock Text="{x:Bind ViewModel.ReceiptSubtotalText, Mode=OneWay}" FontSize="12.5" HorizontalAlignment="Left" />
+                                <TextBlock Text="{x:Bind ViewModel.ReceiptSubtotalText, Mode=OneWay}" FontSize="12.5" HorizontalAlignment="Right" />
                             </Grid>
                             <Grid Visibility="{x:Bind ViewModel.HasReceiptDiscount, Mode=OneWay}">
                                 <TextBlock Text="تخفیف" FontSize="12.5" />
-                                <TextBlock Text="{x:Bind ViewModel.ReceiptDiscountText, Mode=OneWay}" FontSize="12.5" HorizontalAlignment="Left" />
+                                <TextBlock Text="{x:Bind ViewModel.ReceiptDiscountText, Mode=OneWay}" FontSize="12.5" HorizontalAlignment="Right" />
                             </Grid>
                             <Grid Visibility="{x:Bind ViewModel.HasReceiptServiceCharge, Mode=OneWay}">
                                 <TextBlock Text="هزینه/خدمات" FontSize="12.5" />
-                                <TextBlock Text="{x:Bind ViewModel.ReceiptServiceChargeText, Mode=OneWay}" FontSize="12.5" HorizontalAlignment="Left" />
+                                <TextBlock Text="{x:Bind ViewModel.ReceiptServiceChargeText, Mode=OneWay}" FontSize="12.5" HorizontalAlignment="Right" />
                             </Grid>
                             <Grid Visibility="{x:Bind ViewModel.HasReceiptTax, Mode=OneWay}">
                                 <TextBlock Text="مالیات" FontSize="12.5" />
-                                <TextBlock Text="{x:Bind ViewModel.ReceiptTaxText, Mode=OneWay}" FontSize="12.5" HorizontalAlignment="Left" />
+                                <TextBlock Text="{x:Bind ViewModel.ReceiptTaxText, Mode=OneWay}" FontSize="12.5" HorizontalAlignment="Right" />
                             </Grid>
                             <Grid>
                                 <TextBlock Text="قابل پرداخت" FontSize="13.5" FontWeight="Bold" />
-                                <TextBlock Text="{x:Bind ViewModel.ReceiptTotalText, Mode=OneWay}" FontSize="13.5" FontWeight="Bold" HorizontalAlignment="Left" />
+                                <TextBlock Text="{x:Bind ViewModel.ReceiptTotalText, Mode=OneWay}" FontSize="13.5" FontWeight="Bold" HorizontalAlignment="Right" />
                             </Grid>
                             <TextBlock HorizontalAlignment="Center" FontSize="12">
                                 <Run Text="روش پرداخت:" /><Run Text=" " /><Run Text="{x:Bind ViewModel.ReceiptPaymentMethodText, Mode=OneWay}" />

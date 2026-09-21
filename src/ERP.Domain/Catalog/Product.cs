@@ -99,6 +99,20 @@ public sealed class Product : Entity<ProductId>
         SalePrice = salePrice;
     }
 
+    /// <summary>
+    /// Edits what a user may change on an existing product (checklist «م»). The base
+    /// unit and the barcodes are deliberately not here: stock is counted in the base
+    /// unit, so changing it under existing layers would silently change quantities,
+    /// and barcodes are append-only with their own uniqueness rules.
+    /// </summary>
+    public void Update(string name, string? sku, CategoryId categoryId, Money salePrice)
+    {
+        Name = NormalizeName(name);
+        Sku = NormalizeSku(sku);
+        CategoryId = categoryId;
+        SalePrice = salePrice;
+    }
+
     public void Archive()
     {
         Status = ProductStatus.Archived;

@@ -13,6 +13,8 @@ namespace ERP.Persistence.Services;
 public sealed class FirebirdRetailSetupService :
     ICreateCategoryHandler,
     ICreateProductHandler,
+    IUpdateProductHandler,
+    IArchiveProductHandler,
     IReceiveOpeningStockHandler,
     ICommitProductImportHandler
 {
@@ -55,6 +57,40 @@ public sealed class FirebirdRetailSetupService :
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
         return await new CreateProductHandler(
+                new FirebirdProductRepository(unitOfWork),
+                CreateAuditWriter(unitOfWork),
+                unitOfWork,
+                _userContext,
+                _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(
+        UpdateProductCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new UpdateProductHandler(
+                new FirebirdProductRepository(unitOfWork),
+                CreateAuditWriter(unitOfWork),
+                unitOfWork,
+                _userContext,
+                _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(
+        ArchiveProductCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new ArchiveProductHandler(
                 new FirebirdProductRepository(unitOfWork),
                 CreateAuditWriter(unitOfWork),
                 unitOfWork,

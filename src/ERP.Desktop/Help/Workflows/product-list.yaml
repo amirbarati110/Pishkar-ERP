@@ -1,0 +1,18 @@
+page: product-list
+title_fa: لیست کالاها
+steps:
+  - control: product-list-search
+    instruction_fa: برای پیدا کردن کالا بخشی از نام، کد یا بارکد را بنویسید؛ نیم‌کلمه هم کافی است. با F3 مستقیم به همین کادر می‌روید.
+    action: focus
+  - control: product-group-list
+    instruction_fa: برای دیدن فقط یک گروه، آن را از ستون «گروه کالا» انتخاب کنید؛ زیرگروه‌هایش هم می‌آیند.
+    action: invoke
+  - control: product-new
+    instruction_fa: «جدید» (F2) فرم ساخت کالا را باز می‌کند؛ بعد از ذخیره با «ذخیره و کالای بعدی» (F5) بدون برگشت به لیست کالای بعدی را بسازید.
+    action: invoke
+  - control: product-edit
+    instruction_fa: کالایی را انتخاب کنید و «ویرایش» (F3) را بزنید؛ نام، کد، گروه و قیمت قابل تغییرند. بارکد و واحد اصلی از اینجا عوض نمی‌شوند.
+    action: invoke
+  - control: product-delete
+    instruction_fa: «حذف» (F4) اول می‌پرسد. کالا از لیست و صندوق برداشته می‌شود ولی سابقه‌ی فروش و موجودی‌اش در گزارش‌ها می‌ماند.
+    action: invoke

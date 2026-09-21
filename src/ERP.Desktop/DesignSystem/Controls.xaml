@@ -66,6 +66,30 @@
         <Setter Property="CornerRadius" Value="11" />
     </Style>
 
+    <!--
+        The bottom action bar of every list screen (checklist «م»): جدید F2 · ویرایش F3 ·
+        حذف F4 · خروج Esc. 48 high (touch), the key drawn small beside the word. One
+        style here so the next list (انبارها، اشخاص) looks exactly like the first.
+    -->
+    <Style x:Key="AppActionButtonStyle" TargetType="Button">
+        <Setter Property="Height" Value="48" />
+        <Setter Property="MinWidth" Value="48" />
+        <Setter Property="Padding" Value="18,0" />
+        <Setter Property="CornerRadius" Value="11" />
+        <Setter Property="FontFamily" Value="{StaticResource AppSemiBoldFont}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Background" Value="{ThemeResource AppSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource SalesLineBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style x:Key="AppActionDangerButtonStyle" BasedOn="{StaticResource AppActionButtonStyle}" TargetType="Button">
+        <Setter Property="Background" Value="{ThemeResource SalesRedSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource SalesRedLineBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource SalesRedBrush}" />
+    </Style>
+
     <Style x:Key="AppTextBoxStyle" TargetType="TextBox">
         <Setter Property="FontFamily" Value="{StaticResource AppBodyFont}" />
         <Setter Property="FontSize" Value="15" />

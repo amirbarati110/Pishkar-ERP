@@ -1,6 +1,0 @@
-page: settings
-title_fa: تنظیمات
-steps:
-  - control: settings-status
-    instruction_fa: این صفحه هنوز ساخته نشده است؛ تنظیمات فروشگاه، کاربران و پیامک در مرحله‌ی بعد اضافه می‌شود.
-    action: focus

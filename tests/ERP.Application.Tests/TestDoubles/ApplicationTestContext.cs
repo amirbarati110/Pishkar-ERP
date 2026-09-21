@@ -123,8 +123,15 @@ internal sealed class ProductRepository : IProductRepository
 
     public int UpdateCount { get; private set; }
 
+    public DataConflictException? ConflictOnUpdate { get; set; }
+
     public Task UpdateAsync(Product product, CancellationToken cancellationToken)
     {
+        if (ConflictOnUpdate is not null)
+        {
+            throw ConflictOnUpdate;
+        }
+
         UpdateCount++;
         return Task.CompletedTask;
     }

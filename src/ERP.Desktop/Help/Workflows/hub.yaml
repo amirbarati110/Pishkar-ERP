@@ -1,0 +1,9 @@
+page: hub
+title_fa: صفحه‌ی بخش
+steps:
+  - control: hub-cards
+    instruction_fa: هر کارت یک صفحه‌ی جدا است. روی کارت بزنید یا با کلیدهای جهت‌نما روی آن بروید و Enter را فشار دهید.
+    action: invoke
+  - control: breadcrumb
+    instruction_fa: بعد از باز کردن یک کارت، بالای صفحه نام بخش را می‌بینید؛ روی آن بزنید تا به همین کارت‌ها برگردید.
+    action: focus

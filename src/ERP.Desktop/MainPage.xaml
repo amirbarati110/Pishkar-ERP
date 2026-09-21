@@ -6,7 +6,8 @@
     xmlns:ds="using:ERP.Desktop.DesignSystem"
     FontFamily="{StaticResource AppBodyFont}"
     Background="{ThemeResource AppBackgroundBrush}"
-    KeyboardAcceleratorPlacementMode="Hidden">
+    KeyboardAcceleratorPlacementMode="Hidden"
+    NavigationCacheMode="Required">
 
     <Page.KeyboardAccelerators>
         <!-- §3.14/§4.1: F1 is «راهنمای این صفحه» everywhere, not scattered per page. -->
@@ -40,7 +41,7 @@
         IsSettingsVisible="False"
         OpenPaneLength="236"
         PaneDisplayMode="Left"
-        SelectionChanged="OnNavigationSelectionChanged"
+        ItemInvoked="OnNavigationItemInvoked"
         Background="{ThemeResource AppBackgroundBrush}">
 
 
@@ -63,34 +64,27 @@
         </NavigationView.PaneHeader>
 
         <NavigationView.MenuItems>
-            <NavigationViewItem x:Name="HomeNavItem" FontSize="15" AccessKey="H" AutomationProperties.Name="میز کار" Content="میز کار" IsSelected="True" Tag="home">
+            <!--
+                Only the main sections (checklist «م»): each one opens a page of cards and
+                every card is its own screen. The flat list of nine items this replaces did
+                not fit a 1366×768 till screen — the last three were cut off.
+            -->
+            <NavigationViewItem x:Name="HomeNavItem" FontSize="15" AccessKey="H" AutomationProperties.Name="میز کار" AutomationProperties.AutomationId="NavHome" Content="میز کار" IsSelected="True" Tag="home">
                 <NavigationViewItem.Icon><SymbolIcon Symbol="Home" /></NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem x:Name="SalesNavItem" FontSize="15" AccessKey="F" AutomationProperties.Name="فروش و صندوق" Content="فروش و صندوق" Tag="sales">
+            <NavigationViewItem x:Name="SalesNavItem" FontSize="15" AccessKey="F" AutomationProperties.Name="فروش و صندوق" AutomationProperties.AutomationId="NavSales" Content="فروش و صندوق" Tag="sales">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE7BF;" /></NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem x:Name="ProductsNavItem" FontSize="15" AccessKey="P" AutomationProperties.Name="کالا و قیمت‌گذاری" Content="کالا و قیمت‌گذاری" Tag="products">
+            <NavigationViewItem x:Name="CatalogNavItem" FontSize="15" AccessKey="P" AutomationProperties.Name="کالا و قیمت‌گذاری" AutomationProperties.AutomationId="NavCatalog" Content="کالا و قیمت‌گذاری" Tag="catalog">
                 <NavigationViewItem.Icon><SymbolIcon Symbol="Shop" /></NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem x:Name="CategoriesNavItem" FontSize="15" AccessKey="C" AutomationProperties.Name="دسته‌بندی‌ها" Content="دسته‌بندی‌ها" Tag="categories">
-                <NavigationViewItem.Icon><SymbolIcon Symbol="Bullets" /></NavigationViewItem.Icon>
-            </NavigationViewItem>
-            <NavigationViewItem x:Name="InventoryNavItem" FontSize="15" AccessKey="I" AutomationProperties.Name="انبار و موجودی" Content="انبار و موجودی" Tag="inventory">
+            <NavigationViewItem x:Name="InventoryNavItem" FontSize="15" AccessKey="I" AutomationProperties.Name="انبار و موجودی" AutomationProperties.AutomationId="NavInventory" Content="انبار و موجودی" Tag="inventory">
                 <NavigationViewItem.Icon><SymbolIcon Symbol="AllApps" /></NavigationViewItem.Icon>
-            </NavigationViewItem>
-            <NavigationViewItem x:Name="ImportNavItem" FontSize="15" AccessKey="X" AutomationProperties.Name="وارد کردن از اکسل" Content="وارد کردن از اکسل" Tag="import">
-                <NavigationViewItem.Icon><SymbolIcon Symbol="Import" /></NavigationViewItem.Icon>
-            </NavigationViewItem>
-            <NavigationViewItem x:Name="TillNavItem" FontSize="15" AccessKey="T" AutomationProperties.Name="شیفت صندوق" Content="شیفت صندوق" Tag="till">
-                <NavigationViewItem.Icon><SymbolIcon Symbol="Calculator" /></NavigationViewItem.Icon>
-            </NavigationViewItem>
-            <NavigationViewItem x:Name="BackupNavItem" FontSize="15" AccessKey="B" AutomationProperties.Name="پشتیبان‌گیری و سلامت سیستم" Content="پشتیبان‌گیری" Tag="backup">
-                <NavigationViewItem.Icon><SymbolIcon Symbol="Save" /></NavigationViewItem.Icon>
             </NavigationViewItem>
         </NavigationView.MenuItems>
 
         <NavigationView.FooterMenuItems>
-            <NavigationViewItem x:Name="SettingsNavItem" FontSize="15" AccessKey="S" AutomationProperties.Name="تنظیمات" Content="تنظیمات" Tag="settings">
+            <NavigationViewItem x:Name="SystemNavItem" FontSize="15" AccessKey="S" AutomationProperties.Name="تنظیمات و سیستم" AutomationProperties.AutomationId="NavSystem" Content="تنظیمات و سیستم" Tag="system">
                 <NavigationViewItem.Icon><SymbolIcon Symbol="Setting" /></NavigationViewItem.Icon>
             </NavigationViewItem>
         </NavigationView.FooterMenuItems>
@@ -109,7 +103,26 @@
             </StackPanel>
         </NavigationView.PaneFooter>
 
-        <Frame x:Name="ContentFrame" />
+        <Grid RowSpacing="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- مسیر: «بخش › صفحه» — بخش قابل کلیک است و به صفحه‌ی کارت‌هایش برمی‌گرداند. فقط داخل یک کارت دیده می‌شود. -->
+            <Border x:Name="Breadcrumb" Visibility="Collapsed" Padding="28,10,28,0" Background="{ThemeResource SalesCanvasBrush}">
+                <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Stretch">
+                    <HyperlinkButton x:Name="BreadcrumbSection" MinHeight="44" MinWidth="44" Padding="10,0" FontSize="15" Foreground="{ThemeResource AppSuccessBrush}"
+                                     AutomationProperties.AutomationId="BreadcrumbSection" Click="OnBreadcrumbSectionClick" />
+                    <FontIcon FontSize="12" Glyph="&#xE76B;" VerticalAlignment="Center" Foreground="{ThemeResource SalesMutedTextBrush}" />
+                    <TextBlock x:Name="BreadcrumbPage" VerticalAlignment="Center" Margin="8,0" FontSize="15" FontWeight="SemiBold"
+                               FontFamily="{StaticResource AppSemiBoldFont}" Foreground="{ThemeResource AppTextBrush}"
+                               AutomationProperties.AutomationId="BreadcrumbPage" />
+                </StackPanel>
+            </Border>
+
+            <Frame x:Name="ContentFrame" Grid.Row="1" />
+        </Grid>
     </NavigationView>
 
     <ds:HelpPanel x:Name="HelpOverlay" CloseRequested="OnHelpCloseRequested" />
