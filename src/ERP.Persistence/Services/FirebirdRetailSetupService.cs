@@ -15,6 +15,7 @@ public sealed class FirebirdRetailSetupService :
     ICreateProductHandler,
     IUpdateProductHandler,
     IArchiveProductHandler,
+    IGenerateProductBarcodeHandler,
     IReceiveOpeningStockHandler,
     ICommitProductImportHandler
 {
@@ -63,6 +64,18 @@ public sealed class FirebirdRetailSetupService :
                 _userContext,
                 _clock)
             .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<string>> ExecuteAsync(CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new GenerateProductBarcodeHandler(
+                new FirebirdInternalBarcodeSequence(unitOfWork),
+                new FirebirdProductRepository(unitOfWork))
+            .ExecuteAsync(cancellationToken)
             .ConfigureAwait(false);
     }
 

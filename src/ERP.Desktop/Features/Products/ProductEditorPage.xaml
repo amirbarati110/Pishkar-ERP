@@ -37,7 +37,14 @@
                             </StackPanel>
                             <StackPanel Grid.Column="1" Spacing="6">
                                 <TextBlock Style="{StaticResource AppFieldLabelStyle}" FontSize="15" Text="بارکد" />
-                                <TextBox AutomationProperties.AutomationId="ProductBarcode" AutomationProperties.Name="بارکد کالا" IsReadOnly="{x:Bind ViewModel.IsEditing, Mode=OneWay}" PlaceholderText="اسکن یا ورود دستی" Style="{StaticResource AppTextBoxStyle}" Text="{x:Bind ViewModel.Barcode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBox AutomationProperties.AutomationId="ProductBarcode" AutomationProperties.Name="بارکد کالا" IsReadOnly="{x:Bind ViewModel.IsBarcodeEditable, Mode=OneWay, Converter={StaticResource NotConverter}}" PlaceholderText="اسکن، ورود دستی، یا ساخت خودکار" Style="{StaticResource AppTextBoxStyle}" Text="{x:Bind ViewModel.Barcode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <Button Grid.Column="1" Command="{x:Bind ViewModel.GenerateBarcodeCommand}" IsEnabled="{x:Bind ViewModel.CanGenerateBarcode, Mode=OneWay}" Style="{StaticResource AppActionButtonStyle}"
+                                            AutomationProperties.AutomationId="ProductBarcodeGenerate" AutomationProperties.Name="ساخت بارکد خودکار" ToolTipService.ToolTip="اگر کالا بارکد ندارد، فروشگاه خودش یک بارکد استاندارد (EAN-13) می‌سازد. اگر خالی بگذارید، هنگام ذخیره هم ساخته می‌شود.">
+                                        <TextBlock Text="ساخت خودکار" />
+                                    </Button>
+                                </Grid>
                                 <TextBlock Style="{StaticResource AppErrorTextStyle}" Text="{x:Bind ViewModel.BarcodeError, Mode=OneWay}" />
                             </StackPanel>
                         </Grid>

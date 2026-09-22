@@ -13,17 +13,32 @@ public partial class ProductEditorViewModel : ObservableObject
     private readonly ICreateProductHandler _handler;
     private readonly ICatalogLookupReader _catalogLookup;
     private readonly IUpdateProductHandler? _updateHandler;
+    private readonly IGenerateProductBarcodeHandler? _barcodeGenerator;
+    private string? _originalBarcode;
 
     /// <param name="updateHandler">Needed only when the form is used to edit a product from «لیست کالاها».</param>
+    /// <param name="barcodeGenerator">
+    /// «ساخت بارکد خودکار»: without it the form works as before and a product without a barcode stays without one.
+    /// </param>
     public ProductEditorViewModel(
         ICreateProductHandler handler,
         ICatalogLookupReader catalogLookup,
-        IUpdateProductHandler? updateHandler = null)
+        IUpdateProductHandler? updateHandler = null,
+        IGenerateProductBarcodeHandler? barcodeGenerator = null)
     {
         _handler = handler;
         _catalogLookup = catalogLookup;
         _updateHandler = updateHandler;
+        _barcodeGenerator = barcodeGenerator;
     }
+
+    /// <summary>
+    /// A barcode can be typed or made for a new product, and for an old one that has none. A product
+    /// that already has a barcode keeps it: labels and scanners depend on it staying the same.
+    /// </summary>
+    public bool IsBarcodeEditable => !IsEditing || string.IsNullOrEmpty(_originalBarcode);
+
+    public bool CanGenerateBarcode => IsBarcodeEditable && _barcodeGenerator is not null;
 
     /// <summary>Raised after a successful save that should send the user back to the list.</summary>
     public event EventHandler? SavedAndClosed;
@@ -47,11 +62,14 @@ public partial class ProductEditorViewModel : ObservableObject
         Name = row.Name;
         Sku = row.Sku;
         Barcode = row.PrimaryBarcode;
+        _originalBarcode = row.PrimaryBarcode;
         CategoryId = row.CategoryId;
         BaseUnitId = row.BaseUnitId;
         SalePriceTomansText = PersianNumber.FormatGrouped(row.SalePrice.Rials / 10);
         ClearFeedback();
         OnPropertyChanged(nameof(IsEditing));
+        OnPropertyChanged(nameof(IsBarcodeEditable));
+        OnPropertyChanged(nameof(CanGenerateBarcode));
         OnPropertyChanged(nameof(PageTitle));
         OnPropertyChanged(nameof(PageSubtitle));
     }
@@ -119,6 +137,58 @@ public partial class ProductEditorViewModel : ObservableObject
             : Units.FirstOrDefault()?.Id;
     }
 
+    /// <summary>
+    /// «ساخت بارکد خودکار»: fills the barcode box with a new EAN-13 from the shop's own range.
+    /// Asking again while the box already holds a code does nothing, so repeated clicks do not use up numbers.
+    /// </summary>
+    [RelayCommand]
+    private async Task GenerateBarcodeAsync()
+    {
+        BarcodeError = null;
+        if (!CanGenerateBarcode)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Barcode))
+        {
+            BarcodeError = "بارکد نوشته شده است؛ اگر بارکد تازه می‌خواهید اول آن را پاک کنید.";
+            return;
+        }
+
+        var result = await _barcodeGenerator!.ExecuteAsync(CancellationToken.None);
+        if (result.IsSuccess)
+        {
+            Barcode = result.Value;
+        }
+        else
+        {
+            BarcodeError = result.Error?.Message;
+        }
+    }
+
+    /// <summary>
+    /// A product saved without a barcode gets one made by the shop — every product can then be
+    /// scanned and labelled. Returns the message to add to the success text, or null when nothing was made.
+    /// </summary>
+    private async Task<string?> EnsureBarcodeAsync()
+    {
+        if (!CanGenerateBarcode || !string.IsNullOrWhiteSpace(Barcode))
+        {
+            return null;
+        }
+
+        var result = await _barcodeGenerator!.ExecuteAsync(CancellationToken.None);
+        if (!result.IsSuccess)
+        {
+            BarcodeError = result.Error?.Message;
+            return null;
+        }
+
+        Barcode = result.Value;
+        return $"بارکد {Barcode} ساخته و ثبت شد.";
+    }
+
     [RelayCommand]
     private async Task SaveAsync() => await SaveCoreAsync();
 
@@ -163,9 +233,11 @@ public partial class ProductEditorViewModel : ObservableObject
 
         try
         {
+            var madeBarcode = await EnsureBarcodeAsync();
+
             if (_editingProductId is { } editingId)
             {
-                return await UpdateAsync(editingId, salePriceTomans);
+                return await UpdateAsync(editingId, salePriceTomans, madeBarcode);
             }
 
             var barcodes = string.IsNullOrWhiteSpace(Barcode)
@@ -183,7 +255,7 @@ public partial class ProductEditorViewModel : ObservableObject
 
             if (result.IsSuccess)
             {
-                StatusMessage = "کالا با موفقیت ساخته شد.";
+                StatusMessage = madeBarcode is null ? "کالا با موفقیت ساخته شد." : $"کالا با موفقیت ساخته شد. {madeBarcode}";
                 return true;
             }
 
@@ -208,7 +280,7 @@ public partial class ProductEditorViewModel : ObservableObject
         }
     }
 
-    private async Task<bool> UpdateAsync(ProductId productId, long salePriceTomans)
+    private async Task<bool> UpdateAsync(ProductId productId, long salePriceTomans, string? madeBarcode)
     {
         if (_updateHandler is null)
         {
@@ -216,13 +288,25 @@ public partial class ProductEditorViewModel : ObservableObject
         }
 
         var result = await _updateHandler.ExecuteAsync(
-            new UpdateProductCommand(productId, Name, Sku, CategoryId!.Value, Money.FromTomans(salePriceTomans)),
+            new UpdateProductCommand(
+                productId,
+                Name,
+                Sku,
+                CategoryId!.Value,
+                Money.FromTomans(salePriceTomans),
+                IsBarcodeEditable && !string.IsNullOrWhiteSpace(Barcode) ? Barcode.Trim() : null),
             CancellationToken.None);
 
         if (result.IsSuccess)
         {
-            StatusMessage = "تغییرات ذخیره شد.";
+            StatusMessage = madeBarcode is null ? "تغییرات ذخیره شد." : $"تغییرات ذخیره شد. {madeBarcode}";
             return true;
+        }
+
+        if (result.Error?.Code == "catalog.product.duplicate-barcode")
+        {
+            BarcodeError = result.Error.Message;
+            return false;
         }
 
         if (result.Error?.Code == "catalog.product.duplicate-sku")

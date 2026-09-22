@@ -22,6 +22,7 @@ public sealed partial class ProductEditorPage : Page
         ViewModel = new ProductEditorViewModel(
             App.Services.RetailSetup,
             App.Services.CatalogLookup,
+            App.Services.RetailSetup,
             App.Services.RetailSetup);
         ViewModel.SavedAndClosed += (_, _) => GoBack();
         InitializeComponent();

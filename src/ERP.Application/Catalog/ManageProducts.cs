@@ -68,12 +68,17 @@ public sealed class ListProductsHandler : IListProductsHandler
     }
 }
 
+/// <param name="NewBarcode">
+/// Only for a product that has none: the barcode to give it (typed, or made by «ساخت بارکد خودکار»).
+/// A product that already has a barcode keeps it — barcodes are not edited from here.
+/// </param>
 public sealed record UpdateProductCommand(
     ProductId ProductId,
     string Name,
     string? Sku,
     CategoryId CategoryId,
-    Money SalePrice);
+    Money SalePrice,
+    string? NewBarcode = null);
 
 public interface IUpdateProductHandler
 {
@@ -122,6 +127,22 @@ public sealed class UpdateProductHandler : IUpdateProductHandler
             var before = Describe(product);
             product.Update(command.Name, command.Sku, command.CategoryId, command.SalePrice);
 
+            if (!string.IsNullOrWhiteSpace(command.NewBarcode))
+            {
+                if (product.Barcodes.Count > 0)
+                {
+                    return Result.Failure<bool>("catalog.product.has-barcode", "این کالا بارکد دارد و از اینجا عوض نمی‌شود.");
+                }
+
+                product.AddBarcode(command.NewBarcode);
+                if (await _products.BarcodeExistsAsync(command.NewBarcode, cancellationToken).ConfigureAwait(false))
+                {
+                    return Result.Failure<bool>("catalog.product.duplicate-barcode", "این بارکد قبلاً برای کالای دیگری ثبت شده است.");
+                }
+
+                await _products.AddBarcodeAsync(product.Id, command.NewBarcode, cancellationToken).ConfigureAwait(false);
+            }
+
             await _products.UpdateAsync(product, cancellationToken).ConfigureAwait(false);
             await _audit.WriteAsync(
                 new AuditEntry(
@@ -149,7 +170,7 @@ public sealed class UpdateProductHandler : IUpdateProductHandler
     }
 
     private static string Describe(Product product) =>
-        $"{product.Name} | {product.Sku} | {product.SalePrice.Rials} | {product.CategoryId}";
+        $"{product.Name} | {product.Sku} | {product.SalePrice.Rials} | {product.CategoryId} | {string.Join(',', product.Barcodes)}";
 }
 
 public sealed record ArchiveProductCommand(ProductId ProductId);

@@ -219,6 +219,8 @@ internal sealed class InMemorySalesBackend :
         return Task.CompletedTask;
     }
 
+    Task IProductRepository.AddBarcodeAsync(ProductId productId, string barcode, CancellationToken cancellationToken) => Task.CompletedTask;
+
     Task IProductRepository.UpdateAsync(Product product, CancellationToken cancellationToken) => Task.CompletedTask;
 
     // ── IStockLedgerRepository ──

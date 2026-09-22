@@ -121,6 +121,12 @@ internal sealed class ProductRepository : IProductRepository
         return Task.CompletedTask;
     }
 
+    public Task AddBarcodeAsync(ProductId productId, string barcode, CancellationToken cancellationToken)
+    {
+        ExistingBarcodes.Add(barcode.Trim());
+        return Task.CompletedTask;
+    }
+
     public int UpdateCount { get; private set; }
 
     public DataConflictException? ConflictOnUpdate { get; set; }

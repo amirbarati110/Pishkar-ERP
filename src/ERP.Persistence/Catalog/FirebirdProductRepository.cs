@@ -133,6 +133,28 @@ public sealed class FirebirdProductRepository : IProductRepository
         }
     }
 
+    public async Task AddBarcodeAsync(ProductId productId, string barcode, CancellationToken cancellationToken)
+    {
+        await using var command = CreateCommand(
+            """
+            INSERT INTO PRODUCT_BARCODE (PRODUCT_ID, BARCODE)
+            VALUES (@PRODUCT_ID, @BARCODE)
+            """);
+        command.Parameters.Add("@PRODUCT_ID", FbDbType.Char).Value = productId.ToString();
+        command.Parameters.Add("@BARCODE", FbDbType.VarChar).Value = ProductBarcode.Create(barcode).Value;
+        try
+        {
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (FbException exception) when (FirebirdConstraint.IsViolation(exception, "UQ_PRODUCT_BARCODE"))
+        {
+            throw new DataConflictException(
+                "catalog.product.duplicate-barcode",
+                "این بارکد قبلاً برای کالای دیگری ثبت شده است.",
+                exception);
+        }
+    }
+
     public async Task UpdateAsync(Product product, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(product);
