@@ -242,11 +242,16 @@ internal sealed class InMemorySalesBackend :
     Task<Customer?> ICustomerRepository.FindByMobileAsync(string normalizedMobile, CancellationToken cancellationToken) =>
         Task.FromResult(Customers.SingleOrDefault(customer => customer.Mobile == normalizedMobile));
 
+    Task<Customer?> ICustomerRepository.FindByNationalIdAsync(string normalizedNationalId, CancellationToken cancellationToken) =>
+        Task.FromResult(Customers.FirstOrDefault(customer => customer.Profile.NationalId == normalizedNationalId));
+
     Task ICustomerRepository.AddAsync(Customer customer, CancellationToken cancellationToken)
     {
         Customers.Add(customer);
         return Task.CompletedTask;
     }
+
+    Task ICustomerRepository.UpdateAsync(Customer customer, CancellationToken cancellationToken) => Task.CompletedTask;
 
     Task<CustomerLedgerEntries> ICustomerLedgerReader.ReadAsync(CustomerId customerId, CancellationToken cancellationToken)
     {

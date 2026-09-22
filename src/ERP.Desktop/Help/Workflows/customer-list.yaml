@@ -1,0 +1,18 @@
+page: customer-list
+title_fa: لیست مشتریان
+steps:
+  - control: customer-list-search
+    instruction_fa: برای پیدا کردن مشتری بخشی از نام یا شماره موبایل را بنویسید؛ نیم‌کلمه هم کافی است. با F3 مستقیم به همین کادر می‌روید.
+    action: focus
+  - control: customer-only-debtors
+    instruction_fa: «فقط بدهکارها» لیست را به مشتری‌هایی که بدهی دارند کم می‌کند؛ جمع بدهی پایین صفحه هم فقط همین‌ها را می‌شمارد.
+    action: invoke
+  - control: customer-new
+    instruction_fa: «جدید» (F2) فرم مشتری را باز می‌کند. نام و موبایل لازم است؛ سقف اعتبار و مانده‌ی اول دوره (بدهی قبلی) را هم می‌شود نوشت. موبایل تکراری قبول نمی‌شود.
+    action: invoke
+  - control: customer-edit
+    instruction_fa: مشتری را انتخاب کنید و «ویرایش» (F3) را بزنید؛ نام، موبایل، نشانی و سقف اعتبار قابل تغییرند. مانده‌ی اول دوره بعد از ساخت عوض نمی‌شود.
+    action: invoke
+  - control: customer-delete
+    instruction_fa: «حذف» (F4) اول می‌پرسد. مشتری از لیست و صفحه‌ی فروش برداشته می‌شود ولی سابقه‌ی فاکتورهایش می‌ماند. مشتری بدهکار حذف نمی‌شود؛ اول بدهی را تسویه کنید.
+    action: invoke

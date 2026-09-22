@@ -38,6 +38,7 @@ public sealed class NavigationMapTests
     [InlineData(NavigationMap.Categories, NavigationMap.CatalogSection)]
     [InlineData(NavigationMap.Import, NavigationMap.CatalogSection)]
     [InlineData(NavigationMap.OpeningStock, NavigationMap.InventorySection)]
+    [InlineData(NavigationMap.CustomerList, NavigationMap.PeopleSection)]
     [InlineData(NavigationMap.Backup, NavigationMap.SystemSection)]
     public void ACardBelongsToItsSection(string cardKey, string sectionKey)
     {

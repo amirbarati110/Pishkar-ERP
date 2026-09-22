@@ -81,6 +81,9 @@
             <NavigationViewItem x:Name="InventoryNavItem" FontSize="15" AccessKey="I" AutomationProperties.Name="انبار و موجودی" AutomationProperties.AutomationId="NavInventory" Content="انبار و موجودی" Tag="inventory">
                 <NavigationViewItem.Icon><SymbolIcon Symbol="AllApps" /></NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem x:Name="PeopleNavItem" FontSize="15" AccessKey="C" AutomationProperties.Name="مشتریان و حساب‌ها" AutomationProperties.AutomationId="NavPeople" Content="مشتریان و حساب‌ها" Tag="people">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="People" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
         </NavigationView.MenuItems>
 
         <NavigationView.FooterMenuItems>

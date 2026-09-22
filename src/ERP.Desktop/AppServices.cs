@@ -1,5 +1,6 @@
 using ERP.Application.Catalog;
 using ERP.Application.Common;
+using ERP.Application.Customers;
 using ERP.Application.Importing;
 using ERP.Application.Inventory;
 using ERP.Infrastructure.Spreadsheets;
@@ -24,6 +25,10 @@ public sealed record AppServices(
     ISearchProductsHandler ProductSearch,
     IListProductsHandler ProductList,
     IGetStockCardHandler StockCard,
+    IListCustomersHandler CustomerList,
+    ICreateCustomerHandler CustomerCreate,
+    IUpdateCustomerHandler CustomerUpdate,
+    IArchiveCustomerHandler CustomerArchive,
     SalesBackend SalesBackend,
     RetailSetupDefaults Defaults,
     ISpreadsheetReader SpreadsheetReader,
@@ -128,6 +133,10 @@ public sealed record AppServices(
             productSearch,
             productList,
             stockCard,
+            customerService,
+            customerService,
+            customerService,
+            customerService,
             salesBackend,
             database.Defaults,
             new OpenXmlSpreadsheetReader(),

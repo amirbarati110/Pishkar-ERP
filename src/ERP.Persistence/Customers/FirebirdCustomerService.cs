@@ -15,7 +15,11 @@ public sealed class FirebirdCustomerService :
     IQuickCreateCustomerHandler,
     ISearchCustomersHandler,
     IGetCustomerAccountHandler,
-    IRecordCustomerPaymentHandler
+    IRecordCustomerPaymentHandler,
+    IListCustomersHandler,
+    ICreateCustomerHandler,
+    IUpdateCustomerHandler,
+    IArchiveCustomerHandler
 {
     private readonly FirebirdConnectionFactory _connectionFactory;
     private readonly IUserContext _userContext;
@@ -72,6 +76,58 @@ public sealed class FirebirdCustomerService :
         return await new RecordCustomerPaymentHandler(
                 new FirebirdCustomerRepository(unitOfWork),
                 new FirebirdCustomerPaymentRepository(unitOfWork),
+                new FirebirdAuditWriter(unitOfWork),
+                unitOfWork,
+                _userContext,
+                _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public Task<CustomerListPage> ExecuteAsync(CustomerListQuery query, CancellationToken cancellationToken)
+    {
+        return new ListCustomersHandler(new FirebirdCustomerListReader(_connectionFactory))
+            .ExecuteAsync(query, cancellationToken);
+    }
+
+    public async Task<Result<CustomerId>> ExecuteAsync(CreateCustomerCommand command, CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new CreateCustomerHandler(
+                new FirebirdCustomerRepository(unitOfWork),
+                new FirebirdAuditWriter(unitOfWork),
+                unitOfWork,
+                _userContext,
+                _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(UpdateCustomerCommand command, CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new UpdateCustomerHandler(
+                new FirebirdCustomerRepository(unitOfWork),
+                new FirebirdAuditWriter(unitOfWork),
+                unitOfWork,
+                _userContext,
+                _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(ArchiveCustomerCommand command, CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new ArchiveCustomerHandler(
+                new FirebirdCustomerRepository(unitOfWork),
+                new FirebirdCustomerLedgerReader(unitOfWork),
                 new FirebirdAuditWriter(unitOfWork),
                 unitOfWork,
                 _userContext,

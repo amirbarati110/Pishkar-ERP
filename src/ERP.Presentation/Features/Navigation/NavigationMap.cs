@@ -35,11 +35,13 @@ public static class NavigationMap
     public const string Categories = "categories";
     public const string Import = "import";
     public const string OpeningStock = "opening-stock";
+    public const string CustomerList = "customer-list";
     public const string Backup = "backup";
 
     public const string SalesSection = "sales";
     public const string CatalogSection = "catalog";
     public const string InventorySection = "inventory";
+    public const string PeopleSection = "people";
     public const string SystemSection = "system";
 
     public static IReadOnlyList<NavSection> Sections { get; } =
@@ -60,6 +62,10 @@ public static class NavigationMap
         new(InventorySection, "انبار و موجودی", "موجودی کالاها در انبار",
         [
             new(OpeningStock, "موجودی اول دوره", "ثبت تعداد و بهای واقعی موجودی برای شروع کار", ""),
+        ]),
+        new(PeopleSection, "مشتریان و حساب‌ها", "مشتری‌ها، مانده‌ی حساب و سقف اعتبار",
+        [
+            new(CustomerList, "لیست مشتریان", "همه‌ی مشتری‌ها با مانده‌ی حساب؛ ساخت، ویرایش و حذف مشتری", ""),
         ]),
         new(SystemSection, "تنظیمات و سیستم", "سلامت سیستم و نسخه‌ی پشتیبان",
         [

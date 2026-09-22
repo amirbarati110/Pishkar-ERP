@@ -42,7 +42,10 @@ public sealed class FirebirdCustomerSearchReader : ICustomerSearchReader
                    END AS MATCH_RANK
             FROM CUSTOMER C
             WHERE C.STATUS = 1
-              AND (C.NAME CONTAINING @NAME_TERM OR C.MOBILE CONTAINING @MOBILE_DIGITS)
+              AND (C.NAME CONTAINING @NAME_TERM
+                   OR C.MOBILE CONTAINING @MOBILE_DIGITS
+                   OR C.NATIONAL_ID STARTING WITH @MOBILE_DIGITS
+                   OR CAST(C.CODE AS VARCHAR(20)) = @MOBILE_DIGITS)
             ORDER BY MATCH_RANK, C.NAME
             """,
             connection)

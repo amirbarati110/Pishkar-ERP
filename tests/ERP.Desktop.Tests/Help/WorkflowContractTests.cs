@@ -7,6 +7,7 @@ public sealed class WorkflowContractTests
     [InlineData("product-create.yaml", "product-editor")]
     [InlineData("product-list.yaml", "product-list")]
     [InlineData("stock-card.yaml", "stock-card")]
+    [InlineData("customer-list.yaml", "customer-list")]
     [InlineData("opening-stock.yaml", "opening-stock")]
     [InlineData("sales-workspace.yaml", "sales-workspace")]
     [InlineData("home.yaml", "home")]

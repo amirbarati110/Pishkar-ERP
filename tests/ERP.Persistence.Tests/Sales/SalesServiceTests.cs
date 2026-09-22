@@ -303,6 +303,162 @@ public sealed class SalesServiceTests
     }
 
     [Fact]
+    public async Task TheCustomerListShowsEachBalanceFiltersDebtorsAndEditsAndArchives()
+    {
+        var context = await SetupAsync();
+        var customers = new FirebirdCustomerService(
+            context.Factory,
+            new TestUserContext(Guid.NewGuid()),
+            new TestClock(new DateTimeOffset(2026, 9, 21, 10, 0, 0, TimeSpan.Zero)));
+
+        // محمد: ۵۰۰٬۰۰۰ مانده‌ی اول دوره + یک فاکتور نسیه‌ی ۱٬۷۰۰٬۰۰۰ − ۷۰۰٬۰۰۰ دریافتی = ۱٬۵۰۰٬۰۰۰ بدهکار
+        var mohammad = (await customers.ExecuteAsync(
+            new CreateCustomerCommand(
+                Person("محمد", "رضایی", "09123456789", nationalId: "0499370899", address: "تهران، خیابان ولیعصر", postalCode: "1234567890", birthDate: "۱۳۷۰/۰۵/۱۲"),
+                Money.FromTomans(3_000_000),
+                Money.FromTomans(500_000)),
+            CancellationToken.None)).Value;
+        var saleId = await StartSaleWithAsync(context, context.OilId, 2);
+        await context.Sales.ExecuteAsync(new SetSaleCustomerCommand(saleId, mohammad), CancellationToken.None);
+        var sold = await context.Sales.ExecuteAsync(
+            new CompleteSaleCommand(saleId, PaymentMethod.Credit, 0, TaxRatePercent: 0), CancellationToken.None);
+        Assert.True(sold.IsSuccess);
+        await customers.ExecuteAsync(
+            new RecordCustomerPaymentCommand(mohammad, Money.FromTomans(700_000).Rials, CustomerPaymentMethod.Cash, null),
+            CancellationToken.None);
+
+        // علی: بدون سابقه؛ زهرا: بیشتر از مانده‌ی اول دوره پرداخته = بستانکار
+        var ali = (await customers.ExecuteAsync(
+            new CreateCustomerCommand(Person("علی", "احمدی", "09121111111"), Money.Zero, Money.Zero), CancellationToken.None)).Value;
+        var zahra = (await customers.ExecuteAsync(
+            new CreateCustomerCommand(Person("زهرا", "کریمی", "09122222222"), Money.Zero, Money.FromTomans(100_000)), CancellationToken.None)).Value;
+        await customers.ExecuteAsync(
+            new RecordCustomerPaymentCommand(zahra, Money.FromTomans(250_000).Rials, CustomerPaymentMethod.Card, null),
+            CancellationToken.None);
+
+        // یک شرکت با شناسه‌ی ملی و کد اقتصادی و شماره ثبت
+        var company = (await customers.ExecuteAsync(
+            new CreateCustomerCommand(
+                new CustomerProfileInput(
+                    CustomerKind.Legal, null, null, "فروشگاه‌های زنجیره‌ای مهر", "09125550000", "10380284790", "411123456789",
+                    "123456", null, "02188001122", "info@mehr.example", null, "تهران", null),
+                Money.FromTomans(10_000_000),
+                Money.Zero),
+            CancellationToken.None)).Value;
+
+        // همه‌ی مشتری‌ها؛ جمع بدهی فقط بدهکارها را جمع می‌زند و جمع بستانکاری فقط بستانکارها را
+        var all = await customers.ExecuteAsync(new CustomerListQuery(null, false), CancellationToken.None);
+        Assert.Equal(4, all.TotalCount);
+        Assert.Equal(1_500_000, all.TotalDebt.ToTomansExact());
+        Assert.Equal(150_000, all.TotalAdvance.ToTomansExact());
+        var mohammadRow = all.Rows.Single(row => row.Id == mohammad);
+        Assert.Equal("محمد رضایی", mohammadRow.Name);
+        Assert.Equal(1_500_000, mohammadRow.Debt.ToTomansExact());
+        Assert.Equal(0, mohammadRow.Advance.Rials);
+        Assert.Equal(3_000_000, mohammadRow.CreditLimit.ToTomansExact());
+        Assert.Equal(500_000, mohammadRow.OpeningBalance.ToTomansExact());
+        Assert.Equal("تهران، خیابان ولیعصر", mohammadRow.Address);
+        Assert.Equal("0499370899", mohammadRow.Profile.NationalId);
+        Assert.Equal("1234567890", mohammadRow.Profile.PostalCode);
+        Assert.Equal("1370/05/12", mohammadRow.Profile.BirthDate);
+        Assert.Equal(CustomerKind.Individual, mohammadRow.Profile.Kind);
+        var zahraRow = all.Rows.Single(row => row.Id == zahra);
+        Assert.Equal(0, zahraRow.Debt.Rials);
+        Assert.Equal(150_000, zahraRow.Advance.ToTomansExact());
+
+        // شماره اشتراک به ترتیب ساخت داده می‌شود و تکراری نیست
+        Assert.Equal([1L, 2L, 3L, 4L], all.Rows.Select(row => row.Code).OrderBy(code => code));
+
+        // شرکت با نام شرکت نمایش داده می‌شود و همه‌ی هویتش ذخیره است
+        var companyRow = all.Rows.Single(row => row.Id == company);
+        Assert.Equal("فروشگاه‌های زنجیره‌ای مهر", companyRow.Name);
+        Assert.Equal(CustomerKind.Legal, companyRow.Profile.Kind);
+        Assert.Equal("10380284790", companyRow.Profile.NationalId);
+        Assert.Equal("411123456789", companyRow.Profile.EconomicCode);
+        Assert.Equal("123456", companyRow.Profile.RegistrationNumber);
+        Assert.Equal("02188001122", companyRow.Profile.Phone);
+        Assert.Equal("info@mehr.example", companyRow.Profile.Email);
+
+        // عدد لیست همان عددی است که بنر مشتری در صفحه‌ی فروش نشان می‌دهد
+        var account = (await customers.ExecuteAsync(new GetCustomerAccountQuery(mohammad), CancellationToken.None)).Value!;
+        Assert.Equal(account.Debt, mohammadRow.Debt);
+
+        // فقط بدهکارها
+        var debtors = await customers.ExecuteAsync(new CustomerListQuery(null, true), CancellationToken.None);
+        Assert.Equal(mohammad, Assert.Single(debtors.Rows).Id);
+        Assert.Equal(1, debtors.TotalCount);
+
+        // جست‌وجو: نیم‌کلمه‌ی نام، نام شرکت، بخشی از موبایل با رقم فارسی، کد ملی، شناسه ملی، شماره اشتراک، و بدون نتیجه
+        Assert.Equal(ali, Assert.Single((await customers.ExecuteAsync(new CustomerListQuery("لی اح", false), CancellationToken.None)).Rows).Id);
+        Assert.Equal(company, Assert.Single((await customers.ExecuteAsync(new CustomerListQuery("زنجیره", false), CancellationToken.None)).Rows).Id);
+        Assert.Equal(zahra, Assert.Single((await customers.ExecuteAsync(new CustomerListQuery("۰۹۱۲۲۲", false), CancellationToken.None)).Rows).Id);
+        Assert.Equal(mohammad, Assert.Single((await customers.ExecuteAsync(new CustomerListQuery("۰۴۹۹۳۷", false), CancellationToken.None)).Rows).Id);
+        Assert.Equal(company, Assert.Single((await customers.ExecuteAsync(new CustomerListQuery("10380", false), CancellationToken.None)).Rows).Id);
+        Assert.Equal(zahra, Assert.Single((await customers.ExecuteAsync(new CustomerListQuery("۳", false), CancellationToken.None)).Rows).Id);
+        Assert.Empty((await customers.ExecuteAsync(new CustomerListQuery("چیزی-که-نیست", false), CancellationToken.None)).Rows);
+        Assert.Empty((await customers.ExecuteAsync(new CustomerListQuery("زهرا", true), CancellationToken.None)).Rows);
+
+        // ویرایش: نوع، نام، موبایل، نشانی، سقف اعتبار؛ مانده‌ی اول دوره و شماره اشتراک دست نمی‌خورند
+        var edited = await customers.ExecuteAsync(
+            new UpdateCustomerCommand(ali, Person("علی", "احمدی‌نژاد", "09123334444", address: "کرج", email: "ali@example.com"), Money.FromTomans(1_000_000)),
+            CancellationToken.None);
+        Assert.True(edited.IsSuccess, edited.Error?.Message);
+        var aliRow = (await customers.ExecuteAsync(new CustomerListQuery("نژاد", false), CancellationToken.None)).Rows.Single();
+        Assert.Equal("09123334444", aliRow.Mobile);
+        Assert.Equal("کرج", aliRow.Address);
+        Assert.Equal("ali@example.com", aliRow.Profile.Email);
+        Assert.Equal(1_000_000, aliRow.CreditLimit.ToTomansExact());
+        Assert.Equal(all.Rows.Single(row => row.Id == ali).Code, aliRow.Code);
+
+        // موبایل یا کد ملی تکراری (چه هنگام ساخت چه ویرایش) رد می‌شود و چیزی عوض نمی‌شود
+        var duplicateMobile = await customers.ExecuteAsync(
+            new UpdateCustomerCommand(ali, Person("علی", "احمدی‌نژاد", "09123456789"), Money.Zero), CancellationToken.None);
+        Assert.Equal("customers.customer.duplicate-mobile", duplicateMobile.Error?.Code);
+        Assert.Equal("09123334444", (await customers.ExecuteAsync(new CustomerListQuery("نژاد", false), CancellationToken.None)).Rows.Single().Mobile);
+        var duplicateNationalId = await customers.ExecuteAsync(
+            new CreateCustomerCommand(Person("دیگری", "کسی", "09127776666", nationalId: "0499370899"), Money.Zero, Money.Zero),
+            CancellationToken.None);
+        Assert.Equal("customers.customer.duplicate-national-id", duplicateNationalId.Error?.Code);
+        Assert.Equal(4, (await customers.ExecuteAsync(new CustomerListQuery(null, false), CancellationToken.None)).TotalCount);
+
+        // کد ملی و شناسه‌ی ملیِ اشتباه (رقم کنترل) قبل از ذخیره رد می‌شوند
+        var badNationalCode = await customers.ExecuteAsync(
+            new CreateCustomerCommand(Person("الف", "ب", "09127776666", nationalId: "0499370898"), Money.Zero, Money.Zero), CancellationToken.None);
+        Assert.Equal("customers.customer.invalid", badNationalCode.Error?.Code);
+        Assert.Contains("کد ملی", badNationalCode.Error?.Message);
+
+        // «حذف»: مشتری بدهکار رد می‌شود؛ مشتری بی‌بدهی بایگانی می‌شود و از لیست می‌رود
+        var refused = await customers.ExecuteAsync(new ArchiveCustomerCommand(mohammad), CancellationToken.None);
+        Assert.Equal("customers.customer.has-debt", refused.Error?.Code);
+        Assert.True((await customers.ExecuteAsync(new ArchiveCustomerCommand(ali), CancellationToken.None)).IsSuccess);
+        Assert.True((await customers.ExecuteAsync(new ArchiveCustomerCommand(ali), CancellationToken.None)).IsSuccess);
+        var afterArchive = await customers.ExecuteAsync(new CustomerListQuery(null, false), CancellationToken.None);
+        Assert.Equal(3, afterArchive.TotalCount);
+        Assert.DoesNotContain(afterArchive.Rows, row => row.Id == ali);
+        Assert.Equal(
+            "customers.customer.archived",
+            (await customers.ExecuteAsync(
+                new UpdateCustomerCommand(ali, Person("x", null, "09123334444"), Money.Zero), CancellationToken.None)).Error?.Code);
+
+        // بعد از تسویه‌ی کامل، محمد هم قابل حذف است
+        await customers.ExecuteAsync(
+            new RecordCustomerPaymentCommand(mohammad, Money.FromTomans(1_500_000).Rials, CustomerPaymentMethod.Cash, null),
+            CancellationToken.None);
+        Assert.True((await customers.ExecuteAsync(new ArchiveCustomerCommand(mohammad), CancellationToken.None)).IsSuccess);
+    }
+
+    private static CustomerProfileInput Person(
+        string? firstName,
+        string? lastName,
+        string mobile,
+        string? nationalId = null,
+        string? address = null,
+        string? postalCode = null,
+        string? email = null,
+        string? birthDate = null) =>
+        new(CustomerKind.Individual, firstName, lastName, null, mobile, nationalId, null, null, postalCode, null, email, birthDate, address, null);
+
+    [Fact]
     public async Task TheDayListSplitsInvoicesAtTehranMidnightNotUtcMidnight()
     {
         var context = await SetupAsync();

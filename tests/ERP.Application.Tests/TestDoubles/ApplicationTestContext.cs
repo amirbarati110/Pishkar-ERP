@@ -209,11 +209,18 @@ internal sealed class CustomerRepository : ICustomerRepository
         return Task.FromResult(Items.SingleOrDefault(item => item.Mobile == normalizedMobile));
     }
 
+    public Task<Customer?> FindByNationalIdAsync(string normalizedNationalId, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(Items.FirstOrDefault(item => item.Profile.NationalId == normalizedNationalId));
+    }
+
     public Task AddAsync(Customer customer, CancellationToken cancellationToken)
     {
         Items.Add(customer);
         return Task.CompletedTask;
     }
+
+    public Task UpdateAsync(Customer customer, CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
 internal sealed class CustomerLedgerReader : ICustomerLedgerReader
