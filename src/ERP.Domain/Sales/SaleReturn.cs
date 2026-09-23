@@ -12,6 +12,19 @@ public sealed record ReturnLineRequest(ProductId ProductId, decimal Quantity, Re
 public sealed record PreviouslyReturned(decimal Quantity, Money Net, Money Tax);
 
 /// <summary>
+/// The invoice's «خدمات/هزینه» (delivery, packing, service fee) and the VAT charged on it, as a
+/// return would give them back. Zero when the invoice had no service charge.
+/// </summary>
+public sealed record ServiceChargeRefund(Money Net, Money Tax)
+{
+    public static ServiceChargeRefund None { get; } = new(Money.Zero, Money.Zero);
+
+    public Money Total => Net.Add(Tax);
+
+    public bool IsEmpty => Net.Rials == 0 && Tax.Rials == 0;
+}
+
+/// <summary>
 /// One returned row, already priced. <see cref="Net"/> is the goods' value
 /// after the row and invoice discounts, <see cref="Tax"/> the VAT that was
 /// charged on exactly that value — both fixed here, never recomputed, because
@@ -105,9 +118,18 @@ public sealed class SaleReturn : Entity<SaleReturnId>
 
     public IReadOnlyList<SaleReturnLine> Lines => _lines.AsReadOnly();
 
-    public Money TotalNet => _lines.Aggregate(Money.Zero, (total, line) => total.Add(line.Net));
+    /// <summary>
+    /// The invoice's service charge and its VAT, when the cashier chose to give it back with this
+    /// return (user decision 1405/07/02: optional, not automatic — a delivery that happened is
+    /// normally kept, one that did not is refunded). <see cref="ServiceChargeRefund.None"/> otherwise.
+    /// Given back at most once per invoice.
+    /// </summary>
+    public ServiceChargeRefund ServiceCharge { get; private init; } = ServiceChargeRefund.None;
 
-    public Money TotalTax => _lines.Aggregate(Money.Zero, (total, line) => total.Add(line.Tax));
+    /// <summary>Goods and, when refunded, the service charge — before VAT.</summary>
+    public Money TotalNet => _lines.Aggregate(ServiceCharge.Net, (total, line) => total.Add(line.Net));
+
+    public Money TotalTax => _lines.Aggregate(ServiceCharge.Tax, (total, line) => total.Add(line.Tax));
 
     /// <summary>What goes back to the customer.</summary>
     public Money RefundTotal => TotalNet.Add(TotalTax);
@@ -120,21 +142,23 @@ public sealed class SaleReturn : Entity<SaleReturnId>
     /// <see cref="Create"/> uses the very same code, so the number on screen
     /// is the number that gets refunded.
     /// </summary>
+    /// <param name="includesServiceCharge">
+    /// True when the service charge is being given back too — then a return with no goods at all
+    /// (only the service charge, e.g. a delivery that never happened) is allowed.
+    /// </param>
     public static IReadOnlyList<SaleReturnLine> Price(
         Sale sale,
         IReadOnlyCollection<ReturnLineRequest> requests,
         IReadOnlyDictionary<ProductId, PreviouslyReturned> previouslyReturned,
-        IReadOnlyDictionary<ProductId, Money> unitCosts)
+        IReadOnlyDictionary<ProductId, Money> unitCosts,
+        bool includesServiceCharge = false)
     {
         ArgumentNullException.ThrowIfNull(sale);
         ArgumentNullException.ThrowIfNull(requests);
 
-        if (sale.Status != SaleStatus.Completed || sale.Number is null)
-        {
-            throw new DomainException("فقط از فاکتور ثبت‌شده می‌شود مرجوعی گرفت.");
-        }
+        EnsureReturnable(sale);
 
-        if (requests.Count == 0)
+        if (requests.Count == 0 && !includesServiceCharge)
         {
             throw new DomainException("هیچ کالایی برای مرجوعی انتخاب نشده است.");
         }
@@ -144,10 +168,7 @@ public sealed class SaleReturn : Entity<SaleReturnId>
             throw new DomainException("یک کالا نمی‌تواند دو بار در یک مرجوعی بیاید.");
         }
 
-        var subtotal = sale.Subtotal.Rials;
-        var discountFactor = subtotal > 0 ? (decimal)sale.Discount.Rials / subtotal : 0m;
-        var taxBase = subtotal - sale.Discount.Rials + sale.ServiceCharge.Rials;
-        var taxFactor = taxBase > 0 && sale.Tax is { } tax ? (decimal)tax.Rials / taxBase : 0m;
+        var (discountFactor, taxFactor) = Factors(sale);
 
         var priced = new List<SaleReturnLine>(requests.Count);
         foreach (var request in requests)
@@ -171,9 +192,7 @@ public sealed class SaleReturn : Entity<SaleReturnId>
                         : $"از این کالا فقط {PersianNumber.Format(remaining)} عدد قابل مرجوعی است.");
             }
 
-            var lineNet = saleLine.LineTotal;
-            var taxableFull = Money.FromRials(lineNet.Rials - lineNet.Multiply(discountFactor).Rials);
-            var taxFull = taxableFull.Multiply(taxFactor);
+            var (taxableFull, taxFull) = FullLineValue(saleLine, discountFactor, taxFactor);
 
             Money net;
             Money lineTax;
@@ -209,6 +228,73 @@ public sealed class SaleReturn : Entity<SaleReturnId>
         return priced;
     }
 
+    /// <summary>
+    /// What giving back the invoice's service charge refunds: the charge itself and the VAT on it.
+    /// The VAT is the invoice's VAT minus what every goods line carries when fully returned, so
+    /// returning everything — goods and service charge — gives back the invoice's VAT to the Rial.
+    /// </summary>
+    /// <param name="alreadyRefunded">An earlier return of this invoice already gave it back.</param>
+    public static ServiceChargeRefund PriceServiceCharge(Sale sale, bool alreadyRefunded)
+    {
+        ArgumentNullException.ThrowIfNull(sale);
+        EnsureReturnable(sale);
+
+        if (sale.ServiceCharge.Rials == 0)
+        {
+            throw new DomainException("این فاکتور «خدمات/هزینه» ندارد که پس داده شود.");
+        }
+
+        if (alreadyRefunded)
+        {
+            throw new DomainException("«خدمات/هزینه»ی این فاکتور قبلاً در یک مرجوعی دیگر پس داده شده است.");
+        }
+
+        var (discountFactor, taxFactor) = Factors(sale);
+        var goodsTax = sale.Lines.Sum(line => FullLineValue(line, discountFactor, taxFactor).Tax.Rials);
+        var serviceTax = Math.Max(0, (sale.Tax?.Rials ?? 0) - goodsTax);
+        return new ServiceChargeRefund(sale.ServiceCharge, Money.FromRials(serviceTax));
+    }
+
+    /// <summary>
+    /// What the return window may offer for the service charge: <see cref="ServiceChargeRefund.None"/>
+    /// when the invoice has none or it was already given back, never an exception.
+    /// </summary>
+    public static ServiceChargeRefund RefundableServiceCharge(Sale sale, bool alreadyRefunded)
+    {
+        ArgumentNullException.ThrowIfNull(sale);
+        return sale.ServiceCharge.Rials == 0 || alreadyRefunded || sale.Status != SaleStatus.Completed
+            ? ServiceChargeRefund.None
+            : PriceServiceCharge(sale, alreadyRefunded);
+    }
+
+    private static void EnsureReturnable(Sale sale)
+    {
+        if (sale.Status != SaleStatus.Completed || sale.Number is null)
+        {
+            throw new DomainException("فقط از فاکتور ثبت‌شده می‌شود مرجوعی گرفت.");
+        }
+    }
+
+    /// <summary>The invoice's discount as a share of the goods, and its VAT as a share of what was taxed.</summary>
+    private static (decimal Discount, decimal Tax) Factors(Sale sale)
+    {
+        var subtotal = sale.Subtotal.Rials;
+        var discountFactor = subtotal > 0 ? (decimal)sale.Discount.Rials / subtotal : 0m;
+        var taxBase = subtotal - sale.Discount.Rials + sale.ServiceCharge.Rials;
+        var taxFactor = taxBase > 0 && sale.Tax is { } tax ? (decimal)tax.Rials / taxBase : 0m;
+        return (discountFactor, taxFactor);
+    }
+
+    /// <summary>A whole invoice line's value after its share of the invoice discount, and the VAT on it.</summary>
+    private static (Money Net, Money Tax) FullLineValue(SaleLine saleLine, decimal discountFactor, decimal taxFactor)
+    {
+        var lineNet = saleLine.LineTotal;
+        var taxableFull = Money.FromRials(lineNet.Rials - lineNet.Multiply(discountFactor).Rials);
+        return (taxableFull, taxableFull.Multiply(taxFactor));
+    }
+
+    /// <param name="refundServiceCharge">The cashier ticked «خدمات/هزینه هم پس داده شود».</param>
+    /// <param name="serviceChargeAlreadyRefunded">An earlier return of this invoice already gave the service charge back.</param>
     public static SaleReturn Create(
         Sale sale,
         ReturnNumber number,
@@ -217,7 +303,9 @@ public sealed class SaleReturn : Entity<SaleReturnId>
         string? reason,
         IReadOnlyDictionary<ProductId, PreviouslyReturned> previouslyReturned,
         IReadOnlyDictionary<ProductId, Money> unitCosts,
-        DateTimeOffset completedAtUtc)
+        DateTimeOffset completedAtUtc,
+        bool refundServiceCharge = false,
+        bool serviceChargeAlreadyRefunded = false)
     {
         ArgumentNullException.ThrowIfNull(sale);
 
@@ -242,7 +330,10 @@ public sealed class SaleReturn : Entity<SaleReturnId>
             throw new DomainException("دلیل مرجوعی نمی‌تواند بیشتر از ۳۰۰ نویسه باشد.");
         }
 
-        var lines = Price(sale, requests, previouslyReturned, unitCosts);
+        var lines = Price(sale, requests, previouslyReturned, unitCosts, refundServiceCharge);
+        var serviceCharge = refundServiceCharge
+            ? PriceServiceCharge(sale, serviceChargeAlreadyRefunded)
+            : ServiceChargeRefund.None;
 
         var saleReturn = new SaleReturn(
             SaleReturnId.New(),
@@ -252,7 +343,10 @@ public sealed class SaleReturn : Entity<SaleReturnId>
             number,
             refundMethod,
             trimmedReason,
-            completedAtUtc);
+            completedAtUtc)
+        {
+            ServiceCharge = serviceCharge,
+        };
         saleReturn._lines.AddRange(lines);
         return saleReturn;
     }
@@ -266,9 +360,13 @@ public sealed class SaleReturn : Entity<SaleReturnId>
         PaymentMethod refundMethod,
         string reason,
         DateTimeOffset completedAtUtc,
-        IEnumerable<SaleReturnLine> lines)
+        IEnumerable<SaleReturnLine> lines,
+        ServiceChargeRefund? serviceCharge = null)
     {
-        var saleReturn = new SaleReturn(id, saleId, warehouseId, customerId, number, refundMethod, reason, completedAtUtc);
+        var saleReturn = new SaleReturn(id, saleId, warehouseId, customerId, number, refundMethod, reason, completedAtUtc)
+        {
+            ServiceCharge = serviceCharge ?? ServiceChargeRefund.None,
+        };
         saleReturn._lines.AddRange(lines);
         return saleReturn;
     }

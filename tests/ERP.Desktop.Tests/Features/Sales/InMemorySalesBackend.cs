@@ -412,6 +412,9 @@ internal sealed class InMemorySalesBackend :
     Task<bool> ISaleReturnRepository.AnyForSaleAsync(SaleId saleId, CancellationToken cancellationToken) =>
         Task.FromResult(SaleReturns.Any(item => item.SaleId == saleId));
 
+    Task<bool> ISaleReturnRepository.HasRefundedServiceChargeAsync(SaleId saleId, CancellationToken cancellationToken) =>
+        Task.FromResult(SaleReturns.Any(item => item.SaleId == saleId && !item.ServiceCharge.IsEmpty));
+
     Task<ReturnNumber> IReturnNumberGenerator.NextAsync(CancellationToken cancellationToken) =>
         Task.FromResult(ReturnNumber.From(_nextReturnNumber++));
 

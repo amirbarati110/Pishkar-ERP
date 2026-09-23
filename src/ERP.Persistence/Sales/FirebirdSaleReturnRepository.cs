@@ -1,4 +1,5 @@
 using System.Data;
+using ERP.Application.Common;
 using ERP.Application.Sales;
 using ERP.Domain.Catalog;
 using ERP.Domain.Common;
@@ -24,9 +25,11 @@ public sealed class FirebirdSaleReturnRepository : ISaleReturnRepository
         await using (var command = CreateCommand(
             """
             INSERT INTO SALE_RETURN (
-                ID, SALE_ID, WAREHOUSE_ID, CUSTOMER_ID, NUMBER, REFUND_METHOD, REASON, COMPLETED_AT_UTC)
+                ID, SALE_ID, WAREHOUSE_ID, CUSTOMER_ID, NUMBER, REFUND_METHOD, REASON, COMPLETED_AT_UTC,
+                SERVICE_NET_RIALS, SERVICE_TAX_RIALS)
             VALUES (
-                @ID, @SALE_ID, @WAREHOUSE_ID, @CUSTOMER_ID, @NUMBER, @REFUND_METHOD, @REASON, @COMPLETED_AT_UTC)
+                @ID, @SALE_ID, @WAREHOUSE_ID, @CUSTOMER_ID, @NUMBER, @REFUND_METHOD, @REASON, @COMPLETED_AT_UTC,
+                @SERVICE_NET_RIALS, @SERVICE_TAX_RIALS)
             """))
         {
             command.Parameters.Add("@ID", FbDbType.Char).Value = saleReturn.Id.ToString();
@@ -38,7 +41,19 @@ public sealed class FirebirdSaleReturnRepository : ISaleReturnRepository
             command.Parameters.Add("@REFUND_METHOD", FbDbType.SmallInt).Value = (short)saleReturn.RefundMethod;
             command.Parameters.Add("@REASON", FbDbType.VarChar).Value = saleReturn.Reason;
             command.Parameters.Add("@COMPLETED_AT_UTC", FbDbType.TimeStamp).Value = saleReturn.CompletedAtUtc.UtcDateTime;
-            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            command.Parameters.Add("@SERVICE_NET_RIALS", FbDbType.BigInt).Value = saleReturn.ServiceCharge.Net.Rials;
+            command.Parameters.Add("@SERVICE_TAX_RIALS", FbDbType.BigInt).Value = saleReturn.ServiceCharge.Tax.Rials;
+            try
+            {
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (FbException exception) when (FirebirdConstraint.IsViolation(exception, "UX_SALE_RETURN_SERVICE_ONCE"))
+            {
+                throw new DataConflictException(
+                    "sales.return.service-charge-already-refunded",
+                    "«خدمات/هزینه»ی این فاکتور همین حالا در مرجوعی دیگری پس داده شد.",
+                    exception);
+            }
         }
 
         foreach (var line in saleReturn.Lines)
@@ -92,6 +107,15 @@ public sealed class FirebirdSaleReturnRepository : ISaleReturnRepository
     public async Task<bool> AnyForSaleAsync(SaleId saleId, CancellationToken cancellationToken)
     {
         await using var command = CreateCommand("SELECT FIRST 1 1 FROM SALE_RETURN WHERE SALE_ID = @SALE_ID");
+        command.Parameters.Add("@SALE_ID", FbDbType.Char).Value = saleId.ToString();
+
+        return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is not null;
+    }
+
+    public async Task<bool> HasRefundedServiceChargeAsync(SaleId saleId, CancellationToken cancellationToken)
+    {
+        await using var command = CreateCommand(
+            "SELECT FIRST 1 1 FROM SALE_RETURN WHERE SALE_ID = @SALE_ID AND SERVICE_NET_RIALS > 0");
         command.Parameters.Add("@SALE_ID", FbDbType.Char).Value = saleId.ToString();
 
         return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is not null;

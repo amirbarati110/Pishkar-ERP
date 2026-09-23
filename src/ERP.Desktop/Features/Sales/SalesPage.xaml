@@ -1331,6 +1331,20 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
+                                <!-- «خدمات/هزینه» — پس دادنش انتخاب کاربر است، نه خودکار (تصمیم ۱۴۰۵/۰۷/۰۲) -->
+                                <Border Padding="11,9" CornerRadius="10" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                        Visibility="{x:Bind ViewModel.CanRefundServiceCharge, Mode=OneWay}">
+                                    <CheckBox IsChecked="{x:Bind ViewModel.RefundServiceCharge, Mode=TwoWay}" AutomationProperties.AutomationId="ReturnRefundServiceCharge"
+                                              AutomationProperties.Name="خدمات و هزینه‌ی فاکتور هم پس داده شود">
+                                        <StackPanel>
+                                            <TextBlock FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}">
+                                                <Run Text="خدمات/هزینه‌ی فاکتور هم پس داده شود — " /><Run Text="{x:Bind ViewModel.ServiceChargeRefundText, Mode=OneWay}" />
+                                            </TextBlock>
+                                            <TextBlock Text="مثلاً هزینه‌ی ارسالی که انجام نشد. با مالیاتش برمی‌گردد و فقط یک بار برای هر فاکتور." FontSize="12" Foreground="{ThemeResource SalesMutedTextBrush}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </CheckBox>
+                                </Border>
+
                                 <!-- ۳) روش بازپرداخت -->
                                 <TextBlock Text="پول مشتری چطور برگردد؟" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />
                                 <Grid ColumnSpacing="8">

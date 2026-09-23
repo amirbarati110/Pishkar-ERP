@@ -11,11 +11,16 @@ namespace ERP.Application.Sales;
 
 /// <param name="Lines">Which products, how many, and where each goes (shelf / damaged / waste).</param>
 /// <param name="RefundMethod">Cash out of the drawer, back to the card, or off what the customer owes.</param>
+/// <param name="RefundServiceCharge">
+/// «خدمات/هزینه هم پس داده شود» — the cashier's choice, never automatic (user decision
+/// 1405/07/02). With it, a return may hold no goods at all (a delivery that never happened).
+/// </param>
 public sealed record CompleteSaleReturnCommand(
     SaleId SaleId,
     IReadOnlyList<ReturnLineRequest> Lines,
     PaymentMethod RefundMethod,
-    string? Reason);
+    string? Reason,
+    bool RefundServiceCharge = false);
 
 /// <summary>What the cashier needs right after «ثبت مرجوعی»: the number to read out and the money to hand back.</summary>
 public sealed record CompletedSaleReturn(ReturnNumber Number, Money Refund, PaymentMethod RefundMethod);
@@ -94,11 +99,19 @@ public sealed class CompleteSaleReturnHandler : ICompleteSaleReturnHandler
 
             // Everything that can turn the return away runs before stock moves
             // and before a number is drawn, as with a sale.
-            var priced = SaleReturn.Price(sale, command.Lines, previouslyReturned, unitCosts);
+            var serviceChargeRefunded = command.RefundServiceCharge
+                && await _returns.HasRefundedServiceChargeAsync(sale.Id, cancellationToken).ConfigureAwait(false);
+            var priced = SaleReturn.Price(sale, command.Lines, previouslyReturned, unitCosts, command.RefundServiceCharge);
+            if (command.RefundServiceCharge)
+            {
+                // throws when there is no service charge or it already went back
+                _ = SaleReturn.PriceServiceCharge(sale, serviceChargeRefunded);
+            }
+
             var number = await _numbers.NextAsync(cancellationToken).ConfigureAwait(false);
             var saleReturn = SaleReturn.Create(
                 sale, number, command.Lines, command.RefundMethod, command.Reason,
-                previouslyReturned, unitCosts, _clock.UtcNow);
+                previouslyReturned, unitCosts, _clock.UtcNow, command.RefundServiceCharge, serviceChargeRefunded);
 
             var reference = $"return:{saleReturn.Id}";
             var today = DateOnly.FromDateTime(_clock.UtcNow.UtcDateTime);
@@ -141,6 +154,11 @@ public sealed class CompleteSaleReturnHandler : ICompleteSaleReturnHandler
         catch (DomainException exception)
         {
             return Result.Failure<CompletedSaleReturn>("sales.return.invalid", exception.Message);
+        }
+        catch (DataConflictException exception)
+        {
+            // another till gave the same service charge back a moment earlier
+            return Result.Failure<CompletedSaleReturn>(exception.Code, exception.Message);
         }
     }
 

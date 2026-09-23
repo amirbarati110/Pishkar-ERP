@@ -45,6 +45,23 @@ public sealed partial class SalesWorkspaceViewModel
     [ObservableProperty]
     public partial PaymentMethod ReturnRefundMethod { get; set; } = PaymentMethod.Cash;
 
+    /// <summary>
+    /// The invoice has a «خدمات/هزینه» that can still be given back — only then is the
+    /// «خدمات/هزینه هم پس داده شود» choice shown (user decision 1405/07/02).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool CanRefundServiceCharge { get; set; }
+
+    /// <summary>The service charge with its VAT, as the choice shows it — from the server, not computed here.</summary>
+    [ObservableProperty]
+    public partial string ServiceChargeRefundText { get; set; } = string.Empty;
+
+    /// <summary>The cashier's choice; off by default — a delivery that happened is normally kept.</summary>
+    [ObservableProperty]
+    public partial bool RefundServiceCharge { get; set; }
+
+    partial void OnRefundServiceChargeChanged(bool value) => _ = RefreshReturnPreviewAsync();
+
     /// <summary>«کم شدن از بدهی» only makes sense when the invoice has a customer whose account it can reduce.</summary>
     [ObservableProperty]
     public partial bool CanRefundToDebt { get; set; }
@@ -57,8 +74,8 @@ public sealed partial class SalesWorkspaceViewModel
 
     private string _doneNumberText = string.Empty;
 
-    /// <summary>The refund figure for the rows picked so far, as text — never computed here.</summary>
-    public bool HasReturnSelection => ReturnLines.Any(row => row.IsSelected);
+    /// <summary>Something is picked to give back: a goods row, or the service charge.</summary>
+    public bool HasReturnSelection => ReturnLines.Any(row => row.IsSelected) || RefundServiceCharge;
 
     /// <summary>The rows, method and reason can be changed only until the return is registered — after that it is a posted document.</summary>
     public bool IsReturnEditable => HasReturnInvoice && !IsReturnDone;
@@ -124,6 +141,11 @@ public sealed partial class SalesWorkspaceViewModel
             : sale.PaymentMethod == PaymentMethod.Credit && sale.CustomerId is not null
                 ? PaymentMethod.Credit
                 : PaymentMethod.Cash;
+        CanRefundServiceCharge = !sale.RefundableServiceCharge.IsEmpty;
+        ServiceChargeRefundText = CanRefundServiceCharge
+            ? $"{SalesText.Tomans(sale.RefundableServiceCharge.Total)} تومان"
+            : string.Empty;
+        RefundServiceCharge = false;
         ReturnInvoiceHeaderText = $"فاکتور {sale.Number.ToPersianString()} · {SalesText.PaymentMethodName(sale.PaymentMethod)} · {SalesText.Tomans(sale.Total)} تومان";
 
         ReturnLines.Clear();
@@ -205,13 +227,14 @@ public sealed partial class SalesWorkspaceViewModel
 
         var version = ++_returnPreviewVersion;
         var picked = PickedReturnLines();
-        if (_returnSaleId is not { } saleId || picked.Count == 0)
+        if (_returnSaleId is not { } saleId || (picked.Count == 0 && !RefundServiceCharge))
         {
             ReturnRefundText = "۰";
             return;
         }
 
-        var preview = await _backend.PreviewReturn.ExecuteAsync(new PreviewSaleReturnQuery(saleId, picked), CancellationToken.None);
+        var preview = await _backend.PreviewReturn.ExecuteAsync(
+            new PreviewSaleReturnQuery(saleId, picked, RefundServiceCharge), CancellationToken.None);
         if (version != _returnPreviewVersion)
         {
             return;
@@ -238,14 +261,15 @@ public sealed partial class SalesWorkspaceViewModel
         }
 
         var picked = PickedReturnLines();
-        if (picked.Count == 0)
+        if (picked.Count == 0 && !RefundServiceCharge)
         {
             ReturnError = "هیچ کالایی برای مرجوعی انتخاب نشده است.";
             return;
         }
 
         var result = await _backend.CompleteReturn.ExecuteAsync(
-            new CompleteSaleReturnCommand(saleId, picked, ReturnRefundMethod, ReturnReasonText), CancellationToken.None);
+            new CompleteSaleReturnCommand(saleId, picked, ReturnRefundMethod, ReturnReasonText, RefundServiceCharge),
+            CancellationToken.None);
         if (!result.IsSuccess)
         {
             ReturnError = result.Error?.Message ?? "مرجوعی ثبت نشد.";
@@ -316,6 +340,9 @@ public sealed partial class SalesWorkspaceViewModel
         ReturnRefundText = "۰";
         ReturnRefundMethod = PaymentMethod.Cash;
         CanRefundToDebt = false;
+        CanRefundServiceCharge = false;
+        ServiceChargeRefundText = string.Empty;
+        RefundServiceCharge = false;
         ReturnError = null;
         ReturnDoneText = string.Empty;
         OnPropertyChanged(nameof(HasReturnSelection));

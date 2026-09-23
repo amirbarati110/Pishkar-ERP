@@ -168,9 +168,9 @@ public sealed class FirebirdSaleReadReader : ISaleReadReader
         CancellationToken cancellationToken)
     {
         await using var command = CreateCommand(
-            """
+            $"""
             SELECT R.ID, R.NUMBER, S.NUMBER, R.COMPLETED_AT_UTC, R.REFUND_METHOD,
-                   COALESCE((SELECT SUM(L.NET_RIALS + L.TAX_RIALS) FROM SALE_RETURN_LINE L WHERE L.RETURN_ID = R.ID), 0)
+                   {SaleReturnSql.RefundOfR}
             FROM SALE_RETURN R
             JOIN SALE S ON S.ID = R.SALE_ID
             WHERE R.WAREHOUSE_ID = @WAREHOUSE_ID

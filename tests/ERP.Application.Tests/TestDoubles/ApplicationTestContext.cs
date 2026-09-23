@@ -423,6 +423,9 @@ internal sealed class SaleReturnRepository : ISaleReturnRepository
 
     public Task<bool> AnyForSaleAsync(SaleId saleId, CancellationToken cancellationToken) =>
         Task.FromResult(Items.Any(item => item.SaleId == saleId));
+
+    public Task<bool> HasRefundedServiceChargeAsync(SaleId saleId, CancellationToken cancellationToken) =>
+        Task.FromResult(Items.Any(item => item.SaleId == saleId && !item.ServiceCharge.IsEmpty));
 }
 
 internal sealed class SequentialReturnNumberGenerator(long firstNumber) : IReturnNumberGenerator

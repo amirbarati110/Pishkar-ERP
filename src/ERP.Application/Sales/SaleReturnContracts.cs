@@ -39,6 +39,9 @@ public interface ISaleReturnRepository
 
     /// <summary>Whether any return exists against the invoice — a returned invoice can no longer be corrected.</summary>
     Task<bool> AnyForSaleAsync(SaleId saleId, CancellationToken cancellationToken);
+
+    /// <summary>Whether an earlier return of the invoice already gave its service charge back (it goes back at most once).</summary>
+    Task<bool> HasRefundedServiceChargeAsync(SaleId saleId, CancellationToken cancellationToken);
 }
 
 /// <summary>One completed return in a list — for the shift reconciliation and the day's lists.</summary>

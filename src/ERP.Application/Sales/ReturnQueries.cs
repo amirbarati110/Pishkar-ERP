@@ -56,6 +56,11 @@ public sealed record ReturnableLine(
     public decimal RemainingQuantity => SoldQuantity - ReturnedQuantity;
 }
 
+/// <param name="RefundableServiceCharge">
+/// The invoice's «خدمات/هزینه» and its VAT, when it can still be given back — the return window
+/// offers the choice only then. <see cref="ServiceChargeRefund.None"/> when there is none or an
+/// earlier return already refunded it.
+/// </param>
 public sealed record ReturnableSale(
     SaleId SaleId,
     SaleNumber Number,
@@ -63,7 +68,8 @@ public sealed record ReturnableSale(
     CustomerId? CustomerId,
     PaymentMethod PaymentMethod,
     Money Total,
-    IReadOnlyList<ReturnableLine> Lines);
+    IReadOnlyList<ReturnableLine> Lines,
+    ServiceChargeRefund RefundableServiceCharge);
 
 public sealed record GetReturnableSaleQuery(SaleId SaleId);
 
@@ -122,13 +128,19 @@ public sealed class GetReturnableSaleHandler : IGetReturnableSaleHandler
             })
             .ToList();
 
+        var serviceChargeRefunded = await _returns.HasRefundedServiceChargeAsync(sale.Id, cancellationToken).ConfigureAwait(false);
+
         return Result.Success(new ReturnableSale(
             sale.Id, number, completedAt, sale.CustomerId, paymentMethod,
-            sale.Totals?.Total ?? sale.Subtotal, lines));
+            sale.Totals?.Total ?? sale.Subtotal, lines,
+            SaleReturn.RefundableServiceCharge(sale, serviceChargeRefunded)));
     }
 }
 
-public sealed record PreviewSaleReturnQuery(SaleId SaleId, IReadOnlyList<ReturnLineRequest> Lines);
+public sealed record PreviewSaleReturnQuery(
+    SaleId SaleId,
+    IReadOnlyList<ReturnLineRequest> Lines,
+    bool RefundServiceCharge = false);
 
 /// <summary>What the customer would get back for the rows picked so far.</summary>
 public sealed record SaleReturnPreview(Money Net, Money Tax, Money Refund, Money RestockCost);
@@ -166,10 +178,14 @@ public sealed class PreviewSaleReturnHandler : IPreviewSaleReturnHandler
         {
             var returned = await _returns.GetReturnedAsync(sale.Id, cancellationToken).ConfigureAwait(false);
             var costs = await _costs.GetUnitCostsAsync(sale.CorrectsSaleId ?? sale.Id, cancellationToken).ConfigureAwait(false);
-            var lines = SaleReturn.Price(sale, query.Lines, returned, costs);
+            var lines = SaleReturn.Price(sale, query.Lines, returned, costs, query.RefundServiceCharge);
+            var service = query.RefundServiceCharge
+                ? SaleReturn.PriceServiceCharge(
+                    sale, await _returns.HasRefundedServiceChargeAsync(sale.Id, cancellationToken).ConfigureAwait(false))
+                : ServiceChargeRefund.None;
 
-            var net = lines.Aggregate(Money.Zero, (total, line) => total.Add(line.Net));
-            var tax = lines.Aggregate(Money.Zero, (total, line) => total.Add(line.Tax));
+            var net = lines.Aggregate(service.Net, (total, line) => total.Add(line.Net));
+            var tax = lines.Aggregate(service.Tax, (total, line) => total.Add(line.Tax));
             var restock = lines.Aggregate(Money.Zero, (total, line) => total.Add(line.RestockCost));
             return Result.Success(new SaleReturnPreview(net, tax, net.Add(tax), restock));
         }

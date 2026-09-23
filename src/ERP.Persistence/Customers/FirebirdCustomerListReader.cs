@@ -6,6 +6,7 @@ using ERP.Domain.Common;
 using ERP.Domain.Customers;
 using ERP.Domain.Sales;
 using ERP.Persistence.Database;
+using ERP.Persistence.Sales;
 using FirebirdSql.Data.FirebirdClient;
 
 namespace ERP.Persistence.Customers;
@@ -179,8 +180,8 @@ public sealed class FirebirdCustomerListReader : ICustomerListReader
                                      AND S.PAYMENT_METHOD = @CREDIT AND S.TOTAL_RIALS IS NOT NULL
                                      AND NOT EXISTS (SELECT 1 FROM SALE X WHERE X.CORRECTS_SALE_ID = S.ID)), 0)
                        - COALESCE((SELECT SUM(P.AMOUNT_RIALS) FROM CUSTOMER_PAYMENT P WHERE P.CUSTOMER_ID = C.ID), 0)
-                       - COALESCE((SELECT SUM(L.NET_RIALS + L.TAX_RIALS)
-                                   FROM SALE_RETURN R JOIN SALE_RETURN_LINE L ON L.RETURN_ID = R.ID
+                       - COALESCE((SELECT SUM({SaleReturnSql.RefundOfR})
+                                   FROM SALE_RETURN R
                                    WHERE R.CUSTOMER_ID = C.ID AND R.REFUND_METHOD = @CREDIT), 0) AS NET
                 FROM CUSTOMER C
                 WHERE C.STATUS = 1
