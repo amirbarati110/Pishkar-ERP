@@ -37,6 +37,8 @@ public sealed class FirebirdDatabaseBootstrapper
         new V017CustomerProfileBackfill(),
         new V018CustomerCodeRequired(),
         new V019InternalBarcodeSequence(),
+        new V020CreateWarehouse(),
+        new V021WarehouseForeignKeys(),
     ];
 
     private readonly FirebirdConnectionFactory _connectionFactory;

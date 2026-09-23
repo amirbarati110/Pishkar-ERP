@@ -3,6 +3,7 @@ using ERP.Application.Common;
 using ERP.Application.Importing;
 using ERP.Application.Inventory;
 using ERP.Domain.Catalog;
+using ERP.Domain.Inventory;
 using ERP.Persistence.Audit;
 using ERP.Persistence.Catalog;
 using ERP.Persistence.Database;
@@ -17,7 +18,11 @@ public sealed class FirebirdRetailSetupService :
     IArchiveProductHandler,
     IGenerateProductBarcodeHandler,
     IReceiveOpeningStockHandler,
-    ICommitProductImportHandler
+    ICommitProductImportHandler,
+    IListWarehousesHandler,
+    ICreateWarehouseHandler,
+    IUpdateWarehouseHandler,
+    IArchiveWarehouseHandler
 {
     private readonly FirebirdConnectionFactory _connectionFactory;
     private readonly IUserContext _userContext;
@@ -140,6 +145,57 @@ public sealed class FirebirdRetailSetupService :
         return await new CommitProductImportHandler(
                 new FirebirdProductRepository(unitOfWork),
                 new FirebirdStockLedgerRepository(unitOfWork),
+                CreateAuditWriter(unitOfWork),
+                unitOfWork,
+                _userContext,
+                _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public Task<IReadOnlyList<WarehouseListRow>> ExecuteAsync(WarehouseListQuery query, CancellationToken cancellationToken)
+    {
+        return new ListWarehousesHandler(new FirebirdWarehouseListReader(_connectionFactory))
+            .ExecuteAsync(query, cancellationToken);
+    }
+
+    public async Task<Result<WarehouseId>> ExecuteAsync(CreateWarehouseCommand command, CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new CreateWarehouseHandler(
+                new FirebirdWarehouseRepository(unitOfWork),
+                CreateAuditWriter(unitOfWork),
+                unitOfWork,
+                _userContext,
+                _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(UpdateWarehouseCommand command, CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new UpdateWarehouseHandler(
+                new FirebirdWarehouseRepository(unitOfWork),
+                CreateAuditWriter(unitOfWork),
+                unitOfWork,
+                _userContext,
+                _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(ArchiveWarehouseCommand command, CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork
+            .CreateAsync(_connectionFactory, cancellationToken)
+            .ConfigureAwait(false);
+        return await new ArchiveWarehouseHandler(
+                new FirebirdWarehouseRepository(unitOfWork),
                 CreateAuditWriter(unitOfWork),
                 unitOfWork,
                 _userContext,

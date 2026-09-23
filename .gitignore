@@ -14,3 +14,17 @@ artifacts/
 *.log
 *.tmp
 *.bak
+
+# --- Pishkar: local data, tools, build output ---
+data/
+.tools/
+artifacts/
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.fdb
+*.FDB
+*.gbk
+*.nbk
+.claude/settings.local.json

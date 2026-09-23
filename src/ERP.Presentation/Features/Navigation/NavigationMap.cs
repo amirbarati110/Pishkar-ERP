@@ -35,6 +35,7 @@ public static class NavigationMap
     public const string Categories = "categories";
     public const string Import = "import";
     public const string OpeningStock = "opening-stock";
+    public const string WarehouseList = "warehouse-list";
     public const string CustomerList = "customer-list";
     public const string Backup = "backup";
 
