@@ -29,7 +29,8 @@ public sealed class ProjectReferenceTests
             .Descendants("ProjectReference")
             .Select(reference => reference.Attribute("Include")?.Value)
             .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Select(path => Path.GetFileNameWithoutExtension(path!))
+            // csproj paths use '\'; only Windows treats it as a separator, so normalize for Linux CI
+            .Select(path => Path.GetFileNameWithoutExtension(path!.Replace('\\', '/')))
             .Order(StringComparer.Ordinal)
             .ToArray();
     }

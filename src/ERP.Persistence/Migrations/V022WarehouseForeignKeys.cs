@@ -1,12 +1,12 @@
 namespace ERP.Persistence.Migrations;
 
 /// <summary>
-/// Every table that stores a WAREHOUSE_ID now points at a real row (V020) — so it can be enforced,
+/// Every table that stores a WAREHOUSE_ID now points at a real row (V020 table, V021 seed) — so it can be enforced,
 /// closing the gap where a typo'd or stale id would silently never show up on any report.
 /// </summary>
-public sealed class V021WarehouseForeignKeys : IMigration
+public sealed class V022WarehouseForeignKeys : IMigration
 {
-    public int Version => 21;
+    public int Version => 22;
 
     public string Name => "Enforce warehouse references from sales, cash shifts, returns and stock";
 

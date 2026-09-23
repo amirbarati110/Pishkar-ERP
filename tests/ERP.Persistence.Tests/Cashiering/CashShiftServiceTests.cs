@@ -70,8 +70,10 @@ public sealed class CashShiftServiceTests
         // این تست دقیقاً همان سناریو را می‌سازد که آن باگ را نمایان می‌کرد: دو
         // انبار، دو شیفت هم‌زمان باز، فروش نقدی جدا در هرکدام.
         var context = await SetupAsync();
-        var secondWarehouseId = WarehouseId.New();
         var setup = new FirebirdRetailSetupService(context.Factory, new TestUserContext(Guid.NewGuid()), context.Clock);
+        var secondWarehouse = await setup.ExecuteAsync(new CreateWarehouseCommand("شعبه‌ی دوم", null), CancellationToken.None);
+        Assert.True(secondWarehouse.IsSuccess);
+        var secondWarehouseId = secondWarehouse.Value;
         await setup.ExecuteAsync(
             new ReceiveOpeningStockCommand(context.RiceId, secondWarehouseId, 20, 200_000_0, new DateOnly(2026, 9, 1)),
             CancellationToken.None);

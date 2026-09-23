@@ -7,17 +7,16 @@ namespace ERP.Persistence.Migrations;
 /// same GUID, so every table that already references it keeps working with no data migration —
 /// under the name «فروشگاه مرکزی» that the dashboard's header already showed as plain text.
 ///
-/// <para>The row is inserted here, inside the migration itself, rather than the idempotent
-/// re-seed-on-every-boot style <c>FirebirdDatabaseBootstrapper</c> uses for CATEGORY/PRODUCT_UNIT:
-/// V021 adds foreign keys from SALE/CASH_SHIFT/SALE_RETURN/INVENTORY_LAYER/STOCK_MOVEMENT to this
-/// table, and those need the row to already exist for an upgrade on a database that already has
-/// rows in those tables — a migration only ever runs once, so a plain INSERT is exactly right.</para>
+/// <para>Only the table is created here; the seed row is V021 and the foreign keys V022. Firebird
+/// applies DDL when its transaction commits, so an INSERT into a table created earlier in the same
+/// migration fails with «Table unknown» — the same reason V016 (columns) and V017 (backfill) are
+/// separate migrations.</para>
 /// </summary>
 public sealed class V020CreateWarehouse : IMigration
 {
     public int Version => 20;
 
-    public string Name => "Create warehouse and seed the existing main warehouse";
+    public string Name => "Create warehouse";
 
     public IReadOnlyList<string> Statements { get; } =
     [
@@ -29,10 +28,6 @@ public sealed class V020CreateWarehouse : IMigration
             STATUS SMALLINT NOT NULL,
             CONSTRAINT UQ_WAREHOUSE_NAME UNIQUE (NAME)
         )
-        """,
-        """
-        INSERT INTO WAREHOUSE (ID, NAME, ADDRESS, STATUS)
-        VALUES ('33333333-3333-4333-8333-333333333333', 'فروشگاه مرکزی', NULL, 1)
         """,
     ];
 }
