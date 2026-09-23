@@ -32,8 +32,9 @@ public sealed class WarehouseListItem
 /// <summary>
 /// «لیست انبارها» (checklist «س»): every active warehouse with search, and a form for new/edit
 /// (name + address — everything else in chapter 8's Warehouse/WMS design is Phase 2 and out of
-/// scope here). «حذف» asks first and then archives — refused for the last active warehouse, one
-/// that still has stock, or one with an open cash shift; the handler's own message explains which.
+/// scope here). «حذف» asks first and then archives — refused for the main warehouse, the last
+/// active one, one that still has stock, or one with an open cash shift; the handler's own
+/// message explains which.
 /// </summary>
 public sealed partial class WarehouseListViewModel : ObservableObject
 {
@@ -308,7 +309,8 @@ public sealed partial class WarehouseListViewModel : ObservableObject
             return;
         }
 
-        ArchiveConfirmText = $"«{item.Name}» از لیست انبارها برداشته شود؟ این کار را نمی‌شود برگرداند مگر با ساخت دوباره.";
+        ArchiveConfirmText =
+            $"«{item.Name}» از لیست انبارها برداشته شود؟ سابقه‌ی فروش‌ها و گردش کالای آن در گزارش‌ها می‌ماند.";
         IsArchiveConfirmOpen = true;
     }
 

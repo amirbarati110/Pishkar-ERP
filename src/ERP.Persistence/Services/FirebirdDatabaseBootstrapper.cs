@@ -12,7 +12,7 @@ public sealed class FirebirdDatabaseBootstrapper
         CategoryId.From(Guid.Parse("11111111-1111-4111-8111-111111111111"));
     private static readonly UnitId EachUnitId =
         UnitId.From(Guid.Parse("22222222-2222-4222-8222-222222222222"));
-    private static readonly WarehouseId MainWarehouseId =
+    internal static readonly WarehouseId MainWarehouseId =
         WarehouseId.From(Guid.Parse("33333333-3333-4333-8333-333333333333"));
 
     /// <summary>Exposed so a health check can compare "what the code expects" against "what the database's own <c>SCHEMA_MIGRATIONS</c> table says was applied" without hardcoding the count twice.</summary>

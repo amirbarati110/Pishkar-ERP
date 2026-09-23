@@ -199,7 +199,8 @@ public sealed class FirebirdRetailSetupService :
                 CreateAuditWriter(unitOfWork),
                 unitOfWork,
                 _userContext,
-                _clock)
+                _clock,
+                FirebirdDatabaseBootstrapper.MainWarehouseId)
             .ExecuteAsync(command, cancellationToken)
             .ConfigureAwait(false);
     }

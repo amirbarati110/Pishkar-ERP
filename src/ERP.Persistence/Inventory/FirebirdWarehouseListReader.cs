@@ -22,7 +22,7 @@ public sealed class FirebirdWarehouseListReader : IWarehouseListReader
 
         await using var connection = await _connectionFactory.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        var where = "WHERE STATUS = 1";
+        var where = "WHERE STATUS = @ACTIVE";
         if (query.Term is not null)
         {
             where += " AND NAME CONTAINING @TERM";
@@ -34,6 +34,7 @@ public sealed class FirebirdWarehouseListReader : IWarehouseListReader
         {
             CommandType = CommandType.Text,
         };
+        command.Parameters.Add("@ACTIVE", FbDbType.SmallInt).Value = (short)WarehouseStatus.Active;
         if (query.Term is { } term)
         {
             command.Parameters.Add("@TERM", FbDbType.VarChar).Value = term;

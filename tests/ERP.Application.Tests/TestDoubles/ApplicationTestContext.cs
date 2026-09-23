@@ -48,6 +48,8 @@ internal sealed class ApplicationTestContext
 
     public CashShiftRepository CashShifts { get; } = new();
 
+    public WarehouseRepository Warehouses { get; } = new();
+
     public JournalEntryRepository JournalEntries { get; } = new();
 
     public BackupRecordRepository BackupRecords { get; } = new();
@@ -429,4 +431,49 @@ internal sealed class SequentialReturnNumberGenerator(long firstNumber) : IRetur
 
     public Task<ReturnNumber> NextAsync(CancellationToken cancellationToken) =>
         Task.FromResult(ReturnNumber.From(_next++));
+}
+
+internal sealed class WarehouseRepository : IWarehouseRepository
+{
+    public List<Warehouse> Items { get; } = [];
+
+    public HashSet<WarehouseId> WithStock { get; } = [];
+
+    public HashSet<WarehouseId> WithOpenShift { get; } = [];
+
+    public int UpdateCount { get; private set; }
+
+    public DataConflictException? ConflictOnAdd { get; set; }
+
+    public Task<Warehouse?> GetByIdAsync(WarehouseId warehouseId, CancellationToken cancellationToken) =>
+        Task.FromResult(Items.SingleOrDefault(item => item.Id == warehouseId));
+
+    public Task<Warehouse?> FindActiveByNameAsync(string name, CancellationToken cancellationToken) =>
+        Task.FromResult(Items.SingleOrDefault(item => item.Status == WarehouseStatus.Active && item.Name == name));
+
+    public Task AddAsync(Warehouse warehouse, CancellationToken cancellationToken)
+    {
+        if (ConflictOnAdd is not null)
+        {
+            throw ConflictOnAdd;
+        }
+
+        Items.Add(warehouse);
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateAsync(Warehouse warehouse, CancellationToken cancellationToken)
+    {
+        UpdateCount++;
+        return Task.CompletedTask;
+    }
+
+    public Task<int> CountActiveAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(Items.Count(item => item.Status == WarehouseStatus.Active));
+
+    public Task<bool> HasStockAsync(WarehouseId warehouseId, CancellationToken cancellationToken) =>
+        Task.FromResult(WithStock.Contains(warehouseId));
+
+    public Task<bool> HasOpenCashShiftAsync(WarehouseId warehouseId, CancellationToken cancellationToken) =>
+        Task.FromResult(WithOpenShift.Contains(warehouseId));
 }

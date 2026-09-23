@@ -7,7 +7,7 @@ namespace ERP.Persistence.Migrations;
 /// same GUID, so every table that already references it keeps working with no data migration —
 /// under the name «فروشگاه مرکزی» that the dashboard's header already showed as plain text.
 ///
-/// <para>Only the table is created here; the seed row is V021 and the foreign keys V022. Firebird
+/// <para>Only the table and its index are created here; the seed row is V021 and the foreign keys V022. Firebird
 /// applies DDL when its transaction commits, so an INSERT into a table created earlier in the same
 /// migration fails with «Table unknown» — the same reason V016 (columns) and V017 (backfill) are
 /// separate migrations.</para>
@@ -25,9 +25,11 @@ public sealed class V020CreateWarehouse : IMigration
             ID CHAR(36) CHARACTER SET ASCII NOT NULL PRIMARY KEY,
             NAME VARCHAR(120) CHARACTER SET UTF8 NOT NULL,
             ADDRESS VARCHAR(500) CHARACTER SET UTF8,
-            STATUS SMALLINT NOT NULL,
-            CONSTRAINT UQ_WAREHOUSE_NAME UNIQUE (NAME)
+            STATUS SMALLINT NOT NULL
         )
         """,
+        // Unique among active warehouses only (a Firebird 5 partial index): an archived
+        // warehouse keeps its name for old reports, and must not block a new one with it.
+        "CREATE UNIQUE INDEX UX_WAREHOUSE_ACTIVE_NAME ON WAREHOUSE (NAME) WHERE STATUS = 1",
     ];
 }

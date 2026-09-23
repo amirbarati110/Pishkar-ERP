@@ -6,14 +6,19 @@ using ERP.Domain.Inventory;
 namespace ERP.Application.Inventory;
 
 // «لیست انبارها» (checklist «س»): reading the list, creating and editing a warehouse, and taking
-// one out of use. «حذف» archives — refused for the last active warehouse (the app always needs
-// somewhere to sell from), one that still has stock, or one with an open cash shift.
+// one out of use. «حذف» archives — refused for the main warehouse (every screen still sells and
+// receives stock there), the last active one, one that still has stock, or one with an open
+// cash shift.
 
 public interface IWarehouseRepository
 {
     Task<Warehouse?> GetByIdAsync(WarehouseId warehouseId, CancellationToken cancellationToken);
 
-    Task<Warehouse?> FindByNameAsync(string name, CancellationToken cancellationToken);
+    /// <summary>
+    /// The active warehouse with exactly this name. Archived ones are ignored: they keep their
+    /// name for old reports and must not block a new warehouse from using it.
+    /// </summary>
+    Task<Warehouse?> FindActiveByNameAsync(string name, CancellationToken cancellationToken);
 
     Task AddAsync(Warehouse warehouse, CancellationToken cancellationToken);
 
@@ -96,7 +101,7 @@ public sealed class CreateWarehouseHandler : ICreateWarehouseHandler
         {
             var warehouse = Warehouse.Create(command.Name, command.Address);
 
-            if (await _warehouses.FindByNameAsync(warehouse.Name, cancellationToken).ConfigureAwait(false) is not null)
+            if (await _warehouses.FindActiveByNameAsync(warehouse.Name, cancellationToken).ConfigureAwait(false) is not null)
             {
                 return Result.Failure<WarehouseId>("inventory.warehouse.duplicate-name", "انباری با همین نام از قبل وجود دارد.");
             }
@@ -176,14 +181,17 @@ public sealed class UpdateWarehouseHandler : IUpdateWarehouseHandler
                 return Result.Failure<bool>("inventory.warehouse.archived", "این انبار حذف شده و دیگر قابل ویرایش نیست.");
             }
 
-            var before = CreateWarehouseHandler.Describe(warehouse);
-            warehouse.Update(command.Name, command.Address);
-
-            var sameName = await _warehouses.FindByNameAsync(warehouse.Name, cancellationToken).ConfigureAwait(false);
+            // the name is checked before the warehouse is touched: a refused edit changes nothing
+            var sameName = await _warehouses
+                .FindActiveByNameAsync(Warehouse.NormalizeName(command.Name), cancellationToken)
+                .ConfigureAwait(false);
             if (sameName is not null && sameName.Id != warehouse.Id)
             {
                 return Result.Failure<bool>("inventory.warehouse.duplicate-name", "انباری با همین نام از قبل وجود دارد.");
             }
+
+            var before = CreateWarehouseHandler.Describe(warehouse);
+            warehouse.Update(command.Name, command.Address);
 
             await _warehouses.UpdateAsync(warehouse, cancellationToken).ConfigureAwait(false);
             await _audit.WriteAsync(
@@ -220,10 +228,13 @@ public interface IArchiveWarehouseHandler
 }
 
 /// <summary>
-/// Takes a warehouse out of use. Refused for the last active one (every screen that sells or
-/// receives stock needs somewhere to point at), one that still holds stock (it would silently
-/// vanish from every kardex and total), or one with an open cash shift (closing it needs its
-/// warehouse to still exist as a live choice). Doing it twice is not an error.
+/// Takes a warehouse out of use. Refused for the main warehouse (sales, cash shifts, opening
+/// stock and import are all still recorded against it — no screen lets the user pick another
+/// yet, so archiving it would send every new sale to a warehouse no list shows), the last active
+/// one (every screen that sells or receives stock needs somewhere to point at), one that still
+/// holds stock (it would silently vanish from every kardex and total), or one with an open cash
+/// shift (closing it needs its warehouse to still exist as a live choice). Doing it twice is not
+/// an error.
 /// </summary>
 public sealed class ArchiveWarehouseHandler : IArchiveWarehouseHandler
 {
@@ -232,19 +243,22 @@ public sealed class ArchiveWarehouseHandler : IArchiveWarehouseHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
     private readonly IClock _clock;
+    private readonly WarehouseId _mainWarehouseId;
 
     public ArchiveWarehouseHandler(
         IWarehouseRepository warehouses,
         IAuditWriter audit,
         IUnitOfWork unitOfWork,
         IUserContext userContext,
-        IClock clock)
+        IClock clock,
+        WarehouseId mainWarehouseId)
     {
         _warehouses = warehouses;
         _audit = audit;
         _unitOfWork = unitOfWork;
         _userContext = userContext;
         _clock = clock;
+        _mainWarehouseId = mainWarehouseId;
     }
 
     public async Task<Result<bool>> ExecuteAsync(ArchiveWarehouseCommand command, CancellationToken cancellationToken)
@@ -260,6 +274,13 @@ public sealed class ArchiveWarehouseHandler : IArchiveWarehouseHandler
         if (warehouse.Status == WarehouseStatus.Archived)
         {
             return Result.Success(true);
+        }
+
+        if (warehouse.Id == _mainWarehouseId)
+        {
+            return Result.Failure<bool>(
+                "inventory.warehouse.main",
+                $"«{warehouse.Name}» انبار اصلی است و حذف نمی‌شود؛ فروش، شیفت صندوق و موجودی اول دوره روی همین انبار ثبت می‌شوند.");
         }
 
         if (await _warehouses.CountActiveAsync(cancellationToken).ConfigureAwait(false) <= 1)

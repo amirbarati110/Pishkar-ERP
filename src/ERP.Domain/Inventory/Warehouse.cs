@@ -39,13 +39,17 @@ public sealed class Warehouse : Entity<WarehouseId>
 
     public void Update(string name, string? address)
     {
-        Name = NormalizeName(name);
-        Address = NormalizeAddress(address);
+        // both checked before either is assigned, so a rejected edit leaves the warehouse as it was
+        var normalizedName = NormalizeName(name);
+        var normalizedAddress = NormalizeAddress(address);
+        Name = normalizedName;
+        Address = normalizedAddress;
     }
 
     public void Archive() => Status = WarehouseStatus.Archived;
 
-    private static string NormalizeName(string name)
+    /// <summary>The name exactly as it will be stored; throws the same message <see cref="Create"/> would.</summary>
+    public static string NormalizeName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
         {

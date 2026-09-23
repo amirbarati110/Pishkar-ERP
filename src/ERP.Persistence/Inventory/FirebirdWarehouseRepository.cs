@@ -27,10 +27,11 @@ public sealed class FirebirdWarehouseRepository : IWarehouseRepository
         return await ReadSingleAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<Warehouse?> FindByNameAsync(string name, CancellationToken cancellationToken)
+    public async Task<Warehouse?> FindActiveByNameAsync(string name, CancellationToken cancellationToken)
     {
-        await using var command = CreateCommand($"SELECT {SelectColumns} FROM WAREHOUSE WHERE NAME = @NAME");
+        await using var command = CreateCommand($"SELECT {SelectColumns} FROM WAREHOUSE WHERE NAME = @NAME AND STATUS = @ACTIVE");
         command.Parameters.Add("@NAME", FbDbType.VarChar).Value = name;
+        command.Parameters.Add("@ACTIVE", FbDbType.SmallInt).Value = (short)WarehouseStatus.Active;
         return await ReadSingleAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
@@ -112,7 +113,7 @@ public sealed class FirebirdWarehouseRepository : IWarehouseRepository
         {
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (FbException exception) when (FirebirdConstraint.IsViolation(exception, "UQ_WAREHOUSE_NAME"))
+        catch (FbException exception) when (FirebirdConstraint.IsViolation(exception, "UX_WAREHOUSE_ACTIVE_NAME"))
         {
             throw new DataConflictException(
                 "inventory.warehouse.duplicate-name",
