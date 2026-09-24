@@ -3,14 +3,20 @@ using ERP.Application.Audit;
 using ERP.Application.Common;
 using ERP.Domain.Common;
 using ERP.Domain.Customers;
+using ERP.Domain.Inventory;
 
 namespace ERP.Application.Customers;
 
+/// <param name="WarehouseId">
+/// The till where the money was taken; a cash payment then counts in that till's shift. Null only
+/// when the payment is recorded away from any till.
+/// </param>
 public sealed record RecordCustomerPaymentCommand(
     CustomerId CustomerId,
     long AmountRials,
     CustomerPaymentMethod Method,
-    string? Note);
+    string? Note,
+    WarehouseId? WarehouseId = null);
 
 public interface IRecordCustomerPaymentHandler
 {
@@ -66,7 +72,8 @@ public sealed class RecordCustomerPaymentHandler : IRecordCustomerPaymentHandler
                 Money.FromRials(command.AmountRials),
                 command.Method,
                 command.Note,
-                _clock.UtcNow);
+                _clock.UtcNow,
+                command.WarehouseId);
 
             await _payments.AddAsync(payment, cancellationToken).ConfigureAwait(false);
             await _audit.WriteAsync(

@@ -59,6 +59,28 @@ public sealed record SaleListItem(
     PaymentMethod? PaymentMethod);
 
 /// <summary>
+/// One completed invoice as a till sees it: what it charged and how — and, for a
+/// «صورتحساب اصلاحی», what the invoice it replaces had charged and how, so the till counts only
+/// the difference the correction really moved.
+/// </summary>
+public sealed record CompletedSaleCash(
+    PaymentMethod PaymentMethod,
+    Money Total,
+    PaymentMethod? ReplacedPaymentMethod = null,
+    Money? ReplacedTotal = null)
+{
+    /// <summary>
+    /// Signed rials this invoice put into (positive) or took out of (negative) a cash drawer when
+    /// it was completed. An ordinary cash sale: its total. A correction: its own cash minus the
+    /// replaced invoice's cash — lowering a cash invoice by 40,000 hands 40,000 back.
+    /// </summary>
+    public long CashDeltaRials =>
+        CashOf(PaymentMethod, Total) - (ReplacedPaymentMethod is { } replaced ? CashOf(replaced, ReplacedTotal ?? Money.Zero) : 0);
+
+    private static long CashOf(PaymentMethod method, Money total) => method == PaymentMethod.Cash ? total.Rials : 0;
+}
+
+/// <summary>
 /// Read side for the sales screen. Lists are ranked and filtered in the
 /// database; nothing here loads every sale into memory.
 /// </summary>
@@ -75,8 +97,15 @@ public interface ISaleReadReader
         DateTimeOffset toUtc,
         CancellationToken cancellationToken);
 
-    /// <summary>Same as <see cref="ListCompletedAsync"/>, restricted to one warehouse — for anything scoped to a single till/warehouse, like a cash shift's own reconciliation (checklist appendix ز.۶: the store-wide version double-counts once a second warehouse's shift is open at the same time).</summary>
-    Task<IReadOnlyList<SaleListItem>> ListCompletedByWarehouseAsync(
+    /// <summary>
+    /// Every invoice of one warehouse completed with <paramref name="fromUtc"/> ≤ completion &lt;
+    /// <paramref name="toUtc"/>, as its till counts cash (checklist appendix ز.۶: per warehouse, so
+    /// two tills open at once never count each other's sales). Unlike the day lists, an invoice
+    /// later corrected is still included — its cash went into the drawer when it was paid — and a
+    /// correction carries the invoice it replaces, so it counts only the difference (audit
+    /// 1405/07/02: counting the whole correction again inflated a later shift's till).
+    /// </summary>
+    Task<IReadOnlyList<CompletedSaleCash>> ListTillSalesByWarehouseAsync(
         WarehouseId warehouseId,
         DateTimeOffset fromUtc,
         DateTimeOffset toUtc,

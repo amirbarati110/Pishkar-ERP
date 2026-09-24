@@ -1,4 +1,5 @@
 using ERP.Domain.Common;
+using ERP.Domain.Inventory;
 
 namespace ERP.Domain.Customers;
 
@@ -31,7 +32,8 @@ public sealed class CustomerPayment : Entity<Guid>
         Money amount,
         CustomerPaymentMethod method,
         string? note,
-        DateTimeOffset receivedAtUtc)
+        DateTimeOffset receivedAtUtc,
+        WarehouseId? warehouseId)
         : base(id)
     {
         CustomerId = customerId;
@@ -39,6 +41,7 @@ public sealed class CustomerPayment : Entity<Guid>
         Method = method;
         Note = note;
         ReceivedAtUtc = receivedAtUtc;
+        WarehouseId = warehouseId;
     }
 
     public CustomerId CustomerId { get; }
@@ -51,12 +54,19 @@ public sealed class CustomerPayment : Entity<Guid>
 
     public DateTimeOffset ReceivedAtUtc { get; }
 
+    /// <summary>
+    /// The till (warehouse) where the money was taken — a cash payment goes into that drawer, so
+    /// that shift must expect it. Null only for payments recorded away from any till.
+    /// </summary>
+    public WarehouseId? WarehouseId { get; }
+
     public static CustomerPayment Receive(
         CustomerId customerId,
         Money amount,
         CustomerPaymentMethod method,
         string? note,
-        DateTimeOffset receivedAtUtc)
+        DateTimeOffset receivedAtUtc,
+        WarehouseId? warehouseId = null)
     {
         if (amount.Rials <= 0)
         {
@@ -74,6 +84,6 @@ public sealed class CustomerPayment : Entity<Guid>
             throw new DomainException("توضیح دریافت نمی‌تواند بیشتر از ۲۵۰ نویسه باشد.");
         }
 
-        return new CustomerPayment(Guid.NewGuid(), customerId, amount, method, trimmedNote, receivedAtUtc);
+        return new CustomerPayment(Guid.NewGuid(), customerId, amount, method, trimmedNote, receivedAtUtc, warehouseId);
     }
 }

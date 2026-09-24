@@ -182,7 +182,7 @@ public sealed partial class SalesWorkspaceViewModel
 
         var note = string.IsNullOrWhiteSpace(ReceivePaymentNote) ? null : ReceivePaymentNote.Trim();
         var result = await _backend.ReceivePayment.ExecuteAsync(
-            new RecordCustomerPaymentCommand(customerId, amountRials.Value, ReceivePaymentMethod, note),
+            new RecordCustomerPaymentCommand(customerId, amountRials.Value, ReceivePaymentMethod, note, _warehouseId),
             CancellationToken.None);
         if (!result.IsSuccess)
         {

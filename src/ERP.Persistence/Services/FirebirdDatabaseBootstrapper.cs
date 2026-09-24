@@ -41,6 +41,8 @@ public sealed class FirebirdDatabaseBootstrapper
         new V021SeedMainWarehouse(),
         new V022WarehouseForeignKeys(),
         new V023SaleReturnServiceCharge(),
+        new V024TillCashReceipts(),
+        new V025BackfillPaymentTill(),
     ];
 
     private readonly FirebirdConnectionFactory _connectionFactory;

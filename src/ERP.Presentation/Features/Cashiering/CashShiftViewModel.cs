@@ -53,6 +53,10 @@ public sealed partial class CashShiftViewModel : ObservableObject
     [ObservableProperty]
     public partial string CashRefundsSoFarText { get; set; } = string.Empty;
 
+    /// <summary>«دریافت از مشتری» paid in cash at this till — cash in the drawer that is not a sale.</summary>
+    [ObservableProperty]
+    public partial string CashReceiptsSoFarText { get; set; } = string.Empty;
+
     [ObservableProperty]
     public partial string ExpectedCashSoFarText { get; set; } = string.Empty;
 
@@ -92,6 +96,7 @@ public sealed partial class CashShiftViewModel : ObservableObject
                 OpeningCashText = $"{SalesText.Tomans(status.OpeningCash!.Value)} تومان";
                 CashSalesSoFarText = $"{SalesText.Tomans(status.CashSalesSoFar!.Value)} تومان";
                 CashRefundsSoFarText = $"{SalesText.Tomans(status.CashRefundsSoFar!.Value)} تومان";
+                CashReceiptsSoFarText = $"{SalesText.Tomans(status.CashReceiptsSoFar ?? Domain.Common.Money.Zero)} تومان";
                 ExpectedCashSoFarText = $"{SalesText.Tomans(status.ExpectedCashSoFar!.Value)} تومان";
                 CountedCashInput = string.Empty;
                 CloseNoteInput = string.Empty;
@@ -176,7 +181,8 @@ public sealed partial class CashShiftViewModel : ObservableObject
             };
             CloseSummaryText =
                 $"فروش نقدی این شیفت: {SalesText.Tomans(summary.CashSalesDuringShift)} تومان\n"
-                + $"مرجوعی نقدی این شیفت: {SalesText.Tomans(summary.CashRefundsDuringShift)} تومان\n"
+                + $"دریافت نقدی از مشتریان: {SalesText.Tomans(summary.CashReceiptsDuringShift)} تومان\n"
+                + $"پول برگشتی به مشتری (مرجوعی و اصلاح فاکتور): {SalesText.Tomans(summary.CashRefundsDuringShift)} تومان\n"
                 + $"مبلغ مورد انتظار: {SalesText.Tomans(summary.ExpectedCash)} تومان\n"
                 + $"مبلغ شمارش‌شده: {SalesText.Tomans(summary.CountedCash)} تومان\n"
                 + varianceText;

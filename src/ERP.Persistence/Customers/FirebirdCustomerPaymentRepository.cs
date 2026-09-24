@@ -22,8 +22,8 @@ public sealed class FirebirdCustomerPaymentRepository : ICustomerPaymentReposito
 
         await using var command = new FbCommand(
             """
-            INSERT INTO CUSTOMER_PAYMENT (ID, CUSTOMER_ID, AMOUNT_RIALS, METHOD, NOTE, RECEIVED_AT_UTC)
-            VALUES (@ID, @CUSTOMER_ID, @AMOUNT_RIALS, @METHOD, @NOTE, @RECEIVED_AT_UTC)
+            INSERT INTO CUSTOMER_PAYMENT (ID, CUSTOMER_ID, AMOUNT_RIALS, METHOD, NOTE, RECEIVED_AT_UTC, WAREHOUSE_ID)
+            VALUES (@ID, @CUSTOMER_ID, @AMOUNT_RIALS, @METHOD, @NOTE, @RECEIVED_AT_UTC, @WAREHOUSE_ID)
             """,
             _unitOfWork.Connection,
             _unitOfWork.Transaction)
@@ -36,6 +36,8 @@ public sealed class FirebirdCustomerPaymentRepository : ICustomerPaymentReposito
         command.Parameters.Add("@METHOD", FbDbType.SmallInt).Value = (short)payment.Method;
         command.Parameters.Add("@NOTE", FbDbType.VarChar).Value = payment.Note is { } note ? note : DBNull.Value;
         command.Parameters.Add("@RECEIVED_AT_UTC", FbDbType.TimeStamp).Value = payment.ReceivedAtUtc.UtcDateTime;
+        command.Parameters.Add("@WAREHOUSE_ID", FbDbType.Char).Value =
+            payment.WarehouseId is { } warehouseId ? warehouseId.ToString() : DBNull.Value;
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 }

@@ -27,7 +27,7 @@ namespace ERP.Desktop.Tests.Features.Sales;
 internal sealed class InMemorySalesBackend :
     ISaleRepository, IProductRepository, IStockLedgerRepository, ISaleNumberGenerator,
     ICustomerRepository, ICustomerLedgerReader, ICustomerSearchReader, IAuditWriter, IUnitOfWork,
-    ISaleReadReader, IProductSearchReader, ICatalogLookupReader, ICustomerPaymentRepository, IUserRepository,
+    ISaleReadReader, IProductSearchReader, ICatalogLookupReader, ICustomerPaymentRepository, ICustomerCashReceiptReader, IUserRepository,
     ICashShiftRepository, IJournalEntryRepository, ISaleLineCostRepository, ISaleReturnRepository,
     IReturnNumberGenerator, IUserContext, IClock
 {
@@ -308,14 +308,25 @@ internal sealed class InMemorySalesBackend :
             .Select(sale => ToListItem(sale, sale.Totals?.Total))
             .ToList());
 
-    Task<IReadOnlyList<SaleListItem>> ISaleReadReader.ListCompletedByWarehouseAsync(
+    Task<IReadOnlyList<CompletedSaleCash>> ISaleReadReader.ListTillSalesByWarehouseAsync(
         WarehouseId warehouseId, DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken) =>
-        Task.FromResult<IReadOnlyList<SaleListItem>>(Sales
+        Task.FromResult<IReadOnlyList<CompletedSaleCash>>(Sales
             .Where(sale => sale.Status == SaleStatus.Completed && sale.WarehouseId == warehouseId
                 && sale.CompletedAtUtc >= fromUtc && sale.CompletedAtUtc < toUtc)
-            .OrderByDescending(sale => sale.Number!.Value.Value)
-            .Select(sale => ToListItem(sale, sale.Totals?.Total))
+            .Select(sale =>
+            {
+                var replaced = Sales.FirstOrDefault(other => other.Id == sale.CorrectsSaleId);
+                return new CompletedSaleCash(
+                    sale.PaymentMethod!.Value, sale.Totals?.Total ?? Money.Zero, replaced?.PaymentMethod, replaced?.Totals?.Total);
+            })
             .ToList());
+
+    Task<Money> ICustomerCashReceiptReader.SumCashReceivedAsync(
+        WarehouseId warehouseId, DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken) =>
+        Task.FromResult(Money.FromRials(Payments
+            .Where(payment => payment.WarehouseId == warehouseId && payment.Method == CustomerPaymentMethod.Cash
+                && payment.ReceivedAtUtc >= fromUtc && payment.ReceivedAtUtc < toUtc)
+            .Sum(payment => payment.Amount.Rials)));
 
     Task<IReadOnlyList<SaleListItem>> ISaleReadReader.ListDraftsWithItemsAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<SaleListItem>>(Sales

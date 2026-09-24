@@ -1,6 +1,7 @@
 using ERP.Application.Cashiering;
 using ERP.Application.Common;
 using ERP.Persistence.Audit;
+using ERP.Persistence.Customers;
 using ERP.Persistence.Database;
 using ERP.Persistence.Sales;
 
@@ -53,6 +54,7 @@ public sealed class FirebirdCashieringService :
         return await new CloseCashShiftHandler(
                 new FirebirdCashShiftRepository(unitOfWork),
                 new FirebirdSaleReadReader(unitOfWork),
+                new FirebirdCustomerCashReceiptReader(unitOfWork),
                 new FirebirdAuditWriter(unitOfWork),
                 unitOfWork,
                 _userContext,
@@ -71,6 +73,7 @@ public sealed class FirebirdCashieringService :
         return await new GetCashShiftStatusHandler(
                 new FirebirdCashShiftRepository(unitOfWork),
                 new FirebirdSaleReadReader(unitOfWork),
+                new FirebirdCustomerCashReceiptReader(unitOfWork),
                 _clock)
             .ExecuteAsync(query, cancellationToken)
             .ConfigureAwait(false);

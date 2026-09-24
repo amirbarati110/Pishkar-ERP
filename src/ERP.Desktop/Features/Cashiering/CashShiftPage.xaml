@@ -43,7 +43,7 @@
                             <TextBlock Style="{StaticResource AppSectionTitleStyle}" Text="وضعیت این شیفت" />
                             <Grid ColumnSpacing="16" RowSpacing="8">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                                <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
                                 <StackPanel Spacing="2">
                                     <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="باز شده از" />
                                     <TextBlock FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Text="{x:Bind ViewModel.OpenedAtText, Mode=OneWay}" />
@@ -57,8 +57,13 @@
                                     <TextBlock FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Text="{x:Bind ViewModel.CashSalesSoFarText, Mode=OneWay}" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="2" Spacing="2">
-                                    <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="مرجوعی نقدی تا الان" />
-                                    <TextBlock FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Text="{x:Bind ViewModel.CashRefundsSoFarText, Mode=OneWay}" />
+                                    <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="دریافت نقدی از مشتریان تا الان" />
+                                    <TextBlock FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Text="{x:Bind ViewModel.CashReceiptsSoFarText, Mode=OneWay}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="3" Spacing="2">
+                                    <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="پول برگشتی به مشتری تا الان" />
+                                    <TextBlock FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" Text="{x:Bind ViewModel.CashRefundsSoFarText, Mode=OneWay}"
+                                               ToolTipService.ToolTip="مرجوعی نقدی، و اصلاح فاکتوری که مبلغ نقدی را کم کرد" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
                                     <TextBlock Style="{StaticResource AppFieldLabelStyle}" Text="مبلغ مورد انتظار الان" />

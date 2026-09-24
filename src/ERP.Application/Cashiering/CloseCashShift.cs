@@ -1,5 +1,6 @@
 using ERP.Application.Audit;
 using ERP.Application.Common;
+using ERP.Application.Customers;
 using ERP.Application.Sales;
 using ERP.Domain.Cashiering;
 using ERP.Domain.Common;
@@ -17,7 +18,8 @@ public sealed record CashShiftCloseSummary(
     Money CashRefundsDuringShift,
     Money ExpectedCash,
     Money CountedCash,
-    long VarianceRials);
+    long VarianceRials,
+    Money CashReceiptsDuringShift = default);
 
 public interface ICloseCashShiftHandler
 {
@@ -35,6 +37,7 @@ public sealed class CloseCashShiftHandler : ICloseCashShiftHandler
 {
     private readonly ICashShiftRepository _shifts;
     private readonly ISaleReadReader _sales;
+    private readonly ICustomerCashReceiptReader _receipts;
     private readonly IAuditWriter _audit;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
@@ -43,6 +46,7 @@ public sealed class CloseCashShiftHandler : ICloseCashShiftHandler
     public CloseCashShiftHandler(
         ICashShiftRepository shifts,
         ISaleReadReader sales,
+        ICustomerCashReceiptReader receipts,
         IAuditWriter audit,
         IUnitOfWork unitOfWork,
         IUserContext userContext,
@@ -50,6 +54,7 @@ public sealed class CloseCashShiftHandler : ICloseCashShiftHandler
     {
         _shifts = shifts;
         _sales = sales;
+        _receipts = receipts;
         _audit = audit;
         _unitOfWork = unitOfWork;
         _userContext = userContext;
@@ -67,29 +72,17 @@ public sealed class CloseCashShiftHandler : ICloseCashShiftHandler
         }
 
         var closedAtUtc = _clock.UtcNow;
-        var completed = await _sales
-            .ListCompletedByWarehouseAsync(shift.WarehouseId, shift.OpenedAtUtc, closedAtUtc, cancellationToken)
+        var cash = await ShiftCash
+            .ReadAsync(_sales, _receipts, shift.WarehouseId, shift.OpenedAtUtc, closedAtUtc, cancellationToken)
             .ConfigureAwait(false);
-        var cashSalesRials = completed
-            .Where(item => item.PaymentMethod == PaymentMethod.Cash)
-            .Sum(item => item.Amount?.Rials ?? 0);
-        var cashSales = Money.FromRials(cashSalesRials);
-
-        // Cash handed back for returns left the drawer too, so the shift is
-        // told about both: expected cash = opening + cash sales − cash refunds.
-        var returns = await _sales
-            .ListReturnsByWarehouseAsync(shift.WarehouseId, shift.OpenedAtUtc, closedAtUtc, cancellationToken)
-            .ConfigureAwait(false);
-        var cashRefunds = Money.FromRials(returns
-            .Where(item => item.RefundMethod == PaymentMethod.Cash)
-            .Sum(item => item.Refund.Rials));
 
         try
         {
             shift.Close(
                 Money.FromTomans(command.CountedCashTomans),
-                cashSales,
-                cashRefunds,
+                cash.Sales,
+                cash.HandedBack,
+                cash.Receipts,
                 UserId.From(_userContext.UserId),
                 closedAtUtc,
                 command.Note);
@@ -110,11 +103,12 @@ public sealed class CloseCashShiftHandler : ICloseCashShiftHandler
 
             return Result.Success(new CashShiftCloseSummary(
                 shift.OpeningCash,
-                cashSales,
-                cashRefunds,
+                cash.Sales,
+                cash.HandedBack,
                 shift.ExpectedCash!.Value,
                 shift.CountedCash!.Value,
-                shift.Variance!.Value));
+                shift.Variance!.Value,
+                cash.Receipts));
         }
         catch (DomainException exception)
         {

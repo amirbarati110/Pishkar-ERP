@@ -130,16 +130,12 @@ public sealed class SaleReadTests
             return Task.FromResult<IReadOnlyList<SaleListItem>>(Completed);
         }
 
-        public Task<IReadOnlyList<SaleListItem>> ListCompletedByWarehouseAsync(
+        public Task<IReadOnlyList<CompletedSaleCash>> ListTillSalesByWarehouseAsync(
             WarehouseId warehouseId,
             DateTimeOffset fromUtc,
             DateTimeOffset toUtc,
-            CancellationToken cancellationToken)
-        {
-            RequestedFrom = fromUtc;
-            RequestedTo = toUtc;
-            return Task.FromResult<IReadOnlyList<SaleListItem>>(Completed);
-        }
+            CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<CompletedSaleCash>>([]);
 
         public Task<IReadOnlyList<SaleListItem>> ListDraftsWithItemsAsync(CancellationToken cancellationToken)
         {

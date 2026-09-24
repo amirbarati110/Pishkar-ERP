@@ -1,4 +1,5 @@
 using ERP.Application.Common;
+using ERP.Application.Customers;
 using ERP.Application.Sales;
 using ERP.Domain.Cashiering;
 using ERP.Domain.Common;
@@ -15,7 +16,8 @@ public sealed record CashShiftStatusView(
     Money? OpeningCash,
     Money? CashSalesSoFar,
     Money? CashRefundsSoFar,
-    Money? ExpectedCashSoFar);
+    Money? ExpectedCashSoFar,
+    Money? CashReceiptsSoFar = null);
 
 public sealed record GetCashShiftStatusQuery(WarehouseId WarehouseId);
 
@@ -28,12 +30,18 @@ public sealed class GetCashShiftStatusHandler : IGetCashShiftStatusHandler
 {
     private readonly ICashShiftRepository _shifts;
     private readonly ISaleReadReader _sales;
+    private readonly ICustomerCashReceiptReader _receipts;
     private readonly IClock _clock;
 
-    public GetCashShiftStatusHandler(ICashShiftRepository shifts, ISaleReadReader sales, IClock clock)
+    public GetCashShiftStatusHandler(
+        ICashShiftRepository shifts,
+        ISaleReadReader sales,
+        ICustomerCashReceiptReader receipts,
+        IClock clock)
     {
         _shifts = shifts;
         _sales = sales;
+        _receipts = receipts;
         _clock = clock;
     }
 
@@ -47,27 +55,18 @@ public sealed class GetCashShiftStatusHandler : IGetCashShiftStatusHandler
             return new CashShiftStatusView(false, null, null, null, null, null, null);
         }
 
-        var completed = await _sales
-            .ListCompletedByWarehouseAsync(shift.WarehouseId, shift.OpenedAtUtc, _clock.UtcNow, cancellationToken)
+        var cash = await ShiftCash
+            .ReadAsync(_sales, _receipts, shift.WarehouseId, shift.OpenedAtUtc, _clock.UtcNow, cancellationToken)
             .ConfigureAwait(false);
-        var cashSalesSoFar = Money.FromRials(completed
-            .Where(item => item.PaymentMethod == PaymentMethod.Cash)
-            .Sum(item => item.Amount?.Rials ?? 0));
-
-        var returns = await _sales
-            .ListReturnsByWarehouseAsync(shift.WarehouseId, shift.OpenedAtUtc, _clock.UtcNow, cancellationToken)
-            .ConfigureAwait(false);
-        var cashRefundsSoFar = Money.FromRials(returns
-            .Where(item => item.RefundMethod == PaymentMethod.Cash)
-            .Sum(item => item.Refund.Rials));
 
         return new CashShiftStatusView(
             true,
             shift.Id,
             shift.OpenedAtUtc,
             shift.OpeningCash,
-            cashSalesSoFar,
-            cashRefundsSoFar,
-            Money.FromRials(Math.Max(0, shift.OpeningCash.Rials + cashSalesSoFar.Rials - cashRefundsSoFar.Rials)));
+            cash.Sales,
+            cash.HandedBack,
+            CashShift.Expected(shift.OpeningCash, cash.Sales, cash.Receipts, cash.HandedBack),
+            cash.Receipts);
     }
 }

@@ -13,7 +13,7 @@ public sealed class FirebirdCashShiftRepository : ICashShiftRepository
 {
     private const string SelectColumns =
         "ID, WAREHOUSE_ID, OPENED_BY_USER_ID, OPENED_AT_UTC, OPENING_CASH_RIALS, STATUS, "
-        + "CLOSED_BY_USER_ID, CLOSED_AT_UTC, COUNTED_CASH_RIALS, CASH_SALES_RIALS, NOTE, CASH_REFUNDS_RIALS";
+        + "CLOSED_BY_USER_ID, CLOSED_AT_UTC, COUNTED_CASH_RIALS, CASH_SALES_RIALS, NOTE, CASH_REFUNDS_RIALS, CASH_RECEIPTS_RIALS";
 
     private readonly FirebirdUnitOfWork _unitOfWork;
 
@@ -49,10 +49,12 @@ public sealed class FirebirdCashShiftRepository : ICashShiftRepository
                 """
                 INSERT INTO CASH_SHIFT (
                     ID, WAREHOUSE_ID, OPENED_BY_USER_ID, OPENED_AT_UTC, OPENING_CASH_RIALS, STATUS,
-                    CLOSED_BY_USER_ID, CLOSED_AT_UTC, COUNTED_CASH_RIALS, CASH_SALES_RIALS, NOTE, CASH_REFUNDS_RIALS)
+                    CLOSED_BY_USER_ID, CLOSED_AT_UTC, COUNTED_CASH_RIALS, CASH_SALES_RIALS, NOTE, CASH_REFUNDS_RIALS,
+                    CASH_RECEIPTS_RIALS)
                 VALUES (
                     @ID, @WAREHOUSE_ID, @OPENED_BY_USER_ID, @OPENED_AT_UTC, @OPENING_CASH_RIALS, @STATUS,
-                    @CLOSED_BY_USER_ID, @CLOSED_AT_UTC, @COUNTED_CASH_RIALS, @CASH_SALES_RIALS, @NOTE, @CASH_REFUNDS_RIALS)
+                    @CLOSED_BY_USER_ID, @CLOSED_AT_UTC, @COUNTED_CASH_RIALS, @CASH_SALES_RIALS, @NOTE, @CASH_REFUNDS_RIALS,
+                    @CASH_RECEIPTS_RIALS)
                 """);
             insert.Parameters.Add("@ID", FbDbType.Char).Value = shift.Id.ToString();
             insert.Parameters.Add("@WAREHOUSE_ID", FbDbType.Char).Value = shift.WarehouseId.ToString();
@@ -72,6 +74,7 @@ public sealed class FirebirdCashShiftRepository : ICashShiftRepository
                 COUNTED_CASH_RIALS = @COUNTED_CASH_RIALS,
                 CASH_SALES_RIALS = @CASH_SALES_RIALS,
                 CASH_REFUNDS_RIALS = @CASH_REFUNDS_RIALS,
+                CASH_RECEIPTS_RIALS = @CASH_RECEIPTS_RIALS,
                 NOTE = @NOTE
             WHERE ID = @ID
             """);
@@ -94,6 +97,8 @@ public sealed class FirebirdCashShiftRepository : ICashShiftRepository
             shift.CashSalesDuringShift is { } cashSales ? cashSales.Rials : DBNull.Value;
         command.Parameters.Add("@CASH_REFUNDS_RIALS", FbDbType.BigInt).Value =
             shift.CashRefundsDuringShift is { } cashRefunds ? cashRefunds.Rials : DBNull.Value;
+        command.Parameters.Add("@CASH_RECEIPTS_RIALS", FbDbType.BigInt).Value =
+            shift.CashReceiptsDuringShift is { } cashReceipts ? cashReceipts.Rials : DBNull.Value;
         command.Parameters.Add("@NOTE", FbDbType.VarChar).Value =
             shift.Note is { } note ? note : DBNull.Value;
     }
@@ -118,6 +123,7 @@ public sealed class FirebirdCashShiftRepository : ICashShiftRepository
             reader.IsDBNull(8) ? null : Money.FromRials(reader.GetInt64(8)),
             reader.IsDBNull(9) ? null : Money.FromRials(reader.GetInt64(9)),
             reader.IsDBNull(11) ? null : Money.FromRials(reader.GetInt64(11)),
+            reader.IsDBNull(12) ? null : Money.FromRials(reader.GetInt64(12)),
             reader.IsDBNull(10) ? null : reader.GetString(10));
     }
 

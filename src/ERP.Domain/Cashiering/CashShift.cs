@@ -48,15 +48,29 @@ public sealed class CashShift : Entity<CashShiftId>
     /// <summary>Total of cash-method sales completed between open and close — read from Sales by the Application layer, not this module (module boundary rule §5).</summary>
     public Money? CashSalesDuringShift { get; private set; }
 
-    /// <summary>Cash handed back to customers for returns between open and close — it left the drawer just as sales put cash in.</summary>
+    /// <summary>
+    /// Cash handed back to customers between open and close — for returns, and for a
+    /// «صورتحساب اصلاحی» that lowered what a cash invoice charged. It left the drawer just as
+    /// sales put cash in.
+    /// </summary>
     public Money? CashRefundsDuringShift { get; private set; }
+
+    /// <summary>
+    /// «دریافت از مشتری» paid in cash at this till between open and close — not a sale, but cash
+    /// that went into the drawer all the same. Null on shifts closed before it was recorded.
+    /// </summary>
+    public Money? CashReceiptsDuringShift { get; private set; }
 
     public string? Note { get; private set; }
 
-    /// <summary>OpeningCash + CashSalesDuringShift − CashRefundsDuringShift — what the drawer should hold. Only meaningful once closed. Never below zero: a drawer cannot hold less than nothing, and refunds that outrun it show up as the variance.</summary>
+    /// <summary>OpeningCash + CashSalesDuringShift + CashReceiptsDuringShift − CashRefundsDuringShift — what the drawer should hold. Only meaningful once closed. Never below zero: a drawer cannot hold less than nothing, and refunds that outrun it show up as the variance.</summary>
     public Money? ExpectedCash => CashSalesDuringShift is { } sales
-        ? Money.FromRials(Math.Max(0, OpeningCash.Rials + sales.Rials - (CashRefundsDuringShift?.Rials ?? 0)))
+        ? Expected(OpeningCash, sales, CashReceiptsDuringShift ?? Money.Zero, CashRefundsDuringShift ?? Money.Zero)
         : null;
+
+    /// <summary>The one formula for what a drawer should hold — for a closed shift and for the live figure of an open one.</summary>
+    public static Money Expected(Money openingCash, Money cashSales, Money cashReceipts, Money cashRefunds) =>
+        Money.FromRials(Math.Max(0, openingCash.Rials + cashSales.Rials + cashReceipts.Rials - cashRefunds.Rials));
 
     /// <summary>
     /// Rials, signed — positive means extra cash found, negative means short.
@@ -90,6 +104,7 @@ public sealed class CashShift : Entity<CashShiftId>
         Money? countedCash,
         Money? cashSalesDuringShift,
         Money? cashRefundsDuringShift,
+        Money? cashReceiptsDuringShift,
         string? note)
     {
         return new CashShift(id, warehouseId, openedByUserId, openedAtUtc, openingCash)
@@ -100,16 +115,19 @@ public sealed class CashShift : Entity<CashShiftId>
             CountedCash = countedCash,
             CashSalesDuringShift = cashSalesDuringShift,
             CashRefundsDuringShift = cashRefundsDuringShift,
+            CashReceiptsDuringShift = cashReceiptsDuringShift,
             Note = note,
         };
     }
 
     /// <param name="cashSalesDuringShift">Summed by the Application layer from Sales, covering exactly [OpenedAtUtc, closedAtUtc).</param>
-    /// <param name="cashRefundsDuringShift">Cash refunded for returns in the same window, summed the same way.</param>
+    /// <param name="cashRefundsDuringShift">Cash handed back (returns, corrections that lowered a cash invoice) in the same window, summed the same way.</param>
+    /// <param name="cashReceiptsDuringShift">Cash «دریافت از مشتری» at this till in the same window.</param>
     public void Close(
         Money countedCash,
         Money cashSalesDuringShift,
         Money cashRefundsDuringShift,
+        Money cashReceiptsDuringShift,
         UserId closedByUserId,
         DateTimeOffset closedAtUtc,
         string? note)
@@ -127,6 +145,7 @@ public sealed class CashShift : Entity<CashShiftId>
         CountedCash = countedCash;
         CashSalesDuringShift = cashSalesDuringShift;
         CashRefundsDuringShift = cashRefundsDuringShift;
+        CashReceiptsDuringShift = cashReceiptsDuringShift;
         ClosedByUserId = closedByUserId;
         ClosedAtUtc = closedAtUtc;
         Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();

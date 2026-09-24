@@ -114,29 +114,43 @@ public sealed class FirebirdSaleReadReader : ISaleReadReader
         return await ReadListAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<IReadOnlyList<SaleListItem>> ListCompletedByWarehouseAsync(
+    /// <summary>
+    /// Deliberately without <see cref="ExcludeCorrectedAwayClause"/>: for a till, an invoice that
+    /// was later corrected still put its cash in the drawer when it was paid; its correction then
+    /// counts only the difference (see <see cref="CompletedSaleCash.CashDeltaRials"/>).
+    /// </summary>
+    public async Task<IReadOnlyList<CompletedSaleCash>> ListTillSalesByWarehouseAsync(
         WarehouseId warehouseId,
         DateTimeOffset fromUtc,
         DateTimeOffset toUtc,
         CancellationToken cancellationToken)
     {
         await using var command = CreateCommand(
-            $"""
-            SELECT {ListColumns}, S.TOTAL_RIALS, S.PAYMENT_METHOD
+            """
+            SELECT S.PAYMENT_METHOD, COALESCE(S.TOTAL_RIALS, 0), O.PAYMENT_METHOD, COALESCE(O.TOTAL_RIALS, 0)
             FROM SALE S
-            LEFT JOIN CUSTOMER C ON C.ID = S.CUSTOMER_ID
+            LEFT JOIN SALE O ON O.ID = S.CORRECTS_SALE_ID
             WHERE S.STATUS = @COMPLETED
               AND S.WAREHOUSE_ID = @WAREHOUSE_ID
               AND S.COMPLETED_AT_UTC >= @FROM_UTC AND S.COMPLETED_AT_UTC < @TO_UTC
-              {ExcludeCorrectedAwayClause}
-            ORDER BY S.NUMBER DESC
             """);
         command.Parameters.Add("@COMPLETED", FbDbType.SmallInt).Value = (short)SaleStatus.Completed;
         command.Parameters.Add("@WAREHOUSE_ID", FbDbType.Char).Value = warehouseId.ToString();
         command.Parameters.Add("@FROM_UTC", FbDbType.TimeStamp).Value = fromUtc.UtcDateTime;
         command.Parameters.Add("@TO_UTC", FbDbType.TimeStamp).Value = toUtc.UtcDateTime;
 
-        return await ReadListAsync(command, cancellationToken).ConfigureAwait(false);
+        var items = new List<CompletedSaleCash>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            items.Add(new CompletedSaleCash(
+                (PaymentMethod)reader.GetInt16(0),
+                Money.FromRials(reader.GetInt64(1)),
+                reader.IsDBNull(2) ? null : (PaymentMethod)reader.GetInt16(2),
+                reader.IsDBNull(2) ? null : Money.FromRials(reader.GetInt64(3))));
+        }
+
+        return items;
     }
 
     public async Task<SaleListItem?> FindCompletedByNumberAsync(long number, CancellationToken cancellationToken)

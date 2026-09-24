@@ -1,4 +1,5 @@
 using ERP.Application.Cashiering;
+using ERP.Application.Customers;
 using ERP.Application.Sales;
 using ERP.Application.Tests.TestDoubles;
 using ERP.Domain.Catalog;
@@ -131,8 +132,49 @@ public sealed class CloseCashShiftTests
     private static OpenCashShiftHandler OpenHandler(ApplicationTestContext context) => new(
         context.CashShifts, context.Audit, context.UnitOfWork, context.User, context.Clock);
 
-    private static CloseCashShiftHandler CloseHandler(ApplicationTestContext context, FakeSaleReadReader reader) => new(
-        context.CashShifts, reader, context.Audit, context.UnitOfWork, context.User, context.Clock);
+    private static CloseCashShiftHandler CloseHandler(
+        ApplicationTestContext context, FakeSaleReadReader reader, FakeCashReceipts? receipts = null) => new(
+        context.CashShifts, reader, receipts ?? new FakeCashReceipts(), context.Audit, context.UnitOfWork, context.User, context.Clock);
+
+    [Fact]
+    public async Task CashTakenFromCustomersAtThisTillIsExpectedInTheDrawer()
+    {
+        // audit 1405/07/02: «دریافت از مشتری» in cash was missing, so every close showed a false overage
+        var context = new ApplicationTestContext();
+        var reader = new FakeSaleReadReader();
+        var opened = await OpenHandler(context).ExecuteAsync(new OpenCashShiftCommand(WarehouseId.New(), 200_000), CancellationToken.None);
+        reader.Completed.Add(Item(PaymentMethod.Cash, 450_000));
+
+        var result = await CloseHandler(context, reader, new FakeCashReceipts { Received = Money.FromTomans(300_000) })
+            .ExecuteAsync(new CloseCashShiftCommand(opened.Value, 950_000, null), CancellationToken.None);
+
+        Assert.Equal(3_000_000, result.Value!.CashReceiptsDuringShift.Rials);
+        Assert.Equal(9_500_000, result.Value.ExpectedCash.Rials);
+        Assert.Equal(0, result.Value.VarianceRials);
+        Assert.Equal(3_000_000, context.CashShifts.Items.Single().CashReceiptsDuringShift!.Value.Rials);
+    }
+
+    [Fact]
+    public async Task ACorrectionCountsOnlyTheCashItMovedNotItsWholeTotal()
+    {
+        // audit 1405/07/02: correcting an earlier shift's 490,000 cash invoice down to 450,000
+        // hands 40,000 back — it must not count as a fresh 450,000 cash sale
+        var context = new ApplicationTestContext();
+        var reader = new FakeSaleReadReader();
+        var opened = await OpenHandler(context).ExecuteAsync(new OpenCashShiftCommand(WarehouseId.New(), 100_000), CancellationToken.None);
+        reader.TillExtras.Add(new CompletedSaleCash(
+            PaymentMethod.Cash, Money.FromTomans(450_000), PaymentMethod.Cash, Money.FromTomans(490_000)));
+        reader.TillExtras.Add(new CompletedSaleCash(
+            PaymentMethod.Cash, Money.FromTomans(200_000), PaymentMethod.Card, Money.FromTomans(200_000))); // card → cash: +200,000
+
+        var result = await CloseHandler(context, reader).ExecuteAsync(
+            new CloseCashShiftCommand(opened.Value, 260_000, null), CancellationToken.None);
+
+        Assert.Equal(2_000_000, result.Value!.CashSalesDuringShift.Rials);
+        Assert.Equal(400_000, result.Value.CashRefundsDuringShift.Rials);
+        Assert.Equal(2_600_000, result.Value.ExpectedCash.Rials); // ۱۰۰ + ۲۰۰ − ۴۰
+        Assert.Equal(0, result.Value.VarianceRials);
+    }
 
     private static SaleListItem Item(PaymentMethod method, long tomans) => new(
         SaleId.New(), SaleNumber.From(1), DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null, null, 1, Money.FromTomans(tomans), method);
@@ -146,7 +188,7 @@ public sealed class GetCashShiftStatusTests
         var context = new ApplicationTestContext();
         var reader = new FakeSaleReadReader();
 
-        var status = await new GetCashShiftStatusHandler(context.CashShifts, reader, context.Clock)
+        var status = await new GetCashShiftStatusHandler(context.CashShifts, reader, new FakeCashReceipts(), context.Clock)
             .ExecuteAsync(new GetCashShiftStatusQuery(WarehouseId.New()), CancellationToken.None);
 
         Assert.False(status.IsOpen);
@@ -164,13 +206,15 @@ public sealed class GetCashShiftStatusTests
         reader.Completed.Add(new SaleListItem(
             SaleId.New(), SaleNumber.From(1), DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null, null, 1, Money.FromTomans(300_000), PaymentMethod.Cash));
 
-        var status = await new GetCashShiftStatusHandler(context.CashShifts, reader, context.Clock)
+        var status = await new GetCashShiftStatusHandler(
+                context.CashShifts, reader, new FakeCashReceipts { Received = Money.FromTomans(100_000) }, context.Clock)
             .ExecuteAsync(new GetCashShiftStatusQuery(warehouseId), CancellationToken.None);
 
         Assert.True(status.IsOpen);
         Assert.Equal(2_000_000, status.OpeningCash!.Value.Rials);
         Assert.Equal(3_000_000, status.CashSalesSoFar!.Value.Rials);
-        Assert.Equal(5_000_000, status.ExpectedCashSoFar!.Value.Rials);
+        Assert.Equal(1_000_000, status.CashReceiptsSoFar!.Value.Rials);
+        Assert.Equal(6_000_000, status.ExpectedCashSoFar!.Value.Rials);
     }
 }
 
@@ -180,6 +224,9 @@ internal sealed class FakeSaleReadReader : ISaleReadReader
 
     public List<ReturnListItem> Returns { get; } = [];
 
+    /// <summary>Till rows beyond <see cref="Completed"/> — corrections, which carry the invoice they replace.</summary>
+    public List<CompletedSaleCash> TillExtras { get; } = [];
+
     public Task<IReadOnlyDictionary<ProductId, SaleProductInfo>> ReadProductsAsync(
         WarehouseId warehouseId, IReadOnlyCollection<ProductId> productIds, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyDictionary<ProductId, SaleProductInfo>>(new Dictionary<ProductId, SaleProductInfo>());
@@ -188,9 +235,12 @@ internal sealed class FakeSaleReadReader : ISaleReadReader
         DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<SaleListItem>>(Completed);
 
-    public Task<IReadOnlyList<SaleListItem>> ListCompletedByWarehouseAsync(
+    public Task<IReadOnlyList<CompletedSaleCash>> ListTillSalesByWarehouseAsync(
         WarehouseId warehouseId, DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken) =>
-        Task.FromResult<IReadOnlyList<SaleListItem>>(Completed);
+        Task.FromResult<IReadOnlyList<CompletedSaleCash>>(Completed
+            .Select(item => new CompletedSaleCash(item.PaymentMethod ?? PaymentMethod.Cash, item.Amount ?? Money.Zero))
+            .Concat(TillExtras)
+            .ToList());
 
     public Task<IReadOnlyList<SaleListItem>> ListDraftsWithItemsAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<SaleListItem>>([]);
@@ -209,4 +259,13 @@ internal sealed class FakeSaleReadReader : ISaleReadReader
     public Task<LineEditInfo> ReadLineEditInfoAsync(
         WarehouseId warehouseId, ProductId productId, CustomerId? customerId, CancellationToken cancellationToken) =>
         Task.FromResult(new LineEditInfo(null, null, null));
+}
+
+internal sealed class FakeCashReceipts : ICustomerCashReceiptReader
+{
+    public Money Received { get; init; } = Money.Zero;
+
+    public Task<Money> SumCashReceivedAsync(
+        WarehouseId warehouseId, DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken) =>
+        Task.FromResult(Received);
 }
