@@ -1,3 +1,4 @@
+using ERP.Application.Accounting;
 using ERP.Application.Audit;
 using ERP.Application.Common;
 using ERP.Domain.Catalog;
@@ -24,6 +25,7 @@ public sealed class ReceiveOpeningStockHandler : IReceiveOpeningStockHandler
 {
     private readonly IStockLedgerRepository _stockLedgers;
     private readonly IAuditWriter _audit;
+    private readonly IJournalEntryRepository _journal;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
     private readonly IClock _clock;
@@ -31,12 +33,14 @@ public sealed class ReceiveOpeningStockHandler : IReceiveOpeningStockHandler
     public ReceiveOpeningStockHandler(
         IStockLedgerRepository stockLedgers,
         IAuditWriter audit,
+        IJournalEntryRepository journal,
         IUnitOfWork unitOfWork,
         IUserContext userContext,
         IClock clock)
     {
         _stockLedgers = stockLedgers;
         _audit = audit;
+        _journal = journal;
         _unitOfWork = unitOfWork;
         _userContext = userContext;
         _clock = clock;
@@ -62,6 +66,7 @@ public sealed class ReceiveOpeningStockHandler : IReceiveOpeningStockHandler
                 command.ReceivedOn);
 
             await _stockLedgers.SaveAsync(ledger, cancellationToken).ConfigureAwait(false);
+            await OpeningStockJournal.PostAsync(_journal, ledger.Layers[^1], _clock.UtcNow, cancellationToken).ConfigureAwait(false);
 
             await _audit.WriteAsync(
                 new AuditEntry(

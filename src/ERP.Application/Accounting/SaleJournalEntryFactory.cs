@@ -68,4 +68,29 @@ public static class SaleJournalEntryFactory
 
         return JournalEntry.Create(sourceType, sourceId, postedAtUtc, lines);
     }
+
+    /// <summary>
+    /// For a «صورتحساب اصلاحی»: the mirror of the sales part of the entry that was actually posted
+    /// for the invoice it replaces — every line swapped debit for credit — so that invoice's
+    /// revenue, VAT and receivable leave the books and only the correction's own entry remains.
+    /// The cost-of-goods pair is left alone: a correction moves no stock, so that cost still
+    /// stands. The original entry itself is never touched (Codex rule 15).
+    /// </summary>
+    /// <param name="correctionSaleId">The correction's own sale id — the reversal's source.</param>
+    /// <returns>Null when the original posted nothing but its cost pair.</returns>
+    public static JournalEntry? ReverseSalePart(JournalEntry original, string correctionSaleId, DateTimeOffset postedAtUtc)
+    {
+        ArgumentNullException.ThrowIfNull(original);
+
+        var reversed = original.Lines
+            .Where(line => line.Account is not (AccountCode.CostOfGoodsSold or AccountCode.Inventory))
+            .Select(line => line.Debit.Rials > 0
+                ? JournalLine.Credited(line.Account, line.Debit)
+                : JournalLine.Debited(line.Account, line.Credit))
+            .ToList();
+
+        return reversed.Count < 2
+            ? null
+            : JournalEntry.Create(JournalSourceType.SaleCorrectionReversal, correctionSaleId, postedAtUtc, reversed);
+    }
 }

@@ -114,7 +114,21 @@ public sealed class CompleteSaleCorrectionHandler : ICompleteSaleCorrectionHandl
                 cancellationToken).ConfigureAwait(false);
 
             // اصلاحیه سند حسابداری تازه‌ی خودش را می‌گیرد — سند فاکتور اصلی
-            // دست‌نخورده می‌ماند، دقیقاً مثل خود ردیف Sale (پیوست و.۱).
+            // دست‌نخورده می‌ماند، دقیقاً مثل خود ردیف Sale (پیوست و.۱). ولی بخش فروشِ
+            // آن سند با یک سند «برگشت» خنثی می‌شود؛ وگرنه درآمد هر دو فاکتور در دفتر
+            // می‌ماند (ممیزی ۱۴۰۵/۰۷/۰۲: ۹٫۸ میلیون به جای ۴٫۹).
+            var replacedEntry = await _journal
+                    .GetBySourceAsync(JournalSourceType.Sale, originalSaleId.ToString(), cancellationToken)
+                    .ConfigureAwait(false)
+                ?? await _journal
+                    .GetBySourceAsync(JournalSourceType.SaleCorrection, originalSaleId.ToString(), cancellationToken)
+                    .ConfigureAwait(false);
+            if (replacedEntry is not null
+                && SaleJournalEntryFactory.ReverseSalePart(replacedEntry, sale.Id.ToString(), _clock.UtcNow) is { } reversal)
+            {
+                await _journal.SaveAsync(reversal, cancellationToken).ConfigureAwait(false);
+            }
+
             var journalEntry = SaleJournalEntryFactory.Create(
                 JournalSourceType.SaleCorrection, sale.Id.ToString(), totals, command.PaymentMethod, _clock.UtcNow);
             if (journalEntry is not null)

@@ -1,3 +1,4 @@
+using ERP.Application.Accounting;
 using ERP.Application.Audit;
 using ERP.Application.Common;
 using ERP.Domain.Common;
@@ -102,6 +103,7 @@ public sealed class CreateCustomerHandler : ICreateCustomerHandler
 {
     private readonly ICustomerRepository _customers;
     private readonly IAuditWriter _audit;
+    private readonly IJournalEntryRepository _journal;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
     private readonly IClock _clock;
@@ -109,12 +111,14 @@ public sealed class CreateCustomerHandler : ICreateCustomerHandler
     public CreateCustomerHandler(
         ICustomerRepository customers,
         IAuditWriter audit,
+        IJournalEntryRepository journal,
         IUnitOfWork unitOfWork,
         IUserContext userContext,
         IClock clock)
     {
         _customers = customers;
         _audit = audit;
+        _journal = journal;
         _unitOfWork = unitOfWork;
         _userContext = userContext;
         _clock = clock;
@@ -139,6 +143,11 @@ public sealed class CreateCustomerHandler : ICreateCustomerHandler
             }
 
             await _customers.AddAsync(customer, cancellationToken).ConfigureAwait(false);
+            if (OperationalJournalEntryFactory.CustomerOpeningBalance(customer.Id, customer.OpeningBalance, _clock.UtcNow) is { } opening)
+            {
+                await _journal.SaveAsync(opening, cancellationToken).ConfigureAwait(false);
+            }
+
             await _audit.WriteAsync(
                 new AuditEntry(
                     Guid.NewGuid(),

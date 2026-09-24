@@ -1,3 +1,4 @@
+using ERP.Domain.Accounting;
 using ERP.Application.Customers;
 using ERP.Application.Sales;
 using ERP.Application.Tests.TestDoubles;
@@ -171,7 +172,7 @@ public sealed class CustomerOnSaleTests
         var payments = new RecordingPayments();
 
         var result = await new RecordCustomerPaymentHandler(
-                context.Customers, payments, context.Audit, context.UnitOfWork, context.User, context.Clock)
+                context.Customers, payments, context.Audit, context.JournalEntries, context.UnitOfWork, context.User, context.Clock)
             .ExecuteAsync(
                 new RecordCustomerPaymentCommand(customer.Id, Money.FromTomans(500_000).Rials, CustomerPaymentMethod.Cash, " قسط اول "),
                 CancellationToken.None);
@@ -181,6 +182,12 @@ public sealed class CustomerOnSaleTests
         Assert.Equal("قسط اول", payment.Note);
         Assert.Equal("customers.payment.received", Assert.Single(context.Audit.Entries).Action);
         Assert.Equal(1, context.UnitOfWork.CommitCount);
+
+        // cash in, receivable down — the journal agrees with the customer's balance (audit 1405/07/02)
+        var entry = Assert.Single(context.JournalEntries.Items);
+        Assert.Equal(JournalSourceType.CustomerPayment, entry.SourceType);
+        Assert.Contains(entry.Lines, line => line.Account == AccountCode.Cash && line.Debit.Rials == 5_000_000);
+        Assert.Contains(entry.Lines, line => line.Account == AccountCode.AccountsReceivable && line.Credit.Rials == 5_000_000);
     }
 
     private static Customer AddCustomer(ApplicationTestContext context, long creditLimitTomans = 0)

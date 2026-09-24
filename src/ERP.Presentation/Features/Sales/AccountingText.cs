@@ -16,6 +16,7 @@ public static class AccountingText
         AccountCode.CostOfGoodsSold => "بهای تمام‌شده کالای فروش‌رفته",
         AccountCode.Inventory => "موجودی کالا",
         AccountCode.SalesReturns => "برگشت از فروش",
+        AccountCode.OpeningBalanceEquity => "سرمایه و مانده‌های افتتاحیه",
         _ => account.ToString(),
     };
 }

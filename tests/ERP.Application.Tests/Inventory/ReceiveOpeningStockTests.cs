@@ -1,3 +1,4 @@
+using ERP.Domain.Accounting;
 using ERP.Application.Inventory;
 using ERP.Application.Tests.TestDoubles;
 using ERP.Domain.Catalog;
@@ -14,6 +15,7 @@ public sealed class ReceiveOpeningStockTests
         var handler = new ReceiveOpeningStockHandler(
             context.StockLedgers,
             context.Audit,
+            context.JournalEntries,
             context.UnitOfWork,
             context.User,
             context.Clock);
@@ -35,6 +37,12 @@ public sealed class ReceiveOpeningStockTests
         Assert.Single(ledger.Movements);
         Assert.Equal("inventory.opening-stock.received", Assert.Single(context.Audit.Entries).Action);
         Assert.Equal(1, context.UnitOfWork.CommitCount);
+
+        // the stock enters the books at its cost, against opening equity (audit 1405/07/02)
+        var entry = Assert.Single(context.JournalEntries.Items);
+        Assert.Equal(JournalSourceType.OpeningStock, entry.SourceType);
+        Assert.Contains(entry.Lines, line => line.Account == AccountCode.Inventory && line.Debit.Rials == 10_000_000);
+        Assert.Contains(entry.Lines, line => line.Account == AccountCode.OpeningBalanceEquity && line.Credit.Rials == 10_000_000);
     }
 
     [Fact]
@@ -47,6 +55,7 @@ public sealed class ReceiveOpeningStockTests
         var handler = new ReceiveOpeningStockHandler(
             context.StockLedgers,
             context.Audit,
+            context.JournalEntries,
             context.UnitOfWork,
             context.User,
             context.Clock);

@@ -1,6 +1,7 @@
 using ERP.Application.Common;
 using ERP.Application.Customers;
 using ERP.Domain.Customers;
+using ERP.Persistence.Accounting;
 using ERP.Persistence.Audit;
 using ERP.Persistence.Database;
 
@@ -77,6 +78,7 @@ public sealed class FirebirdCustomerService :
                 new FirebirdCustomerRepository(unitOfWork),
                 new FirebirdCustomerPaymentRepository(unitOfWork),
                 new FirebirdAuditWriter(unitOfWork),
+                new FirebirdJournalEntryRepository(unitOfWork),
                 unitOfWork,
                 _userContext,
                 _clock)
@@ -98,6 +100,7 @@ public sealed class FirebirdCustomerService :
         return await new CreateCustomerHandler(
                 new FirebirdCustomerRepository(unitOfWork),
                 new FirebirdAuditWriter(unitOfWork),
+                new FirebirdJournalEntryRepository(unitOfWork),
                 unitOfWork,
                 _userContext,
                 _clock)

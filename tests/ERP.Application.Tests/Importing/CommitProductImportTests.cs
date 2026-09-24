@@ -86,6 +86,7 @@ public sealed class CommitProductImportTests
         context.Products,
         context.StockLedgers,
         context.Audit,
+        context.JournalEntries,
         context.UnitOfWork,
         context.User,
         context.Clock);

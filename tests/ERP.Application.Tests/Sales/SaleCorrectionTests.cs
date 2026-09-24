@@ -1,3 +1,5 @@
+using ERP.Domain.Accounting;
+using ERP.Application.Accounting;
 using ERP.Application.Sales;
 using ERP.Application.Tests.TestDoubles;
 using ERP.Domain.Catalog;
@@ -76,6 +78,38 @@ public sealed class SaleCorrectionTests
         var correctionEntry = Assert.Single(context.JournalEntries.Items, entry => entry.SourceId == correction.Id.ToString());
         Assert.Equal(ERP.Domain.Accounting.JournalSourceType.SaleCorrection, correctionEntry.SourceType);
         Assert.DoesNotContain(context.JournalEntries.Items, entry => entry.SourceId == original.Id.ToString());
+    }
+
+    [Fact]
+    public async Task TheReplacedInvoicesSalesPartIsReversedSoOnlyTheCorrectionCounts()
+    {
+        // audit 1405/07/02: without the reversal, the journal held both invoices' revenue
+        var context = new ApplicationTestContext();
+        var original = await CompletedCashSaleAsync(context, discountTomans: 0); // 245,000 cash
+        var cost = Money.FromTomans(200_000);
+        context.JournalEntries.Items.Add(SaleJournalEntryFactory.Create(
+            JournalSourceType.Sale, original.Id.ToString(), original.Totals!, PaymentMethod.Cash, context.Clock.UtcNow, cost)!);
+
+        var started = await StartHandler(context).ExecuteAsync(
+            new StartSaleCorrectionCommand(original.Id, "تخفیف فراموش شد و با کارت پرداخت شد"), CancellationToken.None);
+        var correction = context.Sales.Items.Single(sale => sale.Id == started.Value);
+        correction.ApplyDiscount(Money.FromTomans(45_000));
+        var done = await CompleteHandler(context).ExecuteAsync(
+            new CompleteSaleCorrectionCommand(correction.Id, PaymentMethod.Card, TaxRatePercent: 0), CancellationToken.None);
+        Assert.True(done.IsSuccess, done.Error?.Message);
+
+        long Net(AccountCode account) => context.JournalEntries.Items
+            .SelectMany(entry => entry.Lines)
+            .Where(line => line.Account == account)
+            .Sum(line => line.Debit.Rials - line.Credit.Rials);
+
+        Assert.Equal(0, Net(AccountCode.Cash));                    // the cash went back to the customer
+        Assert.Equal(2_000_000, Net(AccountCode.CardClearing));    // 200,000 toman by card
+        Assert.Equal(-2_000_000, Net(AccountCode.SalesRevenue));   // revenue counted once, at the corrected amount
+        Assert.Equal(2_000_000, Net(AccountCode.CostOfGoodsSold)); // the goods' cost still stands
+        var reversal = Assert.Single(context.JournalEntries.Items, entry => entry.SourceType == JournalSourceType.SaleCorrectionReversal);
+        Assert.Equal(correction.Id.ToString(), reversal.SourceId);
+        Assert.Equal(reversal.Lines.Sum(line => line.Debit.Rials), reversal.Lines.Sum(line => line.Credit.Rials));
     }
 
     [Fact]

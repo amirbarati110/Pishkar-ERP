@@ -17,4 +17,11 @@ public enum AccountCode
     CostOfGoodsSold = 7,
     Inventory = 8,
     SalesReturns = 9,
+
+    /// <summary>
+    /// «سرمایه و مانده‌های افتتاحیه»: the other side of everything the business brought in when it
+    /// started using the app — opening stock and customers' opening debts. Without it those
+    /// balances had no entry, and each sale's cost drove «موجودی کالا» below zero (audit 1405/07/02).
+    /// </summary>
+    OpeningBalanceEquity = 10,
 }

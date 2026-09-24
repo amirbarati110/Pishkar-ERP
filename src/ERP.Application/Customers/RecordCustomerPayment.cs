@@ -1,4 +1,5 @@
 using System.Globalization;
+using ERP.Application.Accounting;
 using ERP.Application.Audit;
 using ERP.Application.Common;
 using ERP.Domain.Common;
@@ -33,6 +34,7 @@ public sealed class RecordCustomerPaymentHandler : IRecordCustomerPaymentHandler
     private readonly ICustomerRepository _customers;
     private readonly ICustomerPaymentRepository _payments;
     private readonly IAuditWriter _audit;
+    private readonly IJournalEntryRepository _journal;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
     private readonly IClock _clock;
@@ -41,6 +43,7 @@ public sealed class RecordCustomerPaymentHandler : IRecordCustomerPaymentHandler
         ICustomerRepository customers,
         ICustomerPaymentRepository payments,
         IAuditWriter audit,
+        IJournalEntryRepository journal,
         IUnitOfWork unitOfWork,
         IUserContext userContext,
         IClock clock)
@@ -48,6 +51,7 @@ public sealed class RecordCustomerPaymentHandler : IRecordCustomerPaymentHandler
         _customers = customers;
         _payments = payments;
         _audit = audit;
+        _journal = journal;
         _unitOfWork = unitOfWork;
         _userContext = userContext;
         _clock = clock;
@@ -76,6 +80,10 @@ public sealed class RecordCustomerPaymentHandler : IRecordCustomerPaymentHandler
                 command.WarehouseId);
 
             await _payments.AddAsync(payment, cancellationToken).ConfigureAwait(false);
+            await _journal.SaveAsync(
+                    OperationalJournalEntryFactory.CustomerPayment(payment.Id, payment.Amount, payment.Method, _clock.UtcNow),
+                    cancellationToken)
+                .ConfigureAwait(false);
             await _audit.WriteAsync(
                 new AuditEntry(
                     Guid.NewGuid(),

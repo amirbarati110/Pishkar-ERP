@@ -4,6 +4,7 @@ using ERP.Application.Importing;
 using ERP.Application.Inventory;
 using ERP.Domain.Catalog;
 using ERP.Domain.Inventory;
+using ERP.Persistence.Accounting;
 using ERP.Persistence.Audit;
 using ERP.Persistence.Catalog;
 using ERP.Persistence.Database;
@@ -128,6 +129,7 @@ public sealed class FirebirdRetailSetupService :
         return await new ReceiveOpeningStockHandler(
                 new FirebirdStockLedgerRepository(unitOfWork),
                 CreateAuditWriter(unitOfWork),
+                new FirebirdJournalEntryRepository(unitOfWork),
                 unitOfWork,
                 _userContext,
                 _clock)
@@ -146,6 +148,7 @@ public sealed class FirebirdRetailSetupService :
                 new FirebirdProductRepository(unitOfWork),
                 new FirebirdStockLedgerRepository(unitOfWork),
                 CreateAuditWriter(unitOfWork),
+                new FirebirdJournalEntryRepository(unitOfWork),
                 unitOfWork,
                 _userContext,
                 _clock)

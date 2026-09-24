@@ -351,6 +351,16 @@ public sealed class SalesServiceTests
         Assert.Equal(4, all.TotalCount);
         Assert.Equal(1_500_000, all.TotalDebt.ToTomansExact());
         Assert.Equal(150_000, all.TotalAdvance.ToTomansExact());
+
+        // the journal's receivables tell the same story: opening balances, credit sale and
+        // payments all posted (audit 1405/07/02 — opening balances and payments used to be missing)
+        await using (var connection = await context.Factory.OpenAsync(CancellationToken.None))
+        await using (var receivables = new FirebirdSql.Data.FirebirdClient.FbCommand(
+            "SELECT CAST(COALESCE(SUM(DEBIT_RIALS - CREDIT_RIALS), 0) AS BIGINT) FROM JOURNAL_LINE WHERE ACCOUNT = 3", connection))
+        {
+            var net = Convert.ToInt64(await receivables.ExecuteScalarAsync(CancellationToken.None), System.Globalization.CultureInfo.InvariantCulture);
+            Assert.Equal(Money.FromTomans(1_500_000 - 150_000).Rials, net);
+        }
         var mohammadRow = all.Rows.Single(row => row.Id == mohammad);
         Assert.Equal("محمد رضایی", mohammadRow.Name);
         Assert.Equal(1_500_000, mohammadRow.Debt.ToTomansExact());

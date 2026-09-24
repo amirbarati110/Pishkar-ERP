@@ -117,7 +117,7 @@ internal sealed class InMemorySalesBackend :
             new SearchCustomersHandler(this),
             new QuickCreateCustomerHandler(this, this, this, this, this),
             new GetCustomerAccountHandler(this, this),
-            new RecordCustomerPaymentHandler(this, this, this, this, this, this),
+            new RecordCustomerPaymentHandler(this, this, this, this, this, this, this),
             new VerifyAdminCredentialHandler(this),
             new GetSaleJournalEntryHandler(this),
             new FindSaleForReturnHandler(this),
