@@ -88,6 +88,23 @@ public sealed class FirebirdBackupEngine : IBackupEngine
         }
     }
 
+    public async Task ReplaceLiveDatabaseAsync(string backupFilePath, CancellationToken cancellationToken)
+    {
+        // Nothing of the app's may hold the file: its connections are not pooled, and this clears
+        // any the provider still keeps.
+        FbConnection.ClearAllPools();
+        var restore = new FbRestore
+        {
+            ConnectionString = BuildConnectionString(_options.DatabasePath),
+            Verbose = false,
+            Options = FbRestoreFlags.Replace,
+        };
+        restore.BackupFiles.Add(new FbBackupFile(backupFilePath));
+        await restore.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        await ReleaseFileAsync(backupFilePath, cancellationToken).ConfigureAwait(false);
+        await ReleaseFileAsync(_options.DatabasePath, cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// «بازخوانی و بررسی ساختاری» (§16): open the just-restored database and
     /// confirm its own migration history — the same table every other health

@@ -9,6 +9,7 @@
     FontFamily="{StaticResource AppBodyFont}"
     FlowDirection="RightToLeft">
 
+    <Grid>
     <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
         <Grid MaxWidth="720" HorizontalAlignment="Center" Padding="28,24,28,32">
             <StackPanel Spacing="18">
@@ -77,7 +78,85 @@
                         <ProgressRing Width="22" Height="22" HorizontalAlignment="Left" IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
                     </StackPanel>
                 </Border>
+
+                <!-- ═══ بازیابی (§15.10–15.12): از آخرین نسخه یا از یک فایل (مثلاً از فلش، روی سیستم تازه) ═══ -->
+                <Border Style="{StaticResource AppCardStyle}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Style="{StaticResource AppSectionTitleStyle}" Text="بازیابی اطلاعات از نسخه پشتیبان" />
+                        <TextBlock Style="{StaticResource AppMutedTextStyle}" FontSize="13.5" TextWrapping="Wrap"
+                                   Text="اطلاعات فعلی با اطلاعات نسخه‌ی پشتیبان جایگزین می‌شود. قبلش خودکار یک نسخه‌ی ایمنی گرفته می‌شود و فقط مدیر می‌تواند انجامش دهد." />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button Style="{StaticResource AppActionDangerButtonStyle}" Content="بازیابی آخرین نسخه"
+                                    Command="{x:Bind ViewModel.RestoreLatestCommand}" IsEnabled="{x:Bind ViewModel.CanRestoreLatest, Mode=OneWay}"
+                                    AutomationProperties.AutomationId="BackupRestoreLatest" />
+                            <Button Style="{StaticResource AppActionButtonStyle}" Content="بازیابی از فایل…" Click="OnRestoreFromFileClick"
+                                    AutomationProperties.AutomationId="BackupRestoreFromFile" />
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource AppMutedTextStyle}" FontSize="12.5" TextWrapping="Wrap" IsTextSelectionEnabled="True">
+                            <Run Text="پوشه‌ی نسخه‌های پشتیبان: " /><Run Text="{x:Bind ViewModel.BackupDirectory}" />
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </Grid>
     </ScrollViewer>
+
+    <!-- ═══ step 1: what will happen ═══ -->
+    <Grid Background="#66000000" Visibility="{x:Bind ViewModel.IsRestoreWarningOpen, Mode=OneWay}">
+        <Border Width="520" Padding="24" CornerRadius="16" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{ThemeResource AppSurfaceBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
+            <StackPanel Spacing="18">
+                <TextBlock FontSize="18" FontWeight="Bold" Text="بازیابی اطلاعات؟" />
+                <TextBlock TextWrapping="Wrap" FontSize="15" Foreground="{ThemeResource SalesMutedTextBrush}" Text="{x:Bind ViewModel.RestoreWarningText, Mode=OneWay}"
+                           AutomationProperties.AutomationId="BackupRestoreWarningText" />
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Button HorizontalAlignment="Stretch" Command="{x:Bind ViewModel.ContinueRestoreCommand}" Style="{StaticResource AppActionDangerButtonStyle}"
+                            AutomationProperties.AutomationId="BackupRestoreContinue" Content="ادامه" />
+                    <Button Grid.Column="1" HorizontalAlignment="Stretch" Command="{x:Bind ViewModel.CancelRestoreCommand}" Style="{StaticResource AppActionButtonStyle}"
+                            AutomationProperties.AutomationId="BackupRestoreCancel" Content="انصراف" />
+                </Grid>
+            </StackPanel>
+        </Border>
+    </Grid>
+
+    <!-- ═══ step 2: a manager's own username and password (§15.3) ═══ -->
+    <Grid Background="#66000000" Visibility="{x:Bind ViewModel.IsRestoreCredentialsOpen, Mode=OneWay}">
+        <Border Width="460" Padding="24" CornerRadius="16" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{ThemeResource AppSurfaceBrush}" BorderBrush="{ThemeResource SalesLineBrush}" BorderThickness="1">
+            <StackPanel Spacing="14">
+                <TextBlock FontSize="18" FontWeight="Bold" Text="تأیید مدیر" />
+                <TextBlock TextWrapping="Wrap" Foreground="{ThemeResource SalesMutedTextBrush}" Text="برای بازیابی، نام کاربری و رمز یک مدیر را وارد کنید." />
+                <TextBox Header="نام کاربری مدیر" Style="{StaticResource AppTextBoxStyle}" Text="{x:Bind ViewModel.AdminUsername, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.AutomationId="BackupRestoreAdminUser" />
+                <PasswordBox x:Name="AdminPasswordBox" Header="رمز مدیر" MinHeight="48" CornerRadius="10" FontFamily="{StaticResource AppBodyFont}" FontSize="15"
+                             PasswordChanged="OnAdminPasswordChanged" AutomationProperties.AutomationId="BackupRestoreAdminPassword" />
+                <TextBlock Style="{StaticResource AppErrorTextStyle}" TextWrapping="Wrap" Text="{x:Bind ViewModel.RestoreError, Mode=OneWay}"
+                           AutomationProperties.AutomationId="BackupRestoreError" />
+                <ProgressRing Width="22" Height="22" HorizontalAlignment="Center" IsActive="{x:Bind ViewModel.IsRestoring, Mode=OneWay}" />
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Button HorizontalAlignment="Stretch" Command="{x:Bind ViewModel.ConfirmRestoreCommand}" Style="{StaticResource AppActionDangerButtonStyle}"
+                            AutomationProperties.AutomationId="BackupRestoreConfirm" Content="بازیابی کن" />
+                    <Button Grid.Column="1" HorizontalAlignment="Stretch" Command="{x:Bind ViewModel.CancelRestoreCommand}" Style="{StaticResource AppActionButtonStyle}"
+                            AutomationProperties.AutomationId="BackupRestoreCredentialsCancel" Content="انصراف" />
+                </Grid>
+            </StackPanel>
+        </Border>
+    </Grid>
+
+    <!-- ═══ done: the app must be reopened ═══ -->
+    <Grid Background="#99000000" Visibility="{x:Bind ViewModel.IsRestartRequired, Mode=OneWay}">
+        <Border Width="560" Padding="24" CornerRadius="16" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{ThemeResource AppSurfaceBrush}" BorderBrush="{ThemeResource AppPrimaryBrush}" BorderThickness="1">
+            <StackPanel Spacing="18">
+                <TextBlock FontSize="18" FontWeight="Bold" Text="بازیابی انجام شد" />
+                <TextBlock TextWrapping="Wrap" IsTextSelectionEnabled="True" Text="{x:Bind ViewModel.RestoreDoneText, Mode=OneWay}"
+                           AutomationProperties.AutomationId="BackupRestoreDoneText" />
+                <Button HorizontalAlignment="Stretch" Style="{StaticResource AppPrimaryButtonStyle}" Content="بستن برنامه" Click="OnCloseAppClick"
+                        AutomationProperties.AutomationId="BackupRestoreCloseApp" />
+            </StackPanel>
+        </Border>
+    </Grid>
+    </Grid>
 </Page>

@@ -19,7 +19,8 @@ public sealed record SystemHealthView(
     bool MigrationsUpToDate,
     BackupRecordId? LatestBackupId,
     DateTimeOffset? LatestBackupAtUtc,
-    BackupVerificationStatus? LatestBackupStatus);
+    BackupVerificationStatus? LatestBackupStatus,
+    string? LatestBackupFilePath = null);
 
 public interface IGetSystemHealthHandler
 {
@@ -61,6 +62,7 @@ public sealed class GetSystemHealthHandler : IGetSystemHealthHandler
             status.AppliedCount >= _expectedMigrationCount,
             latestBackup?.Id,
             latestBackup?.CreatedAtUtc,
-            latestBackup?.Status);
+            latestBackup?.Status,
+            latestBackup?.FilePath);
     }
 }

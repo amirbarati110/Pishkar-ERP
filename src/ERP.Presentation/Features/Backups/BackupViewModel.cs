@@ -19,20 +19,150 @@ public sealed partial class BackupViewModel : ObservableObject
     private readonly ICreateBackupHandler _create;
     private readonly IVerifyBackupHandler _verify;
     private readonly IGetSystemHealthHandler _health;
+    private readonly IRestoreBackupHandler _restore;
     private readonly string _backupDirectory;
 
     private BackupRecordId? _latestBackupId;
+    private string? _latestBackupFilePath;
+    private string? _restoreFilePath;
 
     public BackupViewModel(
         ICreateBackupHandler create,
         IVerifyBackupHandler verify,
         IGetSystemHealthHandler health,
+        IRestoreBackupHandler restore,
         string backupDirectory)
     {
         _create = create;
         _verify = verify;
         _health = health;
+        _restore = restore;
         _backupDirectory = backupDirectory;
+    }
+
+    /// <summary>The folder the app writes backups to — shown so a person knows where to find them (and to copy them to a USB disk).</summary>
+    public string BackupDirectory => _backupDirectory;
+
+    // ───── «بازیابی» (§15.10–15.12): two confirmations — a warning, then a manager's own password ─────
+
+    [ObservableProperty]
+    public partial bool CanRestoreLatest { get; set; }
+
+    /// <summary>Step 1: what will happen, in plain words.</summary>
+    [ObservableProperty]
+    public partial bool IsRestoreWarningOpen { get; set; }
+
+    /// <summary>Step 2: a manager's username and password — nothing is replaced before this.</summary>
+    [ObservableProperty]
+    public partial bool IsRestoreCredentialsOpen { get; set; }
+
+    [ObservableProperty]
+    public partial string RestoreWarningText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string AdminUsername { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string AdminPassword { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string? RestoreError { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsRestoring { get; set; }
+
+    /// <summary>The data was replaced: every screen still shows the old data, so the app must be reopened.</summary>
+    [ObservableProperty]
+    public partial bool IsRestartRequired { get; set; }
+
+    [ObservableProperty]
+    public partial string RestoreDoneText { get; set; } = string.Empty;
+
+    /// <summary>«بازیابی آخرین نسخه».</summary>
+    [RelayCommand]
+    private void RestoreLatest()
+    {
+        if (_latestBackupFilePath is { } path)
+        {
+            BeginRestore(path, $"آخرین نسخه‌ی پشتیبان ({LatestBackupDateText})");
+        }
+    }
+
+    /// <summary>«بازیابی از فایل…» — the page shows the file picker and hands the chosen path here.</summary>
+    public void BeginRestoreFromFile(string filePath) =>
+        BeginRestore(filePath, $"فایل «{Path.GetFileName(filePath)}»");
+
+    private void BeginRestore(string filePath, string sourceText)
+    {
+        _restoreFilePath = filePath;
+        RestoreWarningText =
+            $"همه‌ی اطلاعات فعلی برنامه (کالاها، فاکتورها، مشتری‌ها، موجودی و …) با اطلاعات {sourceText} جایگزین می‌شود "
+            + "و هر چیزی که بعد از آن ثبت شده از برنامه برداشته می‌شود. قبل از آن، خودکار یک نسخه‌ی ایمنی از اطلاعات فعلی گرفته می‌شود "
+            + "تا اگر اشتباه شد بشود برگرداند. بعد از بازیابی، برنامه باید بسته و دوباره باز شود.";
+        RestoreError = null;
+        StatusMessage = null;
+        ErrorMessage = null;
+        IsRestoreWarningOpen = true;
+    }
+
+    [RelayCommand]
+    private void ContinueRestore()
+    {
+        IsRestoreWarningOpen = false;
+        AdminUsername = string.Empty;
+        AdminPassword = string.Empty;
+        RestoreError = null;
+        IsRestoreCredentialsOpen = true;
+    }
+
+    [RelayCommand]
+    private void CancelRestore()
+    {
+        IsRestoreWarningOpen = false;
+        IsRestoreCredentialsOpen = false;
+        AdminPassword = string.Empty;
+        _restoreFilePath = null;
+    }
+
+    [RelayCommand]
+    private async Task ConfirmRestoreAsync()
+    {
+        if (_restoreFilePath is not { } path || IsRestoring)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(AdminUsername) || string.IsNullOrEmpty(AdminPassword))
+        {
+            RestoreError = "نام کاربری و رمز مدیر را وارد کنید.";
+            return;
+        }
+
+        IsRestoring = true;
+        RestoreError = null;
+        try
+        {
+            var result = await _restore.ExecuteAsync(
+                new RestoreBackupCommand(path, _backupDirectory, AdminUsername.Trim(), AdminPassword),
+                CancellationToken.None).ConfigureAwait(true);
+            AdminPassword = string.Empty;
+            if (!result.IsSuccess)
+            {
+                RestoreError = result.Error?.Message ?? "بازیابی انجام نشد.";
+                return;
+            }
+
+            IsRestoreCredentialsOpen = false;
+            RestoreDoneText =
+                "بازیابی انجام شد. برنامه باید بسته و دوباره باز شود؛ بعد وارد شوید.\n"
+                + $"نسخه‌ی ایمنی اطلاعات قبل از بازیابی: {result.Value!.SafetyBackupPath}"
+                + (result.Value.Warning is { } warning ? $"\n{warning}" : string.Empty);
+            IsRestartRequired = true;
+        }
+        finally
+        {
+            IsRestoring = false;
+        }
     }
 
     [ObservableProperty]
@@ -143,6 +273,8 @@ public sealed partial class BackupViewModel : ObservableObject
             : health.DatabaseError ?? "دیتابیس در دسترس نیست.";
 
         _latestBackupId = health.LatestBackupId;
+        _latestBackupFilePath = health.LatestBackupFilePath;
+        CanRestoreLatest = health.LatestBackupFilePath is not null;
         HasLatestBackup = health.LatestBackupId is not null;
         CanVerifyLatest = health.LatestBackupId is not null;
         LatestBackupDateText = health.LatestBackupAtUtc is { } at

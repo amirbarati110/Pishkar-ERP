@@ -11,7 +11,7 @@ public sealed class BackupViewModelTests
     public async Task LoadingWithNoBackupYetShowsHealthWithoutALatestBackup()
     {
         var backend = new FakeBackupBackend();
-        var viewModel = new BackupViewModel(backend, backend, backend, @"D:\backups");
+        var viewModel = new BackupViewModel(backend, backend, backend, backend, @"D:\backups");
 
         await viewModel.LoadAsync(CancellationToken.None);
 
@@ -25,7 +25,7 @@ public sealed class BackupViewModelTests
     public async Task CreatingABackupShowsItAsNotVerifiedYet()
     {
         var backend = new FakeBackupBackend();
-        var viewModel = new BackupViewModel(backend, backend, backend, @"D:\backups");
+        var viewModel = new BackupViewModel(backend, backend, backend, backend, @"D:\backups");
         await viewModel.LoadAsync(CancellationToken.None);
 
         await viewModel.CreateBackupCommand.ExecuteAsync(null);
@@ -40,7 +40,7 @@ public sealed class BackupViewModelTests
     public async Task VerifyingAfterABackupMarksItVerified()
     {
         var backend = new FakeBackupBackend();
-        var viewModel = new BackupViewModel(backend, backend, backend, @"D:\backups");
+        var viewModel = new BackupViewModel(backend, backend, backend, backend, @"D:\backups");
         await viewModel.LoadAsync(CancellationToken.None);
         await viewModel.CreateBackupCommand.ExecuteAsync(null);
 
@@ -55,7 +55,7 @@ public sealed class BackupViewModelTests
     public async Task AFailedBackupShowsAPersianErrorAndAddsNoRecord()
     {
         var backend = new FakeBackupBackend { FailBackup = true };
-        var viewModel = new BackupViewModel(backend, backend, backend, @"D:\backups");
+        var viewModel = new BackupViewModel(backend, backend, backend, backend, @"D:\backups");
         await viewModel.LoadAsync(CancellationToken.None);
 
         await viewModel.CreateBackupCommand.ExecuteAsync(null);
@@ -64,11 +64,92 @@ public sealed class BackupViewModelTests
         Assert.False(viewModel.HasLatestBackup);
     }
 
-    private sealed class FakeBackupBackend : ICreateBackupHandler, IVerifyBackupHandler, IGetSystemHealthHandler
+    [Fact]
+    public async Task RestoringTheLatestBackupWarnsThenAsksForAManagerThenRequiresAReopen()
+    {
+        var backend = new FakeBackupBackend();
+        var viewModel = new BackupViewModel(backend, backend, backend, backend, @"D:\backups");
+        await viewModel.CreateBackupCommand.ExecuteAsync(null);
+        Assert.True(viewModel.CanRestoreLatest);
+
+        viewModel.RestoreLatestCommand.Execute(null);
+        Assert.True(viewModel.IsRestoreWarningOpen);
+        Assert.Contains("نسخه‌ی ایمنی", viewModel.RestoreWarningText, StringComparison.Ordinal);
+        Assert.Null(backend.Restored); // nothing happens on the warning
+
+        viewModel.ContinueRestoreCommand.Execute(null);
+        Assert.False(viewModel.IsRestoreWarningOpen);
+        Assert.True(viewModel.IsRestoreCredentialsOpen);
+        viewModel.AdminUsername = " admin ";
+        viewModel.AdminPassword = "Pishkar-1405";
+        await viewModel.ConfirmRestoreCommand.ExecuteAsync(null);
+
+        Assert.Equal(@"D:\backups\backup-1.fbk", backend.Restored!.BackupFilePath);
+        Assert.Equal("admin", backend.Restored.AdminUsername);
+        Assert.Equal(@"D:\backups", backend.Restored.SafetyBackupDirectory);
+        Assert.True(viewModel.IsRestartRequired);
+        Assert.Contains("before-restore", viewModel.RestoreDoneText, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, viewModel.AdminPassword); // never kept around
+    }
+
+    [Fact]
+    public async Task AWrongPasswordKeepsTheQuestionOpenWithTheReason()
+    {
+        var backend = new FakeBackupBackend { RestoreFailure = "نام کاربری یا رمز مدیر درست نیست." };
+        var viewModel = new BackupViewModel(backend, backend, backend, backend, @"D:\backups");
+        viewModel.BeginRestoreFromFile(@"E:\flash\backup-old.fbk");
+        Assert.Contains("backup-old.fbk", viewModel.RestoreWarningText, StringComparison.Ordinal);
+        viewModel.ContinueRestoreCommand.Execute(null);
+        viewModel.AdminUsername = "admin";
+        viewModel.AdminPassword = "wrong";
+
+        await viewModel.ConfirmRestoreCommand.ExecuteAsync(null);
+
+        Assert.Equal("نام کاربری یا رمز مدیر درست نیست.", viewModel.RestoreError);
+        Assert.True(viewModel.IsRestoreCredentialsOpen);
+        Assert.False(viewModel.IsRestartRequired);
+    }
+
+    [Fact]
+    public void BlankCredentialsAreCaughtBeforeAskingAndCancelForgetsTheFile()
+    {
+        var backend = new FakeBackupBackend();
+        var viewModel = new BackupViewModel(backend, backend, backend, backend, @"D:\backups");
+        viewModel.BeginRestoreFromFile(@"E:\flash\backup-old.fbk");
+        viewModel.ContinueRestoreCommand.Execute(null);
+
+        viewModel.ConfirmRestoreCommand.Execute(null);
+        Assert.Equal("نام کاربری و رمز مدیر را وارد کنید.", viewModel.RestoreError);
+
+        viewModel.CancelRestoreCommand.Execute(null);
+        viewModel.AdminUsername = "admin";
+        viewModel.AdminPassword = "x";
+        viewModel.ConfirmRestoreCommand.Execute(null);
+
+        Assert.False(viewModel.IsRestoreCredentialsOpen);
+        Assert.Null(backend.Restored);
+    }
+
+    private sealed class FakeBackupBackend : ICreateBackupHandler, IVerifyBackupHandler, IGetSystemHealthHandler, IRestoreBackupHandler
     {
         private BackupRecord? _latest;
 
         public bool FailBackup { get; set; }
+
+        public string? RestoreFailure { get; init; }
+
+        public RestoreBackupCommand? Restored { get; private set; }
+
+        public Task<Result<RestoredBackup>> ExecuteAsync(RestoreBackupCommand command, CancellationToken cancellationToken)
+        {
+            if (RestoreFailure is { } failure)
+            {
+                return Task.FromResult(Result.Failure<RestoredBackup>("backup.restore.not-admin", failure));
+            }
+
+            Restored = command;
+            return Task.FromResult(Result.Success(new RestoredBackup(@"D:\backups\before-restore-1.fbk", null)));
+        }
 
         public Task<Result<BackupRecordId>> ExecuteAsync(CreateBackupCommand command, CancellationToken cancellationToken)
         {
@@ -88,6 +169,6 @@ public sealed class BackupViewModelTests
         }
 
         public Task<SystemHealthView> ExecuteAsync(CancellationToken cancellationToken) => Task.FromResult(new SystemHealthView(
-            true, null, 12, 12, true, _latest?.Id, _latest?.CreatedAtUtc, _latest?.Status));
+            true, null, 12, 12, true, _latest?.Id, _latest?.CreatedAtUtc, _latest?.Status, _latest?.FilePath));
     }
 }

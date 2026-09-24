@@ -3,6 +3,7 @@ using ERP.Application.Common;
 using ERP.Domain.Backups;
 using ERP.Persistence.Audit;
 using ERP.Persistence.Database;
+using ERP.Persistence.Identity;
 using ERP.Persistence.Services;
 
 namespace ERP.Persistence.Backups;
@@ -11,7 +12,8 @@ namespace ERP.Persistence.Backups;
 public sealed class FirebirdBackupService :
     ICreateBackupHandler,
     IVerifyBackupHandler,
-    IGetSystemHealthHandler
+    IGetSystemHealthHandler,
+    IRestoreBackupHandler
 {
     private readonly FirebirdConnectionFactory _connectionFactory;
     private readonly FirebirdOptions _options;
@@ -61,6 +63,16 @@ public sealed class FirebirdBackupService :
             .ExecuteAsync(command, cancellationToken)
             .ConfigureAwait(false);
     }
+
+    /// <summary>No unit of work around this one: the database it would open is the one being replaced.</summary>
+    public Task<Result<RestoredBackup>> ExecuteAsync(RestoreBackupCommand command, CancellationToken cancellationToken) =>
+        new RestoreBackupHandler(
+                new FirebirdBackupEngine(_options),
+                new FirebirdIdentityService(_connectionFactory),
+                new FirebirdRestoreRecorder(_connectionFactory),
+                _userContext,
+                _clock)
+            .ExecuteAsync(command, cancellationToken);
 
     public async Task<SystemHealthView> ExecuteAsync(CancellationToken cancellationToken)
     {

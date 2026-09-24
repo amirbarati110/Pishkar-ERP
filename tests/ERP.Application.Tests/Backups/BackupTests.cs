@@ -164,4 +164,7 @@ internal sealed class FakeBackupEngine : IBackupEngine
 
     public Task<StructuralCheckResult> RestoreAndCheckAsync(string backupFilePath, CancellationToken cancellationToken) =>
         ThrowOnRestore ? throw new InvalidOperationException("restore engine is away") : Task.FromResult(CheckResult);
+
+    public Task ReplaceLiveDatabaseAsync(string backupFilePath, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("these tests never replace the live database");
 }
