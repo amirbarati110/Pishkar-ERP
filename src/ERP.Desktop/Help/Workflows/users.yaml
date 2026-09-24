@@ -1,0 +1,21 @@
+page: users
+title_fa: کاربران
+steps:
+  - control: user-new
+    instruction_fa: «جدید» (F2) فرم کاربر تازه را باز می‌کند؛ نام، نام کاربری، رمز عبور (حداقل ۸ نویسه) و نقش لازم است. نام کاربری بعداً قابل تغییر نیست.
+    action: invoke
+  - control: user-is-admin
+    instruction_fa: اگر این کاربر مدیر باشد همه‌ی کارها برایش باز است. برای صندوق‌دار چهار سوییچ اجازه پایین‌تر ظاهر می‌شود.
+    action: focus
+  - control: user-allow-returns
+    instruction_fa: اجازه‌های صندوق‌دار همیشه روشن‌اند مگر خاموش‌شان کنید؛ اجازه‌ی برداشته‌شده از همان کار بعدی آن صندوق‌دار اعمال می‌شود، لازم نیست دوباره وارد شود.
+    action: focus
+  - control: user-edit
+    instruction_fa: کاربر را انتخاب کنید و «ویرایش» (F3) را بزنید؛ نام، نقش و اجازه‌ها قابل تغییرند.
+    action: invoke
+  - control: user-reset-password
+    instruction_fa: «رمز تازه» یک رمز عبور نو برای کاربر انتخاب‌شده می‌سازد؛ رمز قبلی از آن پس کار نمی‌کند.
+    action: invoke
+  - control: user-archive
+    instruction_fa: «حذف» (F4) اول می‌پرسد. کاربر دیگر نمی‌تواند وارد شود؛ نامش روی فاکتورها و گزارش‌های قبلی می‌ماند. آخرین مدیر فعال حذف نمی‌شود.
+    action: invoke

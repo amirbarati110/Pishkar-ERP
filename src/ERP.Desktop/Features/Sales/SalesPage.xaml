@@ -831,7 +831,8 @@
                             <TextBox Header="تخفیف سطر (تومان)" Text="{x:Bind ViewModel.EditDiscountText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" InputScope="Number" />
                             <TextBox Grid.Column="1" Header="تخفیف سطر (٪)" Text="{x:Bind ViewModel.EditDiscountPercentText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" InputScope="Number" />
                         </Grid>
-                        <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesAmberSoftBrush}" BorderBrush="{ThemeResource SalesAmberLineBrush}" BorderThickness="1">
+                        <Border Padding="11,9" CornerRadius="10" Background="{ThemeResource SalesAmberSoftBrush}" BorderBrush="{ThemeResource SalesAmberLineBrush}" BorderThickness="1"
+                                Visibility="{x:Bind local:SalesPage.CanUpdateCatalogPrice}">
                             <CheckBox IsChecked="{x:Bind ViewModel.EditUpdateCatalogPrice, Mode=TwoWay}">
                                 <StackPanel>
                                     <TextBlock Text="قیمت اصلی کالا هم به‌روز شود" FontWeight="SemiBold" FontFamily="{StaticResource AppSemiBoldFont}" />

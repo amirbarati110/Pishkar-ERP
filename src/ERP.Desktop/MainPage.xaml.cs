@@ -2,6 +2,7 @@ using ERP.Desktop.Features.Backups;
 using ERP.Desktop.Features.Cashiering;
 using ERP.Desktop.Features.Categories;
 using ERP.Desktop.Features.Customers;
+using ERP.Desktop.Features.Identity;
 using ERP.Desktop.Features.Importing;
 using ERP.Desktop.Features.Inventory;
 using ERP.Desktop.Features.Navigation;
@@ -98,6 +99,7 @@ public sealed partial class MainPage : Page
         NavigationMap.CashShift => typeof(CashShiftPage),
         NavigationMap.OpeningStock => typeof(OpeningStockPage),
         NavigationMap.Backup => typeof(BackupPage),
+        NavigationMap.Users => typeof(UsersPage),
         _ => null,
     };
 
@@ -193,6 +195,7 @@ public sealed partial class MainPage : Page
             var type when type == typeof(ImportCenterPage) => "import-center",
             var type when type == typeof(CashShiftPage) => "cash-shift",
             var type when type == typeof(BackupPage) => "backup",
+            var type when type == typeof(UsersPage) => "users",
             var type when type == typeof(HubPage) => "hub",
             _ => "home",
         };

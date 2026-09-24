@@ -81,6 +81,9 @@ public sealed partial class SalesPage : Page
 
     // ───── x:Bind helpers (visual states) ─────
 
+    /// <summary>Whether «قیمت اصلی کالا هم به‌روز شود» is even offered — a master-price change is «ManageCatalog»'s (§15.2), not every cashier's.</summary>
+    public static bool CanUpdateCatalogPrice => App.CurrentUser.Can(ERP.Domain.Identity.AccessRight.ManageCatalog);
+
     public static Brush TabBackground(bool isCurrent) => isCurrent ? Token("AppSurfaceBrush") : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
 
     public static Thickness TabBorder(bool isCurrent) => isCurrent ? new Thickness(1, 1, 1, 0) : new Thickness(0);

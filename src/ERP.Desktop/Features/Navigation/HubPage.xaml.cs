@@ -23,7 +23,7 @@ public sealed partial class HubPage : Page
         {
             SectionTitle.Text = section.Title;
             SectionSubtitle.Text = section.Subtitle;
-            Cards.ItemsSource = section.Cards;
+            Cards.ItemsSource = NavigationMap.VisibleCards(section, App.CurrentUser.Can);
         }
     }
 
