@@ -92,6 +92,7 @@ public sealed partial class MainPage : Page
     {
         NavigationMap.ProductList => typeof(ProductListPage),
         NavigationMap.CustomerList => typeof(CustomerListPage),
+        NavigationMap.WarehouseList => typeof(WarehouseListPage),
         NavigationMap.Categories => typeof(CategoriesPage),
         NavigationMap.Import => typeof(ImportCenterPage),
         NavigationMap.CashShift => typeof(CashShiftPage),
@@ -185,6 +186,7 @@ public sealed partial class MainPage : Page
             var type when type == typeof(CategoriesPage) => "categories",
             var type when type == typeof(ProductListPage) => "product-list",
             var type when type == typeof(CustomerListPage) => "customer-list",
+            var type when type == typeof(WarehouseListPage) => "warehouse-list",
             var type when type == typeof(Features.Inventory.StockCardPage) => "stock-card",
             var type when type == typeof(ProductEditorPage) => "product-editor",
             var type when type == typeof(OpeningStockPage) => "opening-stock",

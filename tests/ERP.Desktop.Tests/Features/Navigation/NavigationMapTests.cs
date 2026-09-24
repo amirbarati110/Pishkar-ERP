@@ -37,6 +37,7 @@ public sealed class NavigationMapTests
     [InlineData(NavigationMap.ProductList, NavigationMap.CatalogSection)]
     [InlineData(NavigationMap.Categories, NavigationMap.CatalogSection)]
     [InlineData(NavigationMap.Import, NavigationMap.CatalogSection)]
+    [InlineData(NavigationMap.WarehouseList, NavigationMap.InventorySection)]
     [InlineData(NavigationMap.OpeningStock, NavigationMap.InventorySection)]
     [InlineData(NavigationMap.CustomerList, NavigationMap.PeopleSection)]
     [InlineData(NavigationMap.Backup, NavigationMap.SystemSection)]

@@ -1,0 +1,15 @@
+page: warehouse-list
+title_fa: لیست انبارها
+steps:
+  - control: warehouse-list-search
+    instruction_fa: برای پیدا کردن انبار بخشی از نامش را بنویسید؛ نیم‌کلمه هم کافی است. با F3 مستقیم به همین کادر می‌روید.
+    action: focus
+  - control: warehouse-new
+    instruction_fa: «جدید» (F2) فرم انبار را باز می‌کند؛ نام لازم است و نشانی اختیاری. نام تکراری بین انبارهای فعال قبول نمی‌شود.
+    action: invoke
+  - control: warehouse-edit
+    instruction_fa: انبار را انتخاب کنید و «ویرایش» (F3) را بزنید؛ نام و نشانی قابل تغییرند.
+    action: invoke
+  - control: warehouse-delete
+    instruction_fa: «حذف» (F4) اول می‌پرسد. انبار از لیست برداشته می‌شود ولی سابقه‌ی فروش و گردش کالایش می‌ماند. انبار اصلی، انباری که هنوز موجودی دارد و انباری که شیفت صندوق باز دارد حذف نمی‌شوند.
+    action: invoke
