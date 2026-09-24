@@ -63,4 +63,14 @@ public sealed class PersianDateTests
         Assert.Equal("۱۲,۵۰۰,۰۰۰", PersianNumber.FormatGrouped(12_500_000));
         Assert.Equal("۰", PersianNumber.FormatGrouped(0));
     }
+
+    [Fact]
+    public void TodayInIranIsTehransDateNotUtcsJustAfterMidnight()
+    {
+        // 21:00 UTC on the 23rd is 00:30 on the 24th in Tehran (audit 1405/07/02)
+        var justAfterTehranMidnight = new DateTimeOffset(2026, 9, 23, 21, 0, 0, TimeSpan.Zero);
+
+        Assert.Equal(new DateOnly(2026, 9, 24), PersianDate.GregorianDateInIran(justAfterTehranMidnight));
+        Assert.Equal(new DateOnly(2026, 9, 23), PersianDate.GregorianDateInIran(justAfterTehranMidnight.AddHours(-1)));
+    }
 }

@@ -165,7 +165,10 @@ public sealed class FirebirdSalesService :
         return await new ChangeSaleLineHandler(
                 new FirebirdSaleRepository(unitOfWork),
                 new FirebirdProductRepository(unitOfWork),
-                unitOfWork)
+                new FirebirdAuditWriter(unitOfWork),
+                unitOfWork,
+                _userContext,
+                _clock)
             .ExecuteAsync(command, cancellationToken)
             .ConfigureAwait(false);
     }

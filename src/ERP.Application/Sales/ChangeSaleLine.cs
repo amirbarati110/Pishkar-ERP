@@ -1,3 +1,5 @@
+using System.Globalization;
+using ERP.Application.Audit;
 using ERP.Application.Catalog;
 using ERP.Application.Common;
 using ERP.Domain.Catalog;
@@ -33,16 +35,25 @@ public sealed class ChangeSaleLineHandler : IChangeSaleLineHandler
 {
     private readonly ISaleRepository _sales;
     private readonly IProductRepository _products;
+    private readonly IAuditWriter _audit;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IUserContext _userContext;
+    private readonly IClock _clock;
 
     public ChangeSaleLineHandler(
         ISaleRepository sales,
         IProductRepository products,
-        IUnitOfWork unitOfWork)
+        IAuditWriter audit,
+        IUnitOfWork unitOfWork,
+        IUserContext userContext,
+        IClock clock)
     {
         _sales = sales;
         _products = products;
+        _audit = audit;
         _unitOfWork = unitOfWork;
+        _userContext = userContext;
+        _clock = clock;
     }
 
     public async Task<Result<bool>> ExecuteAsync(
@@ -73,8 +84,23 @@ public sealed class ChangeSaleLineHandler : IChangeSaleLineHandler
                     return Result.Failure<bool>("sales.sale.product-not-found", "کالا یافت نشد.");
                 }
 
+                var oldPrice = product.SalePrice;
                 product.ChangePrice(Money.FromRials(command.UnitPriceRials));
                 await _products.UpdateAsync(product, cancellationToken).ConfigureAwait(false);
+
+                // §15.4 «Price Change» is audited wherever it happens — the product list already
+                // did; this path from the sales screen did not (audit 1405/07/02).
+                await _audit.WriteAsync(
+                    new AuditEntry(
+                        Guid.NewGuid(),
+                        _userContext.UserId,
+                        "catalog.product.price-changed",
+                        nameof(Product),
+                        product.Id.ToString(),
+                        string.Create(CultureInfo.InvariantCulture, $"price={oldPrice.Rials}"),
+                        string.Create(CultureInfo.InvariantCulture, $"price={product.SalePrice.Rials};via=sale:{sale.Id}"),
+                        _clock.UtcNow),
+                    cancellationToken).ConfigureAwait(false);
             }
         }
         catch (DomainException exception)

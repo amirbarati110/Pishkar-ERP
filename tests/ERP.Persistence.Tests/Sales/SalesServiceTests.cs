@@ -176,6 +176,15 @@ public sealed class SalesServiceTests
         var reloaded = await context.SaleRepository.GetAsync(next.Value, CancellationToken.None);
 
         Assert.Equal(900_000, Assert.Single(reloaded!.Lines).UnitPrice.ToTomansExact());
+
+        // §15.4: the price change is in the audit trail, with the old and new price
+        await using var connection = await context.Factory.OpenAsync(CancellationToken.None);
+        await using var audit = new FirebirdSql.Data.FirebirdClient.FbCommand(
+            "SELECT OLD_VALUE, NEW_VALUE FROM AUDIT_ENTRY WHERE ACTION_NAME = 'catalog.product.price-changed'", connection);
+        await using var reader = await audit.ExecuteReaderAsync(CancellationToken.None);
+        Assert.True(await reader.ReadAsync(CancellationToken.None));
+        Assert.StartsWith("price=", reader.GetString(0), StringComparison.Ordinal);
+        Assert.StartsWith("price=9000000;via=sale:", reader.GetString(1), StringComparison.Ordinal);
     }
 
     [Fact]

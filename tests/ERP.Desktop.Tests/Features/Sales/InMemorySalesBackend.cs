@@ -97,7 +97,7 @@ internal sealed class InMemorySalesBackend :
         return new SalesBackend(
             new StartSaleHandler(this, this, this),
             new AddSaleLineHandler(this, this, this),
-            new ChangeSaleLineHandler(this, this, this),
+            new ChangeSaleLineHandler(this, this, this, this, this, this),
             new RemoveSaleLineHandler(this, this),
             new SetSaleChargesHandler(this, this),
             new SetSaleCustomerHandler(this, this, this),

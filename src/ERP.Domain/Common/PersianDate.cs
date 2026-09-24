@@ -60,6 +60,14 @@ public readonly record struct PersianDate : IComparable<PersianDate>
         return new PersianDate(Calendar.GetYear(local), Calendar.GetMonth(local), Calendar.GetDayOfMonth(local));
     }
 
+    /// <summary>
+    /// The Gregorian calendar date it is in Tehran at <paramref name="moment"/> — what «امروز» means
+    /// for a date stored as <see cref="DateOnly"/>. Between 00:00 and 03:30 Tehran time the UTC date
+    /// is still yesterday, so <c>DateOnly.FromDateTime(utc)</c> is wrong there (audit 1405/07/02).
+    /// </summary>
+    public static DateOnly GregorianDateInIran(DateTimeOffset moment) =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(moment, IranTimeZone.Value).DateTime);
+
     /// <summary>The Tehran wall-clock time of <paramref name="moment"/> — for showing «۱۰:۲۴» next to an invoice.</summary>
     public static TimeOnly TimeOfDayInIran(DateTimeOffset moment)
     {

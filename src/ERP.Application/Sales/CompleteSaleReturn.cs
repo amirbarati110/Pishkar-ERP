@@ -114,7 +114,7 @@ public sealed class CompleteSaleReturnHandler : ICompleteSaleReturnHandler
                 previouslyReturned, unitCosts, _clock.UtcNow, command.RefundServiceCharge, serviceChargeRefunded);
 
             var reference = $"return:{saleReturn.Id}";
-            var today = DateOnly.FromDateTime(_clock.UtcNow.UtcDateTime);
+            var today = PersianDate.GregorianDateInIran(_clock.UtcNow);
             foreach (var line in priced.Where(row => row.Disposition == ReturnDisposition.ToStock))
             {
                 var ledger = await _stockLedgers

@@ -379,4 +379,22 @@ public sealed class SaleTests
         Assert.Equal(SaleStatus.Completed, original.Status);
         Assert.Equal(100_000, original.Totals!.Total.ToTomansExact());
     }
+
+    [Fact]
+    public void ADiscountLeftAboveTheGoodsAfterRemovingARowIsReportedAsADiscountProblem()
+    {
+        // audit 1405/07/02: the cashier used to see «مبلغ باقی‌مانده نمی‌تواند منفی باشد»
+        var rice = ProductId.New();
+        var oil = ProductId.New();
+        var sale = Sale.OpenDraft(Warehouse, null, Now);
+        sale.AddOrIncreaseLine(rice, Quantity.Create(1), Money.FromTomans(245_000));
+        sale.AddOrIncreaseLine(oil, Quantity.Create(1), Money.FromTomans(100_000));
+        sale.ApplyDiscount(Money.FromTomans(300_000));
+
+        sale.RemoveLine(rice);
+
+        var exception = Assert.Throws<DomainException>(() => sale.Complete(Number, PaymentMethod.Cash, 0, Now));
+        Assert.Contains("تخفیف فاکتور از جمع کالاها بیشتر شده", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(SaleStatus.Draft, sale.Status);
+    }
 }

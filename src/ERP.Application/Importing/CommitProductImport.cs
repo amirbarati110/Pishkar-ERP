@@ -64,7 +64,7 @@ public sealed class CommitProductImportHandler : ICommitProductImportHandler
             return Result.Failure<int>("import.product.nothing-to-import", "ردیفی برای وارد کردن انتخاب نشده است.");
         }
 
-        var receivedOn = DateOnly.FromDateTime(_clock.UtcNow.UtcDateTime);
+        var receivedOn = PersianDate.GregorianDateInIran(_clock.UtcNow);
 
         try
         {

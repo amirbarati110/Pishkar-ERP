@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using ERP.Application.Catalog;
 using ERP.Application.Inventory;
 using ERP.Domain.Catalog;
+using ERP.Domain.Common;
 using ERP.Domain.Inventory;
 using ERP.Presentation.Common;
 
@@ -37,7 +38,7 @@ public partial class OpeningStockViewModel : ObservableObject
     public partial string UnitCostTomansText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial DateOnly ReceivedOn { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
+    public partial DateOnly ReceivedOn { get; set; } = PersianDate.GregorianDateInIran(DateTimeOffset.UtcNow);
 
     [ObservableProperty]
     public partial string? ProductError { get; set; }

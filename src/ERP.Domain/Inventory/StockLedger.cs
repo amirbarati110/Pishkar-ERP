@@ -59,7 +59,7 @@ public sealed class StockLedger
 
     public void ReceiveOpeningStock(Quantity quantity, Money unitCost, DateOnly receivedOn)
     {
-        if (receivedOn > DateOnly.FromDateTime(DateTime.UtcNow))
+        if (receivedOn > PersianDate.GregorianDateInIran(DateTimeOffset.UtcNow))
         {
             throw new DomainException("تاریخ موجودی اولیه نمی‌تواند در آینده باشد.");
         }

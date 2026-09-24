@@ -338,6 +338,14 @@ public sealed class Sale : Entity<SaleId>
             throw new DomainException("درصد مالیات نمی‌تواند منفی باشد.");
         }
 
+        // The discount was valid when typed; removing or reducing rows afterwards can leave it
+        // above the goods. Say that, instead of Money's generic «مبلغ باقی‌مانده نمی‌تواند منفی باشد»
+        // (audit 1405/07/02).
+        if (Discount.Rials > Subtotal.Rials)
+        {
+            throw new DomainException("تخفیف فاکتور از جمع کالاها بیشتر شده است؛ تخفیف را کم کنید یا کالا اضافه کنید.");
+        }
+
         // جمع کالاها − تخفیف + خدمات/هزینه → مالیات روی همین مبلغ → قابل پرداخت
         var taxableAmount = Subtotal.Subtract(Discount).Add(ServiceCharge);
         return BuildTotals(taxableAmount.Multiply(taxRatePercent / 100m));
