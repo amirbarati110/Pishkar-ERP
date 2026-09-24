@@ -34,7 +34,7 @@ public sealed class CompleteSaleIdempotencyTests
         var userContext = new TestUserContext(Guid.NewGuid());
         var clock = new TestClock(new DateTimeOffset(2026, 9, 18, 8, 0, 0, TimeSpan.Zero));
 
-        var setup = new FirebirdRetailSetupService(factory, userContext, clock);
+        var setup = new FirebirdRetailSetupService(factory, userContext, clock, AllowAllAccess.Instance);
         var category = await setup.ExecuteAsync(new CreateCategoryCommand("مواد غذایی", null, 1), CancellationToken.None);
         var product = await setup.ExecuteAsync(
             new CreateProductCommand("برنج ایرانی", "RICE-ID-1", category.Value, defaults.EachUnitId, Money.FromTomans(245_000), ["6260000009920"]),
@@ -43,7 +43,7 @@ public sealed class CompleteSaleIdempotencyTests
             new ReceiveOpeningStockCommand(product.Value, defaults.MainWarehouseId, 10, 200_000_0, new DateOnly(2026, 9, 1)),
             CancellationToken.None);
 
-        var sales = new FirebirdSalesService(factory, userContext, clock);
+        var sales = new FirebirdSalesService(factory, userContext, clock, AllowAllAccess.Instance);
         var accounting = new FirebirdAccountingService(factory);
         var started = await sales.ExecuteAsync(new StartSaleCommand(defaults.MainWarehouseId), CancellationToken.None);
         await sales.ExecuteAsync(new AddSaleLineCommand(started.Value, product.Value, 2), CancellationToken.None);

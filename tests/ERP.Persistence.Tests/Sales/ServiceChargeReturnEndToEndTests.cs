@@ -143,7 +143,7 @@ public sealed class ServiceChargeReturnEndToEndTests
         var defaults = await new FirebirdDatabaseBootstrapper(factory).InitializeAsync(CancellationToken.None);
         var user = new TestUserContext(Guid.NewGuid());
         var clock = new TestClock { UtcNow = new DateTimeOffset(2026, 9, 24, 6, 0, 0, TimeSpan.Zero) };
-        var setup = new FirebirdRetailSetupService(factory, user, clock);
+        var setup = new FirebirdRetailSetupService(factory, user, clock, AllowAllAccess.Instance);
         var category = await setup.ExecuteAsync(new CreateCategoryCommand("مواد غذایی", null, 1), CancellationToken.None);
         var rice = await setup.ExecuteAsync(
             new CreateProductCommand("برنج", "RICE-1", category.Value, defaults.EachUnitId, Money.FromTomans(245_000), []),
@@ -151,10 +151,10 @@ public sealed class ServiceChargeReturnEndToEndTests
         await setup.ExecuteAsync(
             new ReceiveOpeningStockCommand(rice.Value, defaults.MainWarehouseId, 20, 2_000_000, new DateOnly(2026, 9, 1)),
             CancellationToken.None);
-        var customers = new FirebirdCustomerService(factory, user, clock);
+        var customers = new FirebirdCustomerService(factory, user, clock, AllowAllAccess.Instance);
         var customer = await customers.ExecuteAsync(new QuickCreateCustomerCommand("علی رضایی", "09121234567"), CancellationToken.None);
         return new Context(defaults, clock, rice.Value, customer.Value,
-            new FirebirdSalesService(factory, user, clock), customers, new FirebirdCashieringService(factory, user, clock));
+            new FirebirdSalesService(factory, user, clock, AllowAllAccess.Instance), customers, new FirebirdCashieringService(factory, user, clock));
     }
 
     private sealed record Context(

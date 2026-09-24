@@ -63,7 +63,7 @@ public sealed class JournalEntryServiceTests
         var userContext = new TestUserContext(Guid.NewGuid());
         var clock = new TestClock(new DateTimeOffset(2026, 9, 17, 10, 0, 0, TimeSpan.Zero));
 
-        var setup = new FirebirdRetailSetupService(factory, userContext, clock);
+        var setup = new FirebirdRetailSetupService(factory, userContext, clock, AllowAllAccess.Instance);
         var category = await setup.ExecuteAsync(new CreateCategoryCommand("مواد غذایی", null, 1), CancellationToken.None);
         var rice = await setup.ExecuteAsync(
             new CreateProductCommand(
@@ -74,7 +74,7 @@ public sealed class JournalEntryServiceTests
             new ReceiveOpeningStockCommand(rice.Value, defaults.MainWarehouseId, 20, 200_000_0, new DateOnly(2026, 9, 1)),
             CancellationToken.None);
 
-        var sales = new FirebirdSalesService(factory, userContext, clock);
+        var sales = new FirebirdSalesService(factory, userContext, clock, AllowAllAccess.Instance);
         var accounting = new FirebirdAccountingService(factory);
         return new TestContext(defaults, rice.Value, sales, accounting);
     }

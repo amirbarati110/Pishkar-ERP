@@ -29,8 +29,8 @@ public sealed class StockCardEndToEndTests
         var defaults = await new FirebirdDatabaseBootstrapper(factory).InitializeAsync(CancellationToken.None);
         var userContext = new TestUserContext(Guid.NewGuid());
         var clock = new TestClock { UtcNow = new DateTimeOffset(2026, 9, 18, 7, 0, 0, TimeSpan.Zero) };
-        var setup = new FirebirdRetailSetupService(factory, userContext, clock);
-        var sales = new FirebirdSalesService(factory, userContext, clock);
+        var setup = new FirebirdRetailSetupService(factory, userContext, clock, AllowAllAccess.Instance);
+        var sales = new FirebirdSalesService(factory, userContext, clock, AllowAllAccess.Instance);
         var cashiering = new FirebirdCashieringService(factory, userContext, clock);
         var card = new GetStockCardHandler(new FirebirdStockCardReader(factory));
 

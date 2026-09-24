@@ -199,5 +199,5 @@ public sealed class CreateUserTests
         Assert.Equal(2, context.Users.Items.Count);
     }
 
-    private static CreateUserHandler Handler(ApplicationTestContext context) => new(context.Users, context.UnitOfWork);
+    private static CreateUserHandler Handler(ApplicationTestContext context) => new(context.Users, context.Audit, context.UnitOfWork, context.Clock);
 }

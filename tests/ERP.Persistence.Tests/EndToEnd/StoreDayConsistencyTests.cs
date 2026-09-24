@@ -41,10 +41,10 @@ public sealed class StoreDayConsistencyTests
         var defaults = await new FirebirdDatabaseBootstrapper(factory).InitializeAsync(CancellationToken.None);
         var user = new TestUserContext(Guid.NewGuid());
         var clock = new TestClock { UtcNow = new DateTimeOffset(2026, 9, 17, 5, 0, 0, TimeSpan.Zero) }; // 08:30 Tehran
-        var setup = new FirebirdRetailSetupService(factory, user, clock);
-        var sales = new FirebirdSalesService(factory, user, clock);
+        var setup = new FirebirdRetailSetupService(factory, user, clock, AllowAllAccess.Instance);
+        var sales = new FirebirdSalesService(factory, user, clock, AllowAllAccess.Instance);
         var till = new FirebirdCashieringService(factory, user, clock);
-        var customers = new FirebirdCustomerService(factory, user, clock);
+        var customers = new FirebirdCustomerService(factory, user, clock, AllowAllAccess.Instance);
         var w = defaults.MainWarehouseId;
 
         var category = await setup.ExecuteAsync(new CreateCategoryCommand("مواد غذایی", null, 1), CancellationToken.None);
@@ -141,9 +141,9 @@ public sealed class StoreDayConsistencyTests
         var defaults = await new FirebirdDatabaseBootstrapper(factory).InitializeAsync(CancellationToken.None);
         var user = new TestUserContext(Guid.NewGuid());
         var clock = new TestClock { UtcNow = new DateTimeOffset(2026, 9, 17, 5, 0, 0, TimeSpan.Zero) };
-        var setup = new FirebirdRetailSetupService(factory, user, clock);
-        var sales = new FirebirdSalesService(factory, user, clock);
-        var customers = new FirebirdCustomerService(factory, user, clock);
+        var setup = new FirebirdRetailSetupService(factory, user, clock, AllowAllAccess.Instance);
+        var sales = new FirebirdSalesService(factory, user, clock, AllowAllAccess.Instance);
+        var customers = new FirebirdCustomerService(factory, user, clock, AllowAllAccess.Instance);
         var w = defaults.MainWarehouseId;
         var category = await setup.ExecuteAsync(new CreateCategoryCommand("مواد غذایی", null, 1), CancellationToken.None);
         var rice = (await setup.ExecuteAsync(new CreateProductCommand("برنج", "RICE", category.Value, defaults.EachUnitId, Money.FromTomans(245_000), []), CancellationToken.None)).Value;
@@ -197,8 +197,8 @@ public sealed class StoreDayConsistencyTests
         var defaults = await new FirebirdDatabaseBootstrapper(factory).InitializeAsync(CancellationToken.None);
         var user = new TestUserContext(Guid.NewGuid());
         var clock = new TestClock { UtcNow = new DateTimeOffset(2026, 9, 17, 5, 0, 0, TimeSpan.Zero) };
-        var setup = new FirebirdRetailSetupService(factory, user, clock);
-        var sales = new FirebirdSalesService(factory, user, clock);
+        var setup = new FirebirdRetailSetupService(factory, user, clock, AllowAllAccess.Instance);
+        var sales = new FirebirdSalesService(factory, user, clock, AllowAllAccess.Instance);
         var category = await setup.ExecuteAsync(new CreateCategoryCommand("مواد غذایی", null, 1), CancellationToken.None);
         var rice = (await setup.ExecuteAsync(new CreateProductCommand("برنج", "RICE", category.Value, defaults.EachUnitId, Money.FromTomans(245_000), []), CancellationToken.None)).Value;
         await setup.ExecuteAsync(new ReceiveOpeningStockCommand(rice, defaults.MainWarehouseId, 20, 2_000_000, new DateOnly(2026, 9, 1)), CancellationToken.None);

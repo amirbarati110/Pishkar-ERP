@@ -1,5 +1,7 @@
 using ERP.Application.Common;
+using ERP.Application.Identity;
 using ERP.Application.Sales;
+using ERP.Domain.Identity;
 using ERP.Domain.Sales;
 using ERP.Persistence.Accounting;
 using ERP.Persistence.Audit;
@@ -45,15 +47,18 @@ public sealed class FirebirdSalesService :
     private readonly FirebirdConnectionFactory _connectionFactory;
     private readonly IUserContext _userContext;
     private readonly IClock _clock;
+    private readonly IAccessChecker _access;
 
     public FirebirdSalesService(
         FirebirdConnectionFactory connectionFactory,
         IUserContext userContext,
-        IClock clock)
+        IClock clock,
+        IAccessChecker access)
     {
         _connectionFactory = connectionFactory;
         _userContext = userContext;
         _clock = clock;
+        _access = access;
     }
 
     public async Task<Result<SaleId>> ExecuteAsync(
@@ -122,6 +127,11 @@ public sealed class FirebirdSalesService :
         StartSaleCorrectionCommand command,
         CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.CorrectPostedInvoices, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<SaleId>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -138,6 +148,11 @@ public sealed class FirebirdSalesService :
         CompleteSaleCorrectionCommand command,
         CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.CorrectPostedInvoices, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<CompletedSale>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -159,6 +174,13 @@ public sealed class FirebirdSalesService :
         ChangeSaleLineCommand command,
         CancellationToken cancellationToken)
     {
+        // the line itself is the till's work; changing the product's master price is not (§15.2)
+        if (command.UpdateCatalogPrice
+            && await _access.CheckAsync(AccessRight.ManageCatalog, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<bool>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -282,9 +304,15 @@ public sealed class FirebirdSalesService :
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
-        return await new GetLineEditInfoHandler(new FirebirdSaleReadReader(unitOfWork))
+        var info = await new GetLineEditInfoHandler(new FirebirdSaleReadReader(unitOfWork))
             .ExecuteAsync(query, cancellationToken)
             .ConfigureAwait(false);
+
+        // cost and last purchase price are for whoever may see cost (§15.2 «View Cost»); the last
+        // price this customer paid is ordinary till knowledge and stays
+        return await _access.CheckAsync(AccessRight.ViewCostAndProfit, cancellationToken).ConfigureAwait(false) is null
+            ? info
+            : info with { LastPurchaseCost = null, CurrentCost = null };
     }
 
     public async Task<Result<bool>> ExecuteAsync(
@@ -308,6 +336,11 @@ public sealed class FirebirdSalesService :
         CompleteSaleReturnCommand command,
         CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.ReturnsAndExchange, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<CompletedSaleReturn>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -342,6 +375,11 @@ public sealed class FirebirdSalesService :
         GetReturnableSaleQuery query,
         CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.ReturnsAndExchange, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<ReturnableSale>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);

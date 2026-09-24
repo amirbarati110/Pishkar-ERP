@@ -95,7 +95,7 @@ public sealed class CommitProductImportServiceTests
         var service = new FirebirdRetailSetupService(
             factory,
             new TestUserContext(Guid.NewGuid()),
-            new TestClock(new DateTimeOffset(2026, 9, 17, 9, 0, 0, TimeSpan.Zero)));
+            new TestClock(new DateTimeOffset(2026, 9, 17, 9, 0, 0, TimeSpan.Zero)), AllowAllAccess.Instance);
         return (factory, service, defaults);
     }
 

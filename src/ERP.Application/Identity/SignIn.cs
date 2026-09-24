@@ -6,7 +6,15 @@ namespace ERP.Application.Identity;
 public sealed record SignInCommand(string Username, string Password);
 
 /// <summary>What the app needs after a successful sign-in — enough to fill <c>IUserContext</c> and show the person's own name (§3 — no shared logins, §15.3).</summary>
-public sealed record SignedInUser(UserId UserId, string DisplayName, UserRole Role);
+public sealed record SignedInUser(
+    UserId UserId,
+    string DisplayName,
+    UserRole Role,
+    CashierPermissions Permissions = CashierPermissions.All)
+{
+    /// <summary>For hiding what this person may not use; the server checks again on every call (§10).</summary>
+    public bool Can(AccessRight right) => AccessRules.Allows(Role, Permissions, right);
+}
 
 public interface ISignInHandler
 {
@@ -40,6 +48,6 @@ public sealed class SignInHandler : ISignInHandler
             return Result.Failure<SignedInUser>("identity.sign-in.invalid-credentials", InvalidCredentialsMessage);
         }
 
-        return Result.Success(new SignedInUser(user.Id, user.DisplayName, user.Role));
+        return Result.Success(new SignedInUser(user.Id, user.DisplayName, user.Role, user.Permissions));
     }
 }

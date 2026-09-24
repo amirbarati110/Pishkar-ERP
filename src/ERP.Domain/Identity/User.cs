@@ -22,6 +22,7 @@ public sealed class User : Entity<UserId>
         PasswordHash = passwordHash;
         Role = role;
         Status = UserStatus.Active;
+        Permissions = CashierPermissions.All;
     }
 
     /// <summary>The login identifier — Latin/ASCII on purpose (typed at every login; a Persian display name is separate, see <see cref="DisplayName"/>).</summary>
@@ -36,6 +37,11 @@ public sealed class User : Entity<UserId>
 
     public UserStatus Status { get; private set; }
 
+    /// <summary>What a manager allowed this person beyond the till — only a cashier's are ever consulted; a manager holds every right.</summary>
+    public CashierPermissions Permissions { get; private set; }
+
+    public bool Can(AccessRight right) => Status == UserStatus.Active && AccessRules.Allows(Role, Permissions, right);
+
     public static User Create(string username, string displayName, string plainPassword, UserRole role)
     {
         return new User(UserId.New(), NormalizeUsername(username), NormalizeDisplayName(displayName), PasswordHash.Create(plainPassword), role);
@@ -47,11 +53,13 @@ public sealed class User : Entity<UserId>
         string displayName,
         PasswordHash passwordHash,
         UserRole role,
-        UserStatus status)
+        UserStatus status,
+        CashierPermissions permissions = CashierPermissions.All)
     {
         return new User(id, username, displayName, passwordHash, role)
         {
             Status = status,
+            Permissions = permissions,
         };
     }
 
@@ -61,6 +69,18 @@ public sealed class User : Entity<UserId>
     public void ChangePassword(string newPlainPassword) => PasswordHash = PasswordHash.Create(newPlainPassword);
 
     public void Rename(string displayName) => DisplayName = NormalizeDisplayName(displayName);
+
+    public void ChangeRole(UserRole role)
+    {
+        if (!Enum.IsDefined(role))
+        {
+            throw new DomainException("نقش کاربر معتبر نیست.");
+        }
+
+        Role = role;
+    }
+
+    public void SetPermissions(CashierPermissions permissions) => Permissions = permissions & CashierPermissions.All;
 
     public void Archive() => Status = UserStatus.Archived;
 

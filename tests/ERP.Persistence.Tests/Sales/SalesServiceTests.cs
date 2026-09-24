@@ -279,7 +279,7 @@ public sealed class SalesServiceTests
         var customers = new FirebirdCustomerService(
             context.Factory,
             new TestUserContext(Guid.NewGuid()),
-            new TestClock(new DateTimeOffset(2026, 9, 15, 10, 0, 0, TimeSpan.Zero)));
+            new TestClock(new DateTimeOffset(2026, 9, 15, 10, 0, 0, TimeSpan.Zero)), AllowAllAccess.Instance);
         var customer = await customers.ExecuteAsync(
             new QuickCreateCustomerCommand("محمد رضایی", "09123456789"), CancellationToken.None);
 
@@ -318,7 +318,7 @@ public sealed class SalesServiceTests
         var customers = new FirebirdCustomerService(
             context.Factory,
             new TestUserContext(Guid.NewGuid()),
-            new TestClock(new DateTimeOffset(2026, 9, 21, 10, 0, 0, TimeSpan.Zero)));
+            new TestClock(new DateTimeOffset(2026, 9, 21, 10, 0, 0, TimeSpan.Zero)), AllowAllAccess.Instance);
 
         // محمد: ۵۰۰٬۰۰۰ مانده‌ی اول دوره + یک فاکتور نسیه‌ی ۱٬۷۰۰٬۰۰۰ − ۷۰۰٬۰۰۰ دریافتی = ۱٬۵۰۰٬۰۰۰ بدهکار
         var mohammad = (await customers.ExecuteAsync(
@@ -512,7 +512,7 @@ public sealed class SalesServiceTests
     {
         var context = await SetupAsync();
         var customers = new FirebirdCustomerService(
-            context.Factory, new TestUserContext(Guid.NewGuid()), new TestClock(DateTimeOffset.UtcNow));
+            context.Factory, new TestUserContext(Guid.NewGuid()), new TestClock(DateTimeOffset.UtcNow), AllowAllAccess.Instance);
         var customer = await customers.ExecuteAsync(
             new QuickCreateCustomerCommand("محمد رضایی", "09123456789"), CancellationToken.None);
 
@@ -568,7 +568,7 @@ public sealed class SalesServiceTests
     {
         var context = await SetupAsync();
         var setup = new FirebirdRetailSetupService(
-            context.Factory, new TestUserContext(Guid.NewGuid()), new TestClock(new DateTimeOffset(2026, 9, 14, 10, 0, 0, TimeSpan.Zero)));
+            context.Factory, new TestUserContext(Guid.NewGuid()), new TestClock(new DateTimeOffset(2026, 9, 14, 10, 0, 0, TimeSpan.Zero)), AllowAllAccess.Instance);
 
         // «خشکبار» زیر «مواد غذایی»؛ کالای «گردو» فقط ۳ عدد موجودی دارد
         var foods = await context.Sales.ExecuteAsync(
@@ -646,7 +646,7 @@ public sealed class SalesServiceTests
 
     private static FirebirdSalesService ServiceAt(TestContext context, DateTimeOffset now)
     {
-        return new FirebirdSalesService(context.Factory, new TestUserContext(Guid.NewGuid()), new TestClock(now));
+        return new FirebirdSalesService(context.Factory, new TestUserContext(Guid.NewGuid()), new TestClock(now), AllowAllAccess.Instance);
     }
 
     private static async Task<SaleId> StartSaleWithAsync(TestContext context, ProductId productId, decimal quantity)
@@ -669,7 +669,7 @@ public sealed class SalesServiceTests
         var userContext = new TestUserContext(Guid.NewGuid());
         var clock = new TestClock(new DateTimeOffset(2026, 9, 14, 10, 0, 0, TimeSpan.Zero));
 
-        var setup = new FirebirdRetailSetupService(factory, userContext, clock);
+        var setup = new FirebirdRetailSetupService(factory, userContext, clock, AllowAllAccess.Instance);
         var category = await setup.ExecuteAsync(
             new CreateCategoryCommand("مواد غذایی", null, 1), CancellationToken.None);
 
@@ -702,7 +702,7 @@ public sealed class SalesServiceTests
             defaults,
             rice.Value,
             oil.Value,
-            new FirebirdSalesService(factory, userContext, clock),
+            new FirebirdSalesService(factory, userContext, clock, AllowAllAccess.Instance),
             saleRepository,
             stockLedgers);
     }

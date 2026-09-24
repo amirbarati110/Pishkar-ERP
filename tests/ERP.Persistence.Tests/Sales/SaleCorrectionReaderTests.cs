@@ -71,7 +71,7 @@ public sealed class SaleCorrectionReaderTests
     public async Task CustomerDebtCountsOnlyTheCorrectedAmountOnce()
     {
         var context = await SetupAsync();
-        var customers = new FirebirdCustomerService(context.Factory, context.UserContext, context.Clock);
+        var customers = new FirebirdCustomerService(context.Factory, context.UserContext, context.Clock, AllowAllAccess.Instance);
         var created = await customers.ExecuteAsync(
             new QuickCreateCustomerCommand("محمد رضایی", "09123456789"), CancellationToken.None);
         var customerId = created.Value;
@@ -133,7 +133,7 @@ public sealed class SaleCorrectionReaderTests
         var userContext = new TestUserContext(Guid.NewGuid());
         var clock = new TestClock(new DateTimeOffset(2026, 9, 14, 10, 0, 0, TimeSpan.Zero));
 
-        var setup = new FirebirdRetailSetupService(factory, userContext, clock);
+        var setup = new FirebirdRetailSetupService(factory, userContext, clock, AllowAllAccess.Instance);
         var category = await setup.ExecuteAsync(new CreateCategoryCommand("مواد غذایی", null, 1), CancellationToken.None);
         var rice = await setup.ExecuteAsync(
             new CreateProductCommand(
@@ -144,7 +144,7 @@ public sealed class SaleCorrectionReaderTests
             new ReceiveOpeningStockCommand(rice.Value, defaults.MainWarehouseId, 20, 200_000_0, new DateOnly(2026, 9, 1)),
             CancellationToken.None);
 
-        var sales = new FirebirdSalesService(factory, userContext, clock);
+        var sales = new FirebirdSalesService(factory, userContext, clock, AllowAllAccess.Instance);
         return new TestContext(database, factory, defaults, userContext, clock, rice.Value, sales, new SaleReader(factory));
     }
 

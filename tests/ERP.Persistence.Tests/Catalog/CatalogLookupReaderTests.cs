@@ -20,7 +20,7 @@ public sealed class CatalogLookupReaderTests
         var setup = new FirebirdRetailSetupService(
             factory,
             new TestUserContext(Guid.NewGuid()),
-            new TestClock(new DateTimeOffset(2026, 9, 14, 10, 0, 0, TimeSpan.Zero)));
+            new TestClock(new DateTimeOffset(2026, 9, 14, 10, 0, 0, TimeSpan.Zero)), AllowAllAccess.Instance);
         var category = await setup.ExecuteAsync(
             new CreateCategoryCommand("نوشیدنی", null, 1),
             CancellationToken.None);

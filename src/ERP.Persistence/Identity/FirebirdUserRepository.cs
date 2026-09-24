@@ -8,7 +8,7 @@ namespace ERP.Persistence.Identity;
 
 public sealed class FirebirdUserRepository : IUserRepository
 {
-    private const string SelectColumns = "ID, USERNAME, DISPLAY_NAME, PASSWORD_HASH, ROLE, STATUS";
+    private const string SelectColumns = "ID, USERNAME, DISPLAY_NAME, PASSWORD_HASH, ROLE, STATUS, PERMISSIONS";
 
     private readonly FirebirdUnitOfWork _unitOfWork;
 
@@ -47,8 +47,8 @@ public sealed class FirebirdUserRepository : IUserRepository
         {
             await using var insert = CreateCommand(
                 """
-                INSERT INTO APP_USER (ID, USERNAME, DISPLAY_NAME, PASSWORD_HASH, ROLE, STATUS)
-                VALUES (@ID, @USERNAME, @DISPLAY_NAME, @PASSWORD_HASH, @ROLE, @STATUS)
+                INSERT INTO APP_USER (ID, USERNAME, DISPLAY_NAME, PASSWORD_HASH, ROLE, STATUS, PERMISSIONS)
+                VALUES (@ID, @USERNAME, @DISPLAY_NAME, @PASSWORD_HASH, @ROLE, @STATUS, @PERMISSIONS)
                 """);
             AddCommonParameters(insert, user);
             insert.Parameters.Add("@ID", FbDbType.Char).Value = user.Id.ToString();
@@ -63,7 +63,8 @@ public sealed class FirebirdUserRepository : IUserRepository
                 DISPLAY_NAME = @DISPLAY_NAME,
                 PASSWORD_HASH = @PASSWORD_HASH,
                 ROLE = @ROLE,
-                STATUS = @STATUS
+                STATUS = @STATUS,
+                PERMISSIONS = @PERMISSIONS
             WHERE ID = @ID
             """);
         AddCommonParameters(update, user);
@@ -78,6 +79,20 @@ public sealed class FirebirdUserRepository : IUserRepository
         command.Parameters.Add("@PASSWORD_HASH", FbDbType.VarChar).Value = user.PasswordHash.Encoded;
         command.Parameters.Add("@ROLE", FbDbType.SmallInt).Value = (short)user.Role;
         command.Parameters.Add("@STATUS", FbDbType.SmallInt).Value = (short)user.Status;
+        command.Parameters.Add("@PERMISSIONS", FbDbType.SmallInt).Value = (short)user.Permissions;
+    }
+
+    public async Task<IReadOnlyList<User>> ListAsync(CancellationToken cancellationToken)
+    {
+        await using var command = CreateCommand($"SELECT {SelectColumns} FROM APP_USER ORDER BY STATUS, DISPLAY_NAME");
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        var users = new List<User>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            users.Add(Read(reader));
+        }
+
+        return users;
     }
 
     private static async Task<User?> ReadSingleAsync(FbCommand command, CancellationToken cancellationToken)
@@ -88,13 +103,19 @@ public sealed class FirebirdUserRepository : IUserRepository
             return null;
         }
 
+        return Read(reader);
+    }
+
+    private static User Read(FbDataReader reader)
+    {
         return User.Rehydrate(
             UserId.From(Guid.Parse(reader.GetString(0))),
             reader.GetString(1),
             reader.GetString(2),
             PasswordHash.FromEncoded(reader.GetString(3)),
             (UserRole)reader.GetInt16(4),
-            (UserStatus)reader.GetInt16(5));
+            (UserStatus)reader.GetInt16(5),
+            (CashierPermissions)reader.GetInt16(6));
     }
 
     private FbCommand CreateCommand(string commandText)

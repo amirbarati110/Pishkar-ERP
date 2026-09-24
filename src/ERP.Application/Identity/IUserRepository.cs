@@ -13,4 +13,7 @@ public interface IUserRepository
     Task<bool> AnyExistsAsync(CancellationToken cancellationToken);
 
     Task SaveAsync(User user, CancellationToken cancellationToken);
+
+    /// <summary>Every user, active and archived, by display name — for «کاربران».</summary>
+    Task<IReadOnlyList<User>> ListAsync(CancellationToken cancellationToken);
 }

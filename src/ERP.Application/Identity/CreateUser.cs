@@ -1,3 +1,4 @@
+using ERP.Application.Audit;
 using ERP.Application.Common;
 using ERP.Domain.Common;
 using ERP.Domain.Identity;
@@ -10,7 +11,13 @@ namespace ERP.Application.Identity;
 /// Use Case حساس مجوز را در Application Layer بررسی می‌کند؛ مخفی‌کردن دکمه
 /// به‌تنهایی امنیت محسوب نمی‌شود").
 /// </param>
-public sealed record CreateUserCommand(UserId ActingUserId, string Username, string DisplayName, string Password, UserRole Role);
+public sealed record CreateUserCommand(
+    UserId ActingUserId,
+    string Username,
+    string DisplayName,
+    string Password,
+    UserRole Role,
+    CashierPermissions Permissions = CashierPermissions.All);
 
 public interface ICreateUserHandler
 {
@@ -20,12 +27,16 @@ public interface ICreateUserHandler
 public sealed class CreateUserHandler : ICreateUserHandler
 {
     private readonly IUserRepository _users;
+    private readonly IAuditWriter _audit;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IClock _clock;
 
-    public CreateUserHandler(IUserRepository users, IUnitOfWork unitOfWork)
+    public CreateUserHandler(IUserRepository users, IAuditWriter audit, IUnitOfWork unitOfWork, IClock clock)
     {
         _users = users;
+        _audit = audit;
         _unitOfWork = unitOfWork;
+        _clock = clock;
     }
 
     public async Task<Result<UserId>> ExecuteAsync(CreateUserCommand command, CancellationToken cancellationToken)
@@ -33,7 +44,7 @@ public sealed class CreateUserHandler : ICreateUserHandler
         ArgumentNullException.ThrowIfNull(command);
 
         var actingUser = await _users.GetByIdAsync(command.ActingUserId, cancellationToken).ConfigureAwait(false);
-        if (actingUser is null || actingUser.Role != UserRole.Admin)
+        if (actingUser is null || !actingUser.Can(AccessRight.ManageUsers))
         {
             return Result.Failure<UserId>("identity.create-user.forbidden", "فقط مدیر می‌تواند کاربر تازه بسازد.");
         }
@@ -41,6 +52,7 @@ public sealed class CreateUserHandler : ICreateUserHandler
         try
         {
             var candidate = User.Create(command.Username, command.DisplayName, command.Password, command.Role);
+            candidate.SetPermissions(command.Permissions);
             var existing = await _users.GetByUsernameAsync(candidate.Username, cancellationToken).ConfigureAwait(false);
             if (existing is not null)
             {
@@ -48,6 +60,9 @@ public sealed class CreateUserHandler : ICreateUserHandler
             }
 
             await _users.SaveAsync(candidate, cancellationToken).ConfigureAwait(false);
+            await _audit.WriteAsync(
+                UserAudit.Entry(command.ActingUserId, "identity.user.created", candidate, null, UserAudit.Describe(candidate), _clock),
+                cancellationToken).ConfigureAwait(false);
             await _unitOfWork.CommitAsync(cancellationToken).ConfigureAwait(false);
             return Result.Success(candidate.Id);
         }

@@ -146,6 +146,9 @@ internal sealed class InMemorySalesBackend :
 
     public Task<bool> AnyExistsAsync(CancellationToken cancellationToken) => Task.FromResult(Users.Count > 0);
 
+    public Task<IReadOnlyList<User>> ListAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<User>>([.. Users.OrderBy(user => user.Status).ThenBy(user => user.DisplayName, StringComparer.Ordinal)]);
+
     public Task SaveAsync(User user, CancellationToken cancellationToken)
     {
         if (!Users.Contains(user))

@@ -1,6 +1,8 @@
 using ERP.Application.Common;
 using ERP.Application.Customers;
+using ERP.Application.Identity;
 using ERP.Domain.Customers;
+using ERP.Domain.Identity;
 using ERP.Persistence.Accounting;
 using ERP.Persistence.Audit;
 using ERP.Persistence.Database;
@@ -25,15 +27,18 @@ public sealed class FirebirdCustomerService :
     private readonly FirebirdConnectionFactory _connectionFactory;
     private readonly IUserContext _userContext;
     private readonly IClock _clock;
+    private readonly IAccessChecker _access;
 
     public FirebirdCustomerService(
         FirebirdConnectionFactory connectionFactory,
         IUserContext userContext,
-        IClock clock)
+        IClock clock,
+        IAccessChecker access)
     {
         _connectionFactory = connectionFactory;
         _userContext = userContext;
         _clock = clock;
+        _access = access;
     }
 
     public async Task<Result<CustomerId>> ExecuteAsync(
@@ -94,6 +99,11 @@ public sealed class FirebirdCustomerService :
 
     public async Task<Result<CustomerId>> ExecuteAsync(CreateCustomerCommand command, CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.EditCustomers, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<CustomerId>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -110,6 +120,11 @@ public sealed class FirebirdCustomerService :
 
     public async Task<Result<bool>> ExecuteAsync(UpdateCustomerCommand command, CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.EditCustomers, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<bool>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -125,6 +140,11 @@ public sealed class FirebirdCustomerService :
 
     public async Task<Result<bool>> ExecuteAsync(ArchiveCustomerCommand command, CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.EditCustomers, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<bool>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);

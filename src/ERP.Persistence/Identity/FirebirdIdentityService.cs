@@ -1,6 +1,7 @@
 using ERP.Application.Common;
 using ERP.Application.Identity;
 using ERP.Domain.Identity;
+using ERP.Persistence.Audit;
 using ERP.Persistence.Database;
 
 namespace ERP.Persistence.Identity;
@@ -10,13 +11,19 @@ public sealed class FirebirdIdentityService :
     IRegisterFirstAdminHandler,
     ISignInHandler,
     IVerifyAdminCredentialHandler,
-    ICreateUserHandler
+    ICreateUserHandler,
+    IListUsersHandler,
+    IUpdateUserHandler,
+    IResetUserPasswordHandler,
+    IArchiveUserHandler
 {
     private readonly FirebirdConnectionFactory _connectionFactory;
+    private readonly IClock _clock;
 
-    public FirebirdIdentityService(FirebirdConnectionFactory connectionFactory)
+    public FirebirdIdentityService(FirebirdConnectionFactory connectionFactory, IClock? clock = null)
     {
         _connectionFactory = connectionFactory;
+        _clock = clock ?? UtcClock.Instance;
     }
 
     /// <summary>How the app tells "first run, show setup" from "show login" — before any window is on screen.</summary>
@@ -63,8 +70,47 @@ public sealed class FirebirdIdentityService :
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
-        return await new CreateUserHandler(new FirebirdUserRepository(unitOfWork), unitOfWork)
+        return await new CreateUserHandler(new FirebirdUserRepository(unitOfWork), new FirebirdAuditWriter(unitOfWork), unitOfWork, _clock)
             .ExecuteAsync(command, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    public async Task<Result<IReadOnlyList<UserListRow>>> ExecuteAsync(ListUsersQuery query, CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork.CreateAsync(_connectionFactory, cancellationToken).ConfigureAwait(false);
+        return await new ListUsersHandler(new FirebirdUserRepository(unitOfWork))
+            .ExecuteAsync(query, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(UpdateUserCommand command, CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork.CreateAsync(_connectionFactory, cancellationToken).ConfigureAwait(false);
+        return await new UpdateUserHandler(new FirebirdUserRepository(unitOfWork), new FirebirdAuditWriter(unitOfWork), unitOfWork, _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(ResetUserPasswordCommand command, CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork.CreateAsync(_connectionFactory, cancellationToken).ConfigureAwait(false);
+        return await new ResetUserPasswordHandler(new FirebirdUserRepository(unitOfWork), new FirebirdAuditWriter(unitOfWork), unitOfWork, _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<Result<bool>> ExecuteAsync(ArchiveUserCommand command, CancellationToken cancellationToken)
+    {
+        await using var unitOfWork = await FirebirdUnitOfWork.CreateAsync(_connectionFactory, cancellationToken).ConfigureAwait(false);
+        return await new ArchiveUserHandler(new FirebirdUserRepository(unitOfWork), new FirebirdAuditWriter(unitOfWork), unitOfWork, _clock)
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private sealed class UtcClock : IClock
+    {
+        public static readonly UtcClock Instance = new();
+
+        public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
     }
 }

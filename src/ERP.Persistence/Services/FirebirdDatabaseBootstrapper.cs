@@ -43,6 +43,7 @@ public sealed class FirebirdDatabaseBootstrapper
         new V023SaleReturnServiceCharge(),
         new V024TillCashReceipts(),
         new V025BackfillPaymentTill(),
+        new V026UserPermissions(),
     ];
 
     private readonly FirebirdConnectionFactory _connectionFactory;

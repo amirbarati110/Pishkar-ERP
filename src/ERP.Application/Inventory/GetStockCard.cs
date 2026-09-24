@@ -1,5 +1,6 @@
 using ERP.Domain.Catalog;
 using ERP.Domain.Common;
+using ERP.Domain.Identity;
 using ERP.Domain.Inventory;
 
 namespace ERP.Application.Inventory;
@@ -187,4 +188,41 @@ public sealed class GetStockCardHandler : IGetStockCardHandler
         StockMovementType.Receipt or
         StockMovementType.Return or
         StockMovementType.AdjustmentIncrease;
+}
+
+/// <summary>
+/// The kardex for whoever is signed in: quantities for everyone, cost columns (فی · مبلغ · مبلغ
+/// مانده) only with <see cref="AccessRight.ViewCostAndProfit"/> (§15.2 «View Cost») — stripped here,
+/// on the server side, not merely hidden on screen.
+/// </summary>
+public sealed class CostAwareStockCardHandler : IGetStockCardHandler
+{
+    private readonly IGetStockCardHandler _inner;
+    private readonly ERP.Application.Identity.IAccessChecker _access;
+
+    public CostAwareStockCardHandler(IGetStockCardHandler inner, ERP.Application.Identity.IAccessChecker access)
+    {
+        _inner = inner;
+        _access = access;
+    }
+
+    public async Task<StockCardPage?> ExecuteAsync(StockCardQuery query, CancellationToken cancellationToken)
+    {
+        var page = await _inner.ExecuteAsync(query, cancellationToken).ConfigureAwait(false);
+        if (page is null
+            || await _access.CheckAsync(AccessRight.ViewCostAndProfit, cancellationToken).ConfigureAwait(false) is null)
+        {
+            return page;
+        }
+
+        return page with
+        {
+            Entries = page.Entries.Select(entry => entry with { Value = null, BalanceValue = null }).ToList(),
+            OpeningValue = null,
+            ClosingValue = null,
+            TotalInValue = Money.Zero,
+            TotalOutValue = Money.Zero,
+            UnvaluedMovements = 0,
+        };
+    }
 }

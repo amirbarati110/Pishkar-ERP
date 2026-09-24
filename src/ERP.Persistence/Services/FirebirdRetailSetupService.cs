@@ -1,8 +1,10 @@
 using ERP.Application.Catalog;
 using ERP.Application.Common;
+using ERP.Application.Identity;
 using ERP.Application.Importing;
 using ERP.Application.Inventory;
 using ERP.Domain.Catalog;
+using ERP.Domain.Identity;
 using ERP.Domain.Inventory;
 using ERP.Persistence.Accounting;
 using ERP.Persistence.Audit;
@@ -28,21 +30,29 @@ public sealed class FirebirdRetailSetupService :
     private readonly FirebirdConnectionFactory _connectionFactory;
     private readonly IUserContext _userContext;
     private readonly IClock _clock;
+    private readonly IAccessChecker _access;
 
     public FirebirdRetailSetupService(
         FirebirdConnectionFactory connectionFactory,
         IUserContext userContext,
-        IClock clock)
+        IClock clock,
+        IAccessChecker access)
     {
         _connectionFactory = connectionFactory;
         _userContext = userContext;
         _clock = clock;
+        _access = access;
     }
 
     public async Task<Result<CategoryId>> ExecuteAsync(
         CreateCategoryCommand command,
         CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.ManageCatalog, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<CategoryId>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -60,6 +70,11 @@ public sealed class FirebirdRetailSetupService :
         CreateProductCommand command,
         CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.ManageCatalog, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<ProductId>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -75,6 +90,11 @@ public sealed class FirebirdRetailSetupService :
 
     public async Task<Result<string>> ExecuteAsync(CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.ManageCatalog, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<string>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -89,6 +109,11 @@ public sealed class FirebirdRetailSetupService :
         UpdateProductCommand command,
         CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.ManageCatalog, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<bool>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -106,6 +131,11 @@ public sealed class FirebirdRetailSetupService :
         ArchiveProductCommand command,
         CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.ManageCatalog, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<bool>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -123,6 +153,11 @@ public sealed class FirebirdRetailSetupService :
         ReceiveOpeningStockCommand command,
         CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.ManageStock, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<bool>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -141,6 +176,11 @@ public sealed class FirebirdRetailSetupService :
         CommitProductImportCommand command,
         CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.ManageStock, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<int>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -164,6 +204,11 @@ public sealed class FirebirdRetailSetupService :
 
     public async Task<Result<WarehouseId>> ExecuteAsync(CreateWarehouseCommand command, CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.ManageStock, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<WarehouseId>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -179,6 +224,11 @@ public sealed class FirebirdRetailSetupService :
 
     public async Task<Result<bool>> ExecuteAsync(UpdateWarehouseCommand command, CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.ManageStock, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<bool>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -194,6 +244,11 @@ public sealed class FirebirdRetailSetupService :
 
     public async Task<Result<bool>> ExecuteAsync(ArchiveWarehouseCommand command, CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.ManageStock, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<bool>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);

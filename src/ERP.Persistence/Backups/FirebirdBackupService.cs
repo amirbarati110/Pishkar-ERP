@@ -1,6 +1,8 @@
 using ERP.Application.Backups;
 using ERP.Application.Common;
+using ERP.Application.Identity;
 using ERP.Domain.Backups;
+using ERP.Domain.Identity;
 using ERP.Persistence.Audit;
 using ERP.Persistence.Database;
 using ERP.Persistence.Identity;
@@ -19,21 +21,29 @@ public sealed class FirebirdBackupService :
     private readonly FirebirdOptions _options;
     private readonly IUserContext _userContext;
     private readonly IClock _clock;
+    private readonly IAccessChecker _access;
 
     public FirebirdBackupService(
         FirebirdConnectionFactory connectionFactory,
         FirebirdOptions options,
         IUserContext userContext,
-        IClock clock)
+        IClock clock,
+        IAccessChecker access)
     {
         _connectionFactory = connectionFactory;
         _options = options;
         _userContext = userContext;
         _clock = clock;
+        _access = access;
     }
 
     public async Task<Result<BackupRecordId>> ExecuteAsync(CreateBackupCommand command, CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.ManageBackups, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<BackupRecordId>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -50,6 +60,11 @@ public sealed class FirebirdBackupService :
 
     public async Task<Result<VerifyBackupResult>> ExecuteAsync(VerifyBackupCommand command, CancellationToken cancellationToken)
     {
+        if (await _access.CheckAsync(AccessRight.ManageBackups, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<VerifyBackupResult>(denied.Code, denied.Message);
+        }
+
         await using var unitOfWork = await FirebirdUnitOfWork
             .CreateAsync(_connectionFactory, cancellationToken)
             .ConfigureAwait(false);
@@ -65,14 +80,22 @@ public sealed class FirebirdBackupService :
     }
 
     /// <summary>No unit of work around this one: the database it would open is the one being replaced.</summary>
-    public Task<Result<RestoredBackup>> ExecuteAsync(RestoreBackupCommand command, CancellationToken cancellationToken) =>
-        new RestoreBackupHandler(
+    public async Task<Result<RestoredBackup>> ExecuteAsync(RestoreBackupCommand command, CancellationToken cancellationToken)
+    {
+        if (await _access.CheckAsync(AccessRight.ManageBackups, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return Result.Failure<RestoredBackup>(denied.Code, denied.Message);
+        }
+
+        return await new RestoreBackupHandler(
                 new FirebirdBackupEngine(_options),
                 new FirebirdIdentityService(_connectionFactory),
                 new FirebirdRestoreRecorder(_connectionFactory),
                 _userContext,
                 _clock)
-            .ExecuteAsync(command, cancellationToken);
+            .ExecuteAsync(command, cancellationToken)
+            .ConfigureAwait(false);
+    }
 
     public async Task<SystemHealthView> ExecuteAsync(CancellationToken cancellationToken)
     {

@@ -31,7 +31,7 @@ public sealed class CompleteSaleRollbackTests
         var userContext = new TestUserContext(Guid.NewGuid());
         var clock = new TestClock(new DateTimeOffset(2026, 9, 18, 8, 0, 0, TimeSpan.Zero));
 
-        var setup = new FirebirdRetailSetupService(factory, userContext, clock);
+        var setup = new FirebirdRetailSetupService(factory, userContext, clock, AllowAllAccess.Instance);
         var category = await setup.ExecuteAsync(new CreateCategoryCommand("مواد غذایی", null, 1), CancellationToken.None);
 
         var plentiful = await setup.ExecuteAsync(
@@ -48,7 +48,7 @@ public sealed class CompleteSaleRollbackTests
             new ReceiveOpeningStockCommand(scarce.Value, defaults.MainWarehouseId, 1, 150_000_0, new DateOnly(2026, 9, 1)),
             CancellationToken.None);
 
-        var sales = new FirebirdSalesService(factory, userContext, clock);
+        var sales = new FirebirdSalesService(factory, userContext, clock, AllowAllAccess.Instance);
         var started = await sales.ExecuteAsync(new StartSaleCommand(defaults.MainWarehouseId), CancellationToken.None);
         await sales.ExecuteAsync(new AddSaleLineCommand(started.Value, plentiful.Value, 2), CancellationToken.None); // خط اول: موجودی کافی
         await sales.ExecuteAsync(new AddSaleLineCommand(started.Value, scarce.Value, 5), CancellationToken.None); // خط دوم: فقط ۱ موجود است

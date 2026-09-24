@@ -22,7 +22,7 @@ public sealed class InternalBarcodeEndToEndTests
         var factory = new FirebirdConnectionFactory(database.Options);
         var defaults = await new FirebirdDatabaseBootstrapper(factory).InitializeAsync(CancellationToken.None);
         var clock = new TestClock { UtcNow = new DateTimeOffset(2026, 9, 22, 8, 0, 0, TimeSpan.Zero) };
-        var setup = new FirebirdRetailSetupService(factory, new TestUserContext(Guid.NewGuid()), clock);
+        var setup = new FirebirdRetailSetupService(factory, new TestUserContext(Guid.NewGuid()), clock, AllowAllAccess.Instance);
         var generate = new GenerateProductBarcodeHandler(
             new FirebirdInternalBarcodeSequenceForTests(factory),
             new FirebirdProductRepositoryForTests(factory));

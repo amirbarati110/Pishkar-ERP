@@ -84,7 +84,7 @@ public sealed class WarehouseEndToEndTests
         var factory = new FirebirdConnectionFactory(database.Options);
         var defaults = await new FirebirdDatabaseBootstrapper(factory).InitializeAsync(CancellationToken.None);
         var clock = new TestClock { UtcNow = new DateTimeOffset(2026, 9, 24, 8, 0, 0, TimeSpan.Zero) };
-        return (new FirebirdRetailSetupService(factory, new TestUserContext(Guid.NewGuid()), clock), defaults);
+        return (new FirebirdRetailSetupService(factory, new TestUserContext(Guid.NewGuid()), clock, AllowAllAccess.Instance), defaults);
     }
 
     private sealed record TestUserContext(Guid UserId) : IUserContext;

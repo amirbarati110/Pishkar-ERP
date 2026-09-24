@@ -24,7 +24,7 @@ public sealed class BackupServiceTests
         var factory = new FirebirdConnectionFactory(database.Options);
         await new FirebirdDatabaseBootstrapper(factory).InitializeAsync(CancellationToken.None);
 
-        var service = new FirebirdBackupService(factory, database.Options, new TestUserContext(Guid.NewGuid()), new TestClock());
+        var service = new FirebirdBackupService(factory, database.Options, new TestUserContext(Guid.NewGuid()), new TestClock(), AllowAllAccess.Instance);
         var backupDirectory = Path.Combine(Path.GetTempPath(), $"pishkar-backup-test-{Guid.NewGuid():N}");
 
         try
@@ -68,7 +68,7 @@ public sealed class BackupServiceTests
         await using var _ = database;
         var factory = new FirebirdConnectionFactory(database.Options);
         await new FirebirdDatabaseBootstrapper(factory).InitializeAsync(CancellationToken.None);
-        var service = new FirebirdBackupService(factory, database.Options, new TestUserContext(Guid.NewGuid()), new TestClock());
+        var service = new FirebirdBackupService(factory, database.Options, new TestUserContext(Guid.NewGuid()), new TestClock(), AllowAllAccess.Instance);
 
         var healthBefore = await service.ExecuteAsync(CancellationToken.None);
         Assert.True(healthBefore.DatabaseReachable);

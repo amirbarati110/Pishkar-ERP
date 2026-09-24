@@ -82,7 +82,7 @@ public sealed class LineEditInfoReaderTests
             new ReceiveOpeningStockCommand(context.RiceId, context.Defaults.MainWarehouseId, 10, 200_000_0, new DateOnly(2026, 9, 1)),
             CancellationToken.None);
 
-        var customers = new FirebirdCustomerService(context.Factory, context.UserContext, context.Clock);
+        var customers = new FirebirdCustomerService(context.Factory, context.UserContext, context.Clock, AllowAllAccess.Instance);
         var ali = await customers.ExecuteAsync(new QuickCreateCustomerCommand("علی رضایی", "09121112233"), CancellationToken.None);
         var sara = await customers.ExecuteAsync(new QuickCreateCustomerCommand("سارا احمدی", "09124445566"), CancellationToken.None);
 
@@ -130,7 +130,7 @@ public sealed class LineEditInfoReaderTests
         var userContext = new TestUserContext(Guid.NewGuid());
         var clock = new TestClock(new DateTimeOffset(2026, 9, 14, 10, 0, 0, TimeSpan.Zero));
 
-        var setup = new FirebirdRetailSetupService(factory, userContext, clock);
+        var setup = new FirebirdRetailSetupService(factory, userContext, clock, AllowAllAccess.Instance);
         var category = await setup.ExecuteAsync(new CreateCategoryCommand("مواد غذایی", null, 1), CancellationToken.None);
         var rice = await setup.ExecuteAsync(
             new CreateProductCommand(
@@ -140,7 +140,7 @@ public sealed class LineEditInfoReaderTests
 
         return new TestContext(
             database, factory, defaults, setup, userContext, clock,
-            rice.Value, new FirebirdSalesService(factory, userContext, clock));
+            rice.Value, new FirebirdSalesService(factory, userContext, clock, AllowAllAccess.Instance));
     }
 
     private sealed record TestContext(

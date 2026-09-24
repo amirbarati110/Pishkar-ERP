@@ -35,8 +35,8 @@ public sealed class CriticalPathTests
         var userContext = new TestUserContext(Guid.NewGuid());
         var clock = new TestClock { UtcNow = new DateTimeOffset(2026, 9, 18, 7, 0, 0, TimeSpan.Zero) };
 
-        var retailSetup = new FirebirdRetailSetupService(factory, userContext, clock);
-        var sales = new FirebirdSalesService(factory, userContext, clock);
+        var retailSetup = new FirebirdRetailSetupService(factory, userContext, clock, AllowAllAccess.Instance);
+        var sales = new FirebirdSalesService(factory, userContext, clock, AllowAllAccess.Instance);
         var cashiering = new FirebirdCashieringService(factory, userContext, clock);
         var accounting = new FirebirdAccountingService(factory);
 

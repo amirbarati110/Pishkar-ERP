@@ -20,7 +20,7 @@ public sealed class FirebirdRetailSetupServiceTests
         var service = new FirebirdRetailSetupService(
             factory,
             new TestUserContext(Guid.NewGuid()),
-            new TestClock(new DateTimeOffset(2026, 9, 14, 9, 0, 0, TimeSpan.Zero)));
+            new TestClock(new DateTimeOffset(2026, 9, 14, 9, 0, 0, TimeSpan.Zero)), AllowAllAccess.Instance);
 
         var first = await service.ExecuteAsync(
             new CreateCategoryCommand("مواد غذایی", null, 0),

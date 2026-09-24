@@ -23,7 +23,7 @@ public sealed class ProductListEndToEndTests
         var factory = new FirebirdConnectionFactory(database.Options);
         var defaults = await new FirebirdDatabaseBootstrapper(factory).InitializeAsync(CancellationToken.None);
         var clock = new TestClock { UtcNow = new DateTimeOffset(2026, 9, 20, 8, 0, 0, TimeSpan.Zero) };
-        var setup = new FirebirdRetailSetupService(factory, new TestUserContext(Guid.NewGuid()), clock);
+        var setup = new FirebirdRetailSetupService(factory, new TestUserContext(Guid.NewGuid()), clock, AllowAllAccess.Instance);
         var list = new ListProductsHandler(new FirebirdProductListReader(factory));
 
         var food = (await setup.ExecuteAsync(new CreateCategoryCommand("مواد غذایی", null, 1), CancellationToken.None)).Value;

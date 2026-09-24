@@ -70,7 +70,7 @@ public sealed class CashShiftServiceTests
         // این تست دقیقاً همان سناریو را می‌سازد که آن باگ را نمایان می‌کرد: دو
         // انبار، دو شیفت هم‌زمان باز، فروش نقدی جدا در هرکدام.
         var context = await SetupAsync();
-        var setup = new FirebirdRetailSetupService(context.Factory, new TestUserContext(Guid.NewGuid()), context.Clock);
+        var setup = new FirebirdRetailSetupService(context.Factory, new TestUserContext(Guid.NewGuid()), context.Clock, AllowAllAccess.Instance);
         var secondWarehouse = await setup.ExecuteAsync(new CreateWarehouseCommand("شعبه‌ی دوم", null), CancellationToken.None);
         Assert.True(secondWarehouse.IsSuccess);
         var secondWarehouseId = secondWarehouse.Value;
@@ -136,7 +136,7 @@ public sealed class CashShiftServiceTests
         var userContext = new TestUserContext(Guid.NewGuid());
         var clock = new TestClock { UtcNow = new DateTimeOffset(2026, 9, 17, 8, 0, 0, TimeSpan.Zero) };
 
-        var setup = new FirebirdRetailSetupService(factory, userContext, clock);
+        var setup = new FirebirdRetailSetupService(factory, userContext, clock, AllowAllAccess.Instance);
         var category = await setup.ExecuteAsync(new CreateCategoryCommand("مواد غذایی", null, 1), CancellationToken.None);
         var rice = await setup.ExecuteAsync(
             new CreateProductCommand(
@@ -147,7 +147,7 @@ public sealed class CashShiftServiceTests
             new ReceiveOpeningStockCommand(rice.Value, defaults.MainWarehouseId, 20, 200_000_0, new DateOnly(2026, 9, 1)),
             CancellationToken.None);
 
-        var sales = new FirebirdSalesService(factory, userContext, clock);
+        var sales = new FirebirdSalesService(factory, userContext, clock, AllowAllAccess.Instance);
         var cashiering = new FirebirdCashieringService(factory, userContext, clock);
         return new TestContext(database, factory, defaults, clock, rice.Value, sales, cashiering);
     }

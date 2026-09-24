@@ -130,14 +130,14 @@ public sealed class RestoreBackupTests
         Assert.True(admin.IsSuccess, admin.Error?.Message);
         var user = new TestUserContext(admin.Value.Value);
         var clock = new TestClock();
-        var setup = new FirebirdRetailSetupService(factory, user, clock);
+        var setup = new FirebirdRetailSetupService(factory, user, clock, AllowAllAccess.Instance);
         var category = await setup.ExecuteAsync(new CreateCategoryCommand("مواد غذایی", null, 1), CancellationToken.None);
         return new Context(
             factory,
             defaults,
             setup,
             category.Value,
-            new FirebirdBackupService(factory, database.Options, user, clock),
+            new FirebirdBackupService(factory, database.Options, user, clock, AllowAllAccess.Instance),
             Path.Combine(Path.GetTempPath(), $"pishkar-restore-test-{Guid.NewGuid():N}"));
     }
 

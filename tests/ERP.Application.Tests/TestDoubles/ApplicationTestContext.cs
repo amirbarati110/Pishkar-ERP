@@ -295,6 +295,9 @@ internal sealed class UserRepository : IUserRepository
 
     public Task<bool> AnyExistsAsync(CancellationToken cancellationToken) => Task.FromResult(Items.Count > 0);
 
+    public Task<IReadOnlyList<User>> ListAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<User>>([.. Items.OrderBy(user => user.Status).ThenBy(user => user.DisplayName, StringComparer.Ordinal)]);
+
     public Task SaveAsync(User user, CancellationToken cancellationToken)
     {
         if (!Items.Contains(user))

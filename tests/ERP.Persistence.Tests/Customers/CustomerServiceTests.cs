@@ -117,7 +117,7 @@ public sealed class CustomerServiceTests
         var service = new FirebirdCustomerService(
             factory,
             new TestUserContext(Guid.NewGuid()),
-            new TestClock(new DateTimeOffset(2026, 9, 15, 9, 0, 0, TimeSpan.Zero)));
+            new TestClock(new DateTimeOffset(2026, 9, 15, 9, 0, 0, TimeSpan.Zero)), AllowAllAccess.Instance);
         return (factory, service);
     }
 

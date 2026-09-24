@@ -34,7 +34,8 @@ public sealed record AppServices(
     ISpreadsheetReader SpreadsheetReader,
     FirebirdCashieringService Cashiering,
     FirebirdBackupService Backups,
-    string BackupDirectory)
+    string BackupDirectory,
+    FirebirdIdentityService Identity)
 {
     /// <summary>
     /// Everything the app needs before anyone has signed in: the database
@@ -71,7 +72,7 @@ public sealed record AppServices(
         var defaults = await new FirebirdDatabaseBootstrapper(factory)
             .InitializeAsync(cancellationToken);
         var clock = new SystemClock();
-        var identity = new FirebirdIdentityService(factory);
+        var identity = new FirebirdIdentityService(factory, clock);
 
         return new DatabaseContext(factory, options, defaults, clock, identity);
     }
@@ -81,13 +82,15 @@ public sealed record AppServices(
     {
         var factory = database.Factory;
         var clock = database.Clock;
-        var service = new FirebirdRetailSetupService(factory, userContext, clock);
-        var salesService = new FirebirdSalesService(factory, userContext, clock);
-        var customerService = new FirebirdCustomerService(factory, userContext, clock);
+        // every sensitive call re-reads the signed-in user's rights from the database (§10, §15.2)
+        var access = new FirebirdAccessChecker(factory, userContext);
+        var service = new FirebirdRetailSetupService(factory, userContext, clock, access);
+        var salesService = new FirebirdSalesService(factory, userContext, clock, access);
+        var customerService = new FirebirdCustomerService(factory, userContext, clock, access);
         var catalogLookup = new FirebirdCatalogLookupReader(factory);
         var productSearch = new SearchProductsHandler(new FirebirdProductSearchReader(factory));
         var productList = new ListProductsHandler(new FirebirdProductListReader(factory));
-        var stockCard = new GetStockCardHandler(new FirebirdStockCardReader(factory));
+        var stockCard = new CostAwareStockCardHandler(new GetStockCardHandler(new FirebirdStockCardReader(factory)), access);
 
         var salesBackend = new SalesBackend(
             StartSale: salesService,
@@ -141,8 +144,9 @@ public sealed record AppServices(
             database.Defaults,
             new OpenXmlSpreadsheetReader(),
             new FirebirdCashieringService(factory, userContext, clock),
-            new FirebirdBackupService(factory, database.Options, userContext, clock),
-            backupDirectory);
+            new FirebirdBackupService(factory, database.Options, userContext, clock, access),
+            backupDirectory,
+            database.Identity);
     }
 
     /// <summary>Who is signed in, for every Application-layer handler's <see cref="IUserContext"/>.</summary>
